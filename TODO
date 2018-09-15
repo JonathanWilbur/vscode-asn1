@@ -1,0 +1,100 @@
+Note that not all of these will actually be done before version 1.0.0 is released.
+* = Requires whole-page validation
+
+- [ ] Hover Info
+  - [x] DEFAULT
+  - [x] OPTIONAL
+  - [x] EXPLICIT
+  - [x] IMPLICIT
+  - [x] TRUE
+  - [x] FALSE
+  - [x] TAGS
+  - [ ] ~~Display dates in a more human friendly format~~ (This cannot be done _well_ until VS Code supports named regex capture groups.)
+  - [x] Support aliases
+    - [x] ISO646String
+    - [x] EmbeddedPDV
+    - [x] External
+    - [x] TeletexString
+- [x] Hints
+  - [x] Consider using GeneralizedTime instead of UTCTime
+  - [ ] EXTENSIBILITY IMPLIED, so trailing ... is not necessary*
+- [x] Warnings
+  - [x] (MIN..MAX) unnecessary
+  - [x] GeneralString use is discouraged (Page 182 Dubuisson)
+  - [x] GraphicString use is discouraged (Page 182 Dubuisson)
+  - [x] INTEGER is too big to encode in 32 bits
+- [ ] Errors
+  - [ ] Module*
+    - [ ] BEGIN with no END*
+    - [ ] END with no BEGIN*
+  - [ ] Tag
+    - [x] Contradictory APPLICATION and PRIVATE
+    - [x] Contradictory UNIVERSAL and APPLICATION
+    - [x] Contradictory UNIVERSAL and PRIVATE
+    - [ ] Cannot have negative tag number
+    - [ ] No leading 0 on tag number
+    - [x] Contradictory EXPLICIT and IMPLICIT
+  - [x] Structured Types
+    - [x] Contradictory OPTIONAL and PRESENT
+    - [x] Contradictory OPTIONAL and ABSENT
+    - [x] Contradictory PRESENT and ABSENT
+    - [x] Contradictory OPTIONAL and DEFAULT
+    - [x] Duplicated context-specific tag numbers
+  - [ ] Types
+    - [x] OBJECT IDENTIFIER
+      - [x] Leading OID node greater than 2
+      - [x] Second OID node greater than 175
+      - [x] OID node cannot be negative
+      - [ ] OID mismatch between node descriptor and node number (e.g. iso(2))
+    - [x] Invalid UTCTime
+    - [x] Invalid GeneralizedTime
+    - [ ] Invalid character in string type
+      - [ ] NumericString
+      - [ ] PrintableString
+      - [ ] VisibleString
+    - [x] Invalid character in binary string
+    - [x] Invalid character in hexadecimal string
+    - [ ] Duplicated numbers in ENUMERATED (e.g. { on(0), off(1), out-of-order(2), idle(1) })
+  - [ ] Constraints
+    - [ ] Cannot have negative SIZE
+    - [ ] No leading 0 on SIZE constraint
+    - [ ] Make sure SIZE is only applied to types that support it
+    - [ ] Range boundaries: minimum greater than maximum in SIZE
+    - [x] Range boundaries: minimum greater than maximum
+    - [ ] Leading or Trailing "|" Alternation Operator in FROM
+    - [ ] FROM range cannot span multi-character strings
+    - [ ] PATTERN validation
+      - [ ] Unbalanced set `[]` brackets
+      - [ ] Unbalanced option `{}` brackets
+      - [ ] Unrecognized backslash escape
+      - [ ] Trailing alternation pipe
+      - [ ] Unbalanced grouping `()` brackets
+      - [ ] Nothing to repeat
+      - [ ] Invalid range
+  - [ ] Exception Markers
+  - [ ] Extensions
+    - [ ] Negative version number
+  - [ ] Classes
+  - [ ] Undefined type
+  - [ ] Field cannot have two different types "e.g. OBJECT IDENTIFIER REAL"
+  - [ ] Unmatched Brackets
+  - [ ] Trailing Comma
+  - [x] Leading zeros in numeric literal (X.680 S 12.8)
+- [ ] Formatting
+  - [ ] One single space between moustaches and content
+  - [ ] Single spaces surrounding "::="
+  - [ ] One blank line between definitions
+  - [ ] Remove trailing comma
+  - [ ] Single space between SIZE and parentheses
+- [ ] Go to definitions
+- [ ] Solution explorer
+- [ ] Common type definitions
+- [ ] Commands
+  - [ ] Append extensibility
+  - [ ] Make all tags context specific
+  - [ ] Show BER Encoding
+  - [ ] Show DER Encoding
+- [ ] Note that X.409 (1984) was the first specification of ASN.1, which later became X.208 and X.209. X.208 later was replaced by X.680-X.683.
+- [ ] X.209 was the specification for BER, which later became X.690.
+- [ ] Create enum for tagging mode
+- [ ] Create the newer data types

@@ -1,0 +1,74 @@
+a1 ::= INTEGER (5..3) -- Reversed boundaries
+a2 ::= INTEGER -- Reused symbol
+a3 ::= INTEGER ()
+
+-- Contradictory construction constraints
+b1 ::= SEQUENCE { testeroni BOOLEAN OPTIONAL PRESENT }
+b2 ::= SEQUENCE { testeroni BOOLEAN OPTIONAL ABSENT }
+b1 ::= SEQUENCE { testeroni BOOLEAN PRESENT OPTIONAL }
+b2 ::= SEQUENCE { testeroni BOOLEAN ABSENT OPTIONAL }
+b3 ::= SEQUENCE { testeroni BOOLEAN PRESENT ABSENT }
+b4 ::= SEQUENCE { testeroni BOOLEAN ABSENT PRESENT }
+b5 ::= SEQUENCE { testeroni BOOLEAN OPTIONAL PRESENT }
+
+-- OID
+c1 OBJECT IDENTIFIER ::= { 3 5 1 4 6 } -- First node > 2
+c2 OBJECT IDENTIFIER ::= { 1 218 1 4 6 } -- Second node > 175
+c3 OBJECT IDENTIFIER ::= { 1 3 1 4 -6 } -- Negative arc
+c4 OBJECT IDENTIFIER ::= {}
+c5 OBJECT IDENTIFIER ::= { }
+c6 OBJECT IDENTIFIER ::= { 1 }
+c7 OBJECT IDENTIFIER ::= { iso(2) }
+
+-- Contradictory tagging mode
+d1 ::= EXPLICIT IMPLICIT INTEGER
+d2 ::= IMPLICIT EXPLICIT INTEGER
+d3 ::= EXPLICIT EXPLICIT INTEGER
+d4 ::= IMPLICIT IMPLICIT INTEGER
+
+-- Contradictory classes
+e1 ::= [ APPLICATION PRIVATE 8 ] IMPLICIT INTEGER
+e2 ::= [ PRIVATE APPLICATION 8 ] IMPLICIT INTEGER
+e3 ::= [ UNIVERSAL PRIVATE 8 ] IMPLICIT INTEGER
+e4 ::= [ UNIVERSAL APPLICATION 8 ] IMPLICIT INTEGER
+e5 ::= [ APPLICATION UNIVERSAL 8 ] IMPLICIT INTEGER
+e6 ::= [ PRIVATE UNIVERSAL 8 ] IMPLICIT INTEGER
+e7 ::= [ PRIVATE 8 ] [ PRIVATE 8 ] IMPLICIT INTEGER
+e8 ::= [4] [5] IMPLICIT INTEGER
+
+-- Negative tag number
+f1 ::= [ UNIVERSAL -5 ] INTEGER
+
+-- Trailing pipe
+g1 ::= NumericString FROM ("0"|"2"|"4"|)
+
+-- Multiple types
+h1 ::= INTEGER REAL SIZE(5)
+
+-- Invalid string literals
+i1 BIT STRING ::= '1001995901'B
+i2 OCTET STRING ::= '0ABCDEF999HHH2ZZZ'H
+
+-- Invalid number literals
+j1 INTEGER ::= 00005
+j2 INTEGER ::= -003
+
+-- Invalid UTCTime
+l1 UTCTime ::= "751308132656Z"
+l2 UTCTime ::= "751235132656Z"
+l3 UTCTime ::= "751230272656Z"
+l4 UTCTime ::= "751230219956Z"
+l5 UTCTime ::= "751230212699Z"
+l6 UTCTime ::= "751230212605Z" -- This one is valid, for reference.
+
+-- Invalid GeneralizedTime
+m1 GeneralizedTime ::= "19751308132656Z"
+m2 GeneralizedTime ::= "19751235132656Z"
+m3 GeneralizedTime ::= "19751230272656Z"
+m4 GeneralizedTime ::= "19751230219956Z"
+m5 GeneralizedTime ::= "19751230212699Z"
+m6 GeneralizedTime ::= "19751230212602Z" -- This one is valid, for reference.
+
+-- Contradictory requirement
+N1 ::= SEQUENCE {
+    something   BOOLEAN OPTIONAL DEFAULT TRUE }

@@ -1,0 +1,52 @@
+{
+    "name": "asn1",
+    "displayName": "ASN.1",
+    "description": "ASN.1 syntax, autocompletion, autocorrect, and more.",
+    "version": "0.0.1",
+    "publisher": "Wildboar",
+    "engines": {
+        "vscode": "^1.26.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "asn1",
+                "aliases": [
+                    "ASN.1",
+                    "asn1"
+                ],
+                "extensions": [
+                    ".asn1",
+                    ".asn"
+                ],
+                "configuration": "./config/asn1.language-config.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "asn1",
+                "scopeName": "source.asn1",
+                "path": "./config/asn1.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "asn1",
+                "path": "./config/asn1.code-snippets"
+            }
+        ]
+    },
+    "main": "./dist/index.js",
+    "activationEvents": [
+        "onLanguage:asn1"
+    ],
+    "dependencies": {
+        "vscode": "^1.1.21"
+    },
+    "scripts": {
+        "pkgvars": "node ./node_modules/vscode/bin/install"
+    }
+}

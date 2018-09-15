@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"module": "CommonJS",
+		"outDir": "dist",
+		"sourceMap": true,
+		"baseUrl": "source",
+		"lib": [
+			"es2015",
+			"es2018"
+		]
+	},
+	"exclude": [
+		"node_modules"
+	]
+}

@@ -1,0 +1,125 @@
+{
+    "Sequence": {
+        "prefix": "seq",
+        "scope": "asn1",
+        "body": [
+            "SEQUENCE {",
+            "\t$0 }"
+        ],
+        "description": "ASN.1 SEQUENCE"
+    },
+    "Sequence Of": {
+        "prefix": "seqof",
+        "scope": "asn1",
+        "body": [
+            "SEQUENCE OF {",
+            "\t$0 }"
+        ],
+        "description": "ASN.1 SEQUENCE OF"
+    },
+    "Set": {
+        "prefix": "set",
+        "scope": "asn1",
+        "body": [
+            "SET {",
+            "\t$0 }"
+        ],
+        "description": "ASN.1 SET"
+    },
+    "Set Of": {
+        "prefix": "setof",
+        "scope": "asn1",
+
+        "body": [
+            "SET OF {",
+            "\t$0 }"
+        ],
+        "description": "ASN.1 SET OF"
+    },
+    "Choice": {
+        "prefix": "cho",
+        "scope": "asn1",
+        "body": [
+            "CHOICE {",
+            "\t$0 }"
+        ],
+        "description": "ASN.1 CHOICE"
+    },
+    "Object Identifier": {
+        "prefix": "oid",
+        "scope": "asn1",
+        "body": [
+            "{ ${1|itu-t(0),iso(1),joint-iso-itu-t(2)|} $2 $3 }"
+        ]
+    },
+    "Relative Object Identifier": {
+        "prefix": "roid",
+        "scope": "asn1",
+        "body": [
+            "{ $0 }"
+        ]
+    },
+    "Mantissa-Base-Exponent REAL": {
+        "prefix": "mbe",
+        "scope": "asn1",
+        "body": [
+            "{ mantissa $1, base $2, exponent $3 }"
+        ]
+    },
+    "ITU Object Identifier Arc": {
+        "prefix": "itu",
+        "scope": "asn1",
+        "body": [
+            "{ itu-t(0) ${1|recommendation(0),question(1),administration(2),network-operator(3),identified-organization(4),r-recommended(5),data(9)|} $2 }"
+        ]
+    },
+    "ISO Object Identifier Arc": {
+        "prefix": "iso",
+        "scope": "asn1",
+        "body": [
+            "{ iso(1) ${1|standard(0),registration-authority(1),member-body(2),identified-organizations(3)|} $2 }"
+        ]
+    },
+    "Joint ISO-ITU-T Object Identifier Arc": {
+        "prefix": "joint",
+        "scope": "asn1",
+        "body": [
+            "{ joint-iso-itu-t(2) ${1|presentation(0),asn1(1),association-control(2),reliable-transfer(3),remote-operations(4),directory(5),mhs(6),ccr(7),oda(8),ms(9),transaction-processing(10),dor(11),rdt(12),network-layer(13),transport-layer(14),datalink-layer(15),country(16),registration-procedures(17),physical-layer(18),mheg(19),genericULS(20),transport-layer-security-protocol(21),network-layer-security-protocol(22),international-organizations(23),sios(24),uuid(25),odp(26),tag-based(27),its(28),upu(40),bip(41),telebiometrics(42),cybersecurity(48),alerting(49),ors(50),gs1(51),example(999)|} $2 }"
+        ]
+    },
+    "Private Enterprise Number": {
+        "prefix": "pen",
+        "scope": "asn1",
+        "body": [
+            "{ iso(1) identified-organizations(3) dod(6) internet(1) private(4) enterprise(1) $0 }"
+        ]
+    },
+    "LDAP Syntax": {
+        "prefix": "syn",
+        "scope": "asn1",
+        "body": [
+            "1.3.6.1.4.1.1466.115.121.1.$0"
+        ]
+    },
+    "LDAP Matching Rule": {
+        "prefix": "match",
+        "scope": "asn1",
+        "body": [
+            "{ joint-iso-itu-t(2) ds(5) matchingRule(13) ${1|objectIdentifierMatch(0),distinguishedNameMatch(1),caseIgnoreMatch(2),caseIgnoreOrderingMatch(3),caseIgnoreSubstringsMatch(4),caseExactMatch(5),caseExactOrderingMatch(6),caseExactSubstringsMatch(7),numericStringMatch(8),numericStringOrderingMatch(9),numericStringSubstringsMatch(10),caseIgnoreListMatch(11),caseIgnoreListSubstringsMatch(12),booleanMatch(13),integerMatch(14),integerOrderingMatch(15),bitStringMatch(16),octetStringMatch(17),octetStringOrderingMatch(18),octetStringSubstringsMatch(19),telephoneNumberMatch(20),telephoneNumberSubstringsMatch(21),presentationAddressMatch(22),uniqueMemberMatch(23),protocolInformationMatch(24),uTCTimeMatch(25),uTCTimeOrderingMatch(26),generalizedTimeMatch(27),generalizedTimeOrderingMatch(28),integerFirstComponentMatch(29),objectIdentifierFirstComponentMatch(30),directoryStringFirstComponentMatch(31),wordMatch(32),keywordMatch(33),certificateExactMatch(34),certificateMatch(35),certificatePairExactMatch(36),certificatePairMatch(37),certificateListExactMatch(38),certificateListMatch(39),algorithmIdentifierMatch(40),storedPrefixMatch(41),attributeCertificateMatch(42),readerAndKeyIDMatch(43),attributeIntegrityMatch(44),attributeCertificateExactMatch(45),holderIssuerMatch(46),systemProposedMatch(47),generalWordMatch(48),approximateStringMatch(49),ignoreIfAbsentMatch(50),nullMatch(51),zonalMatch(52),authAttIdMatch(53),roleSpecCertIdMatch(54),basicAttConstraintsMatch(55),delegatedNameConstraintsMatch(56),timeSpecMatch(57),attDescriptorMatch(58),acceptableCertPoliciesMatch(59),policyMatch(60),delegationPathMatch(61),pkiPathMatch(62),facsimileNumberMatch(63),facsimileNumberSubstringsMatch(64),enhancedCertificateMatch(65),sOAIdentifierMatch(66),extensionPresenceMatch(67),uuidpairMatch(68),dualStringMatch(69),uriMatch(70),userPwdMatch(71),pwdEncAlgMatch(72),userPwdHistoryMatch(73),id-mr-dnsNameMatch(74)|} }"
+        ]
+    },
+    "MIB-2": {
+        "prefix": "mib2",
+        "scope": "asn1",
+        "body": [
+            "{ iso(1) identified-organizations(3) dod(6) internet(1) mgmt(2) mib-2(1) }"
+        ]
+    },
+    "Active Directory": {
+        "prefix": "activ",
+        "scope": "asn1",
+        "body": [
+            "{ iso(1) member-body(2) us(840) microsoft(113556) 1 }"
+        ]
+    }
+}
