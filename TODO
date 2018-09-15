@@ -98,3 +98,4 @@ Note that not all of these will actually be done before version 1.0.0 is release
 - [ ] X.209 was the specification for BER, which later became X.690.
 - [ ] Create enum for tagging mode
 - [ ] Create the newer data types
+- [ ] Fix nodes[2] in asn1-ts/source/types/oid:14

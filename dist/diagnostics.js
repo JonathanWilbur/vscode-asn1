@@ -1,6 +1,8 @@
 "use strict";
 exports.__esModule = true;
 var vscode_1 = require("vscode");
+var regexes = require("./regexes");
+var oidnodes_1 = require("./oidnodes");
 function diagnoseRange(line, lineNumber, diagnostics) {
     var i = 0;
     var match;
@@ -29,73 +31,143 @@ function diagnoseRange(line, lineNumber, diagnostics) {
 }
 exports.diagnoseRange = diagnoseRange;
 function diagnoseObjectIdentifier(line, lineNumber, diagnostics) {
-    diagnoseShortObjectIdentifier(line, lineNumber, diagnostics);
-    diagnoseCompleteObjectIdentifier(line, lineNumber, diagnostics);
-    diagnoseNegativeObjectIdentifier(line, lineNumber, diagnostics);
+    var i = 0;
+    var match;
+    do {
+        match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{([^\{\}]*)\}/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        var nodes = convertObjectIdentifierTokensToNodes(match[2], range, diagnostics);
+        if (nodes.length < 2) {
+            var diag = new vscode_1.Diagnostic(range, "An OBJECT IDENTIFIER may not be shorter than two nodes.", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+            break;
+        }
+        if (typeof nodes[0].numberForm !== "undefined") {
+            if (nodes[0].numberForm > 2) {
+                var diag = new vscode_1.Diagnostic(range, "First node of an OBJECT IDENTIFIER may not exceed 2.", vscode_1.DiagnosticSeverity.Error);
+                diagnostics.push(diag);
+            }
+            else {
+                if (typeof nodes[1].numberForm !== "undefined") {
+                    switch (nodes[0].numberForm) {
+                        case 0:
+                        case 1: {
+                            if (nodes[1].numberForm > 39) {
+                                var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
+                            break;
+                        }
+                        case 2: {
+                            if (nodes[1].numberForm > 175) {
+                                var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 175 if the first node is 2.", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
+                            break;
+                        }
+                        default: return; // REVIEW
+                    }
+                }
+            }
+        }
+        else {
+            if (!["itu-t", "ccitt", "itu-r", "iso", "joint-iso-itu-t", "joint-iso-ccitt"].includes(nodes[0].nameForm)) {
+                var diag = new vscode_1.Diagnostic(range, "Invalid first OBJECT IDENTIFIER node: " + nodes[0].nameForm + ".", vscode_1.DiagnosticSeverity.Error);
+                diagnostics.push(diag);
+            }
+            else {
+                if (typeof nodes[1].numberForm !== "undefined") {
+                    switch (nodes[0].nameForm) {
+                        case "itu-t":
+                        case "ccitt":
+                        case "itu-r":
+                        case "iso": {
+                            if (nodes[1].numberForm > 39) {
+                                var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
+                            break;
+                        }
+                        case "joint-iso-itu-t":
+                        case "joint-iso-ccitt": {
+                            if (nodes[1].numberForm > 175) {
+                                var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 175 if the first node is 2.", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
+                            break;
+                        }
+                        default: return; // REVIEW
+                    }
+                }
+            }
+        }
+    } while (i < line.length);
 }
 exports.diagnoseObjectIdentifier = diagnoseObjectIdentifier;
-function diagnoseShortObjectIdentifier(line, lineNumber, diagnostics) {
-    var i = 0;
-    var match;
-    do {
-        match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s*(\d+\s*)?\}/g.exec(line.slice(i));
-        if (match === null)
-            break;
-        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-        // REVIEW: Any way I can assert(0) if either number is NaN?
-        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
-        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
-        var range = new vscode_1.Range(startPosition, endPosition);
-        var diag = new vscode_1.Diagnostic(range, "An OBJECT IDENTIFIER must have at least two nodes.", vscode_1.DiagnosticSeverity.Error);
-        diagnostics.push(diag);
-    } while (i < line.length);
-}
-exports.diagnoseShortObjectIdentifier = diagnoseShortObjectIdentifier;
-function diagnoseCompleteObjectIdentifier(line, lineNumber, diagnostics) {
-    var i = 0;
-    var match;
-    do {
-        match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s+(\d+)\s+(\d+)(?:\s+(\d+))*\s+\}/g.exec(line.slice(i));
-        if (match === null)
-            break;
-        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-        var firstNode = Number(match[2]);
-        var secondNode = Number(match[3]);
-        // REVIEW: Any way I can assert(0) if either number is NaN?
-        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
-        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
-        var range = new vscode_1.Range(startPosition, endPosition);
-        if (firstNode > 2) {
-            var diag = new vscode_1.Diagnostic(range, "First node of an OBJECT IDENTIFIER cannot be greater than 2.", vscode_1.DiagnosticSeverity.Error);
-            diagnostics.push(diag);
-        }
-        if (firstNode === 2 && secondNode > 175) {
-            var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER cannot be greater than 175 if first node is 2.", vscode_1.DiagnosticSeverity.Error);
-            diagnostics.push(diag);
-        }
-        else if (secondNode > 39) {
-            var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER cannot be greater than 39 if first node is 0 or 1.", vscode_1.DiagnosticSeverity.Error);
-            diagnostics.push(diag);
-        }
-    } while (i < line.length);
-}
-exports.diagnoseCompleteObjectIdentifier = diagnoseCompleteObjectIdentifier;
-function diagnoseNegativeObjectIdentifier(line, lineNumber, diagnostics) {
-    var i = 0;
-    var match;
-    do {
-        match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s+(?:\d+\s+)*(?:-\d+\s+)+(?:\d+\s+)*\}/g.exec(line.slice(i));
-        if (match === null)
-            break;
-        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
-        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
-        var range = new vscode_1.Range(startPosition, endPosition);
-        var diag = new vscode_1.Diagnostic(range, "OBJECT IDENTIFIER node cannot be negative.", vscode_1.DiagnosticSeverity.Error);
-        diagnostics.push(diag);
-    } while (i < line.length);
-}
-exports.diagnoseNegativeObjectIdentifier = diagnoseNegativeObjectIdentifier;
+// export
+// function diagnoseShortObjectIdentifier (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
+//     let i : number = 0;
+//     let match : RegExpExecArray | null;
+//     do {
+//         match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s*(\d+\s*)?\}/g.exec(line.slice(i));
+//         if (match === null) break;
+//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+//         // REVIEW: Any way I can assert(0) if either number is NaN?
+//         const startPosition : Position = new Position(lineNumber, match.index + match[1].length);
+//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
+//         const range : Range = new Range(startPosition, endPosition);
+//         const diag : Diagnostic = new Diagnostic(range, "An OBJECT IDENTIFIER must have at least two nodes.", DiagnosticSeverity.Error);
+//         diagnostics.push(diag);
+//     } while (i < line.length);
+// }
+// export
+// function diagnoseCompleteObjectIdentifier (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
+//     let i : number = 0;
+//     let match : RegExpExecArray | null;
+//     do {
+//         match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s+(\d+)\s+(\d+)(?:\s+(\d+))*\s+\}/g.exec(line.slice(i));
+//         if (match === null) break;
+//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+//         const firstNode : number = Number(match[2]);
+//         const secondNode : number = Number(match[3]);
+//         // REVIEW: Any way I can assert(0) if either number is NaN?
+//         const startPosition : Position = new Position(lineNumber, match.index + match[1].length);
+//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
+//         const range : Range = new Range(startPosition, endPosition);
+//         if (firstNode > 2) {
+//             const diag : Diagnostic = new Diagnostic(range, "First node of an OBJECT IDENTIFIER cannot be greater than 2.", DiagnosticSeverity.Error);
+//             diagnostics.push(diag);
+//         }
+//         if (firstNode === 2 && secondNode > 175) {
+//             const diag : Diagnostic = new Diagnostic(range, "Second node of an OBJECT IDENTIFIER cannot be greater than 175 if first node is 2.", DiagnosticSeverity.Error);
+//             diagnostics.push(diag);
+//         } else if (secondNode > 39) {
+//             const diag : Diagnostic = new Diagnostic(range, "Second node of an OBJECT IDENTIFIER cannot be greater than 39 if first node is 0 or 1.", DiagnosticSeverity.Error);
+//             diagnostics.push(diag);
+//         }
+//     } while (i < line.length);
+// }
+// export
+// function diagnoseNegativeObjectIdentifier (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
+//     let i : number = 0;
+//     let match : RegExpExecArray | null;
+//     do {
+//         match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s+(?:\d+\s+)*(?:-\d+\s+)+(?:\d+\s+)*\}/g.exec(line.slice(i));
+//         if (match === null) break;
+//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+//         const startPosition : Position = new Position(lineNumber, match.index + match[1].length);
+//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
+//         const range : Range = new Range(startPosition, endPosition);
+//         const diag : Diagnostic = new Diagnostic(range, "OBJECT IDENTIFIER node cannot be negative.", DiagnosticSeverity.Error);
+//         diagnostics.push(diag);
+//     } while (i < line.length);
+// }
 /* Why the stuff below is commented out:
     Looking at X.680, it looks like the Tag definition can be a lot more
     complicated than it often appears, which foils my plans for now.
@@ -334,4 +406,48 @@ function diagnoseSignedNumber(numberString, range, diagnostics) {
     }
 }
 exports.diagnoseSignedNumber = diagnoseSignedNumber;
+// The OID string this receives should not contain "{" or "}"
+// identifier, number, identifier(number), valuereference, modulereference.typereference
+function convertObjectIdentifierTokensToNodes(objIdComponentList, range, diagnostics) {
+    var tokens = objIdComponentList.replace(/\s*\(\s*(\d+)\s*\)/, "($1)").split(/\s+/g);
+    var nodes = [];
+    for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
+        var token = tokens_1[_i];
+        if (token === "")
+            continue;
+        if (regexes.number.test(token)) {
+            diagnoseUnsignedNumber(token, range, diagnostics);
+            nodes.push(new oidnodes_1.ObjectIdentifierNode(Number(token)));
+        }
+        else if (regexes.identifier.test(token)) {
+            nodes.push(new oidnodes_1.ObjectIdentifierNode(undefined, token));
+        }
+        else if (token.split(".").length === 2) {
+            var _a = token.split("."), moduleReference = _a[0], typeReference = _a[1];
+            if (regexes.modulereference.test(moduleReference)) {
+                var diag = new vscode_1.Diagnostic(range, "Malformed ModuleReference.", vscode_1.DiagnosticSeverity.Error);
+                diagnostics.push(diag);
+                return [];
+            }
+            if (regexes.typereference.test(typeReference)) {
+                var diag = new vscode_1.Diagnostic(range, "Malformed TypeReference.", vscode_1.DiagnosticSeverity.Error);
+                diagnostics.push(diag);
+                return [];
+            }
+            nodes.push(new oidnodes_1.ObjectIdentifierNode(undefined, token));
+        }
+        else {
+            var match = /^([a-z][A-Za-z0-9\-]*[A-Za-z0-9])\((\d+)\)$/g.exec(token);
+            if (!match) {
+                var diag = new vscode_1.Diagnostic(range, "Malformed OBJECT IDENTIFIER literal.", vscode_1.DiagnosticSeverity.Error);
+                diagnostics.push(diag);
+                return [];
+            }
+            diagnoseUnsignedNumber(match[2], range, diagnostics);
+            nodes.push(new oidnodes_1.ObjectIdentifierNode(Number(match[2]), match[1]));
+        }
+    }
+    ;
+    return nodes;
+}
 //# sourceMappingURL=diagnostics.js.map
