@@ -18,6 +18,7 @@ Note that not all of these will actually be done before version 1.0.0 is release
 - [x] Hints
   - [x] Consider using GeneralizedTime instead of UTCTime
   - [ ] EXTENSIBILITY IMPLIED, so trailing ... is not necessary*
+  - [ ] Consider adding an exception marker
 - [x] Warnings
   - [x] (MIN..MAX) unnecessary
   - [x] GeneralString use is discouraged (Page 182 Dubuisson)
@@ -27,12 +28,12 @@ Note that not all of these will actually be done before version 1.0.0 is release
   - [ ] Module*
     - [ ] BEGIN with no END*
     - [ ] END with no BEGIN*
-  - [ ] Tag
+  - [x] Tag
     - [x] Contradictory APPLICATION and PRIVATE
     - [x] Contradictory UNIVERSAL and APPLICATION
     - [x] Contradictory UNIVERSAL and PRIVATE
-    - [ ] Cannot have negative tag number
-    - [ ] No leading 0 on tag number
+    - [x] Cannot have negative tag number
+    - [x] No leading 0 on tag number
     - [x] Contradictory EXPLICIT and IMPLICIT
   - [x] Structured Types
     - [x] Contradictory OPTIONAL and PRESENT
@@ -45,24 +46,30 @@ Note that not all of these will actually be done before version 1.0.0 is release
       - [x] Leading OID node greater than 2
       - [x] Second OID node greater than 175
       - [x] OID node cannot be negative
-      - [ ] OID mismatch between node descriptor and node number (e.g. iso(2))
+      - [x] OID mismatch between node descriptor and node number (e.g. iso(2))
     - [x] Invalid UTCTime
     - [x] Invalid GeneralizedTime
-    - [ ] Invalid character in string type
-      - [ ] NumericString
-      - [ ] PrintableString
-      - [ ] VisibleString
+    - [x] Invalid character in string type
+      - [x] NumericString
+      - [x] PrintableString
+      - [x] VisibleString
     - [x] Invalid character in binary string
     - [x] Invalid character in hexadecimal string
-    - [ ] Duplicated numbers in ENUMERATED (e.g. { on(0), off(1), out-of-order(2), idle(1) })
+    - [x] ENUMERATED 
+      - [ ] Duplicated numbers in ENUMERATED (e.g. { on(0), off(1), out-of-order(2), idle(1) })
+    - [x] REAL
+    - [x] BOOLEAN
+    - [x] BIT STRING
+    - [x] OCTET STRING
+    - [x] RELATIVE-OID
   - [ ] Constraints
-    - [ ] Cannot have negative SIZE
-    - [ ] No leading 0 on SIZE constraint
+    - [x] Cannot have negative SIZE
+    - [x] No leading 0 on SIZE constraint
     - [ ] Make sure SIZE is only applied to types that support it
-    - [ ] Range boundaries: minimum greater than maximum in SIZE
+    - [x] Range boundaries: minimum greater than maximum in SIZE
     - [x] Range boundaries: minimum greater than maximum
-    - [ ] Leading or Trailing "|" Alternation Operator in FROM
-    - [ ] FROM range cannot span multi-character strings
+    - [x] Leading or Trailing "|" Alternation Operator in FROM
+    - [x] FROM range cannot span multi-character strings
     - [ ] PATTERN validation
       - [ ] Unbalanced set `[]` brackets
       - [ ] Unbalanced option `{}` brackets
@@ -71,14 +78,12 @@ Note that not all of these will actually be done before version 1.0.0 is release
       - [ ] Unbalanced grouping `()` brackets
       - [ ] Nothing to repeat
       - [ ] Invalid range
-  - [ ] Exception Markers
   - [ ] Extensions
     - [ ] Negative version number
-  - [ ] Classes
   - [ ] Undefined type
   - [ ] Field cannot have two different types "e.g. OBJECT IDENTIFIER REAL"
   - [ ] Unmatched Brackets
-  - [ ] Trailing Comma
+  - [x] Trailing Comma
   - [x] Leading zeros in numeric literal (X.680 S 12.8)
 - [ ] Formatting
   - [ ] One single space between moustaches and content
@@ -94,6 +99,11 @@ Note that not all of these will actually be done before version 1.0.0 is release
   - [ ] Make all tags context specific
   - [ ] Show BER Encoding
   - [ ] Show DER Encoding
+- [ ] Code completion
+- [ ] Possible actions on errors or warnings
+- [ ] Try to make diagnostics span lines
+- [ ] Rename Symbol
+- [ ] Code Lens?
 - [ ] Note that X.409 (1984) was the first specification of ASN.1, which later became X.208 and X.209. X.208 later was replaced by X.680-X.683.
 - [ ] X.209 was the specification for BER, which later became X.690.
 - [ ] Create enum for tagging mode

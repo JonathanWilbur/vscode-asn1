@@ -26,6 +26,11 @@ function onChange(event) {
     var text = event.document.getText();
     var lines = text.split(/\r?\n/g);
     lines.forEach(function (line, lineNumber) {
+        // Bad Strings
+        diag.diagnoseBadString(/,\s*\}/g, "Trailing comma.", line, lineNumber, diagnostics);
+        diag.diagnoseBadString(/\{\s*,/g, "Leading comma.", line, lineNumber, diagnostics);
+        diag.diagnoseBadString(/\|\s*\)/g, "Trailing pipe.", line, lineNumber, diagnostics);
+        diag.diagnoseBadString(/\(\s*\|/g, "Leading pipe.", line, lineNumber, diagnostics);
         // TODO: Find a more elegant way of doing this.
         hints.suggestGeneralizedTime(line, lineNumber, diagnostics);
         warnings.findMinMax(line, lineNumber, diagnostics);
@@ -37,8 +42,15 @@ function onChange(event) {
         // diag.diagnoseTaggingMode(line, lineNumber, diagnostics);
         diag.diagnoseBinaryStringLiterals(line, lineNumber, diagnostics);
         diag.diagnoseHexadecimalStringLiterals(line, lineNumber, diagnostics);
-        diag.diagnoseUTCTime(line, lineNumber, diagnostics);
-        diag.diagnoseGeneralizedTime(line, lineNumber, diagnostics);
+        diag.diagnoseTags(line, lineNumber, diagnostics);
+        diag.diagnoseIntegerLiteral(line, lineNumber, diagnostics);
+        diag.diagnoseEnumerated(line, lineNumber, diagnostics);
+        diag.diagnoseStructuredLabeledReal(line, lineNumber, diagnostics);
+        diag.diagnoseStructuredUnlabeledReal(line, lineNumber, diagnostics);
+        diag.diagnoseBitString(line, lineNumber, diagnostics);
+        diag.diagnoseOctetString(line, lineNumber, diagnostics);
+        diag.diagnoseBoolean(line, lineNumber, diagnostics);
+        diag.diagnoseRelativeObjectIdentifier(line, lineNumber, diagnostics);
         // Contradictions
         diag.diagnoseTwoContradictoryWordsNextToEachOther("APPLICATION", "UNIVERSAL", line, lineNumber, diagnostics);
         diag.diagnoseTwoContradictoryWordsNextToEachOther("PRIVATE", "UNIVERSAL", line, lineNumber, diagnostics);
@@ -53,6 +65,12 @@ function onChange(event) {
             diag.diagnoseTwoDuplicatedWordsNextToEachOther(keyword, line, lineNumber, diagnostics);
         });
         diag.diagnoseMultipleContextSpecificTagsNextToEachOther(line, lineNumber, diagnostics);
+        // String types
+        diag.diagnoseCharacterStringType("NumericString", /^[0-9\s]*$/, line, lineNumber, diagnostics);
+        diag.diagnoseCharacterStringType("PrintableString", /^[A-Za-z0-9 '\(\)\+,\-\.\/:=\?]*$/, line, lineNumber, diagnostics);
+        diag.diagnoseCharacterStringType("UTCTime", /^\d{2}((?:1[0-2])|(?:0\d))((?:3[01])|(?:[0-2]\d))((?:2[0-3])|(?:[01]\d))[0-5]\d(?:[0-5]\d)?(?:(?:(\+|\-)((?:2[0-3])|(?:[01]\d))[0-5]\d)|Z)$/, line, lineNumber, diagnostics);
+        diag.diagnoseCharacterStringType("GeneralizedTime", /^\d{4}((?:1[0-2])|(?:0\d))((?:3[01])|(?:[0-2]\d))((?:2[0-3])|(?:[01]\d))(?:[0-5]\d)?(?:[0-5]\d)?(?:(\.|,)(?:\d+))?(?:(?:(\+|\-)((?:2[0-3])|(?:[01]\d))[0-5]\d)|Z)?$/, line, lineNumber, diagnostics);
+        // diag.diagnoseCharacterStringType("VisibleString", /^[A-Za-z0-9 '\(\)\+,\-\.\/:=\?]*$/, line, lineNumber, diagnostics);
     });
     diagnosticMap.set(event.document.uri.toString(), diagnostics);
     diagnosticMap.forEach(function (diagnostics, file) {

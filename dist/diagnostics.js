@@ -3,6 +3,80 @@ exports.__esModule = true;
 var vscode_1 = require("vscode");
 var regexes = require("./regexes");
 var oidnodes_1 = require("./oidnodes");
+var enumerated_1 = require("./enumerated");
+function diagnoseBadString(needle, errorMessage, line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = needle.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        var startPosition = new vscode_1.Position(lineNumber, match.index);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        var diag = new vscode_1.Diagnostic(range, errorMessage, vscode_1.DiagnosticSeverity.Error);
+        diagnostics.push(diag);
+    } while (i < line.length);
+}
+exports.diagnoseBadString = diagnoseBadString;
+// export
+// function diagnoseTrailingComma (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
+//     let i : number = 0;
+//     let match : RegExpExecArray | null;
+//     do {
+//         match = /,\}/g.exec(line.slice(i));
+//         if (match === null) break;
+//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+//         const startPosition : Position = new Position(lineNumber, match.index);
+//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
+//         const range : Range = new Range(startPosition, endPosition);
+//         const diag : Diagnostic = new Diagnostic(range, "Trailing comma.", DiagnosticSeverity.Error);
+//         diagnostics.push(diag);
+//     } while (i < line.length);
+// }
+// export
+// function diagnoseTrailingPipe (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
+//     let i : number = 0;
+//     let match : RegExpExecArray | null;
+//     do {
+//         match = /\|\)/g.exec(line.slice(i));
+//         if (match === null) break;
+//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+//         const startPosition : Position = new Position(lineNumber, match.index);
+//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
+//         const range : Range = new Range(startPosition, endPosition);
+//         const diag : Diagnostic = new Diagnostic(range, "Trailing pipe.", DiagnosticSeverity.Error);
+//         diagnostics.push(diag);
+//     } while (i < line.length);
+// }
+function diagnoseSize(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /SIZE\s*\((-?\d+)\.\.(-?\d+)\)/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        var startPosition = new vscode_1.Position(lineNumber, match.index);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        diagnoseUnsignedNumber(match[1], range, diagnostics);
+        diagnoseUnsignedNumber(match[2], range, diagnostics);
+        var lowerBoundary = Number(match[1]);
+        var upperBoundary = Number(match[2]);
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        if (lowerBoundary > upperBoundary) {
+            var diag = new vscode_1.Diagnostic(range, "Minimum boundary is greater than maximum boundary.", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+        }
+        else if (lowerBoundary === upperBoundary) {
+            var diag = new vscode_1.Diagnostic(range, "Minimum boundary is equal to the maximum boundary. A constant could be used instead.", vscode_1.DiagnosticSeverity.Warning);
+            diagnostics.push(diag);
+        }
+    } while (i < line.length);
+}
+exports.diagnoseSize = diagnoseSize;
 function diagnoseRange(line, lineNumber, diagnostics) {
     var i = 0;
     var match;
@@ -58,15 +132,36 @@ function diagnoseObjectIdentifier(line, lineNumber, diagnostics) {
             else {
                 if (typeof nodes[1].numberForm !== "undefined") {
                     switch (nodes[0].numberForm) {
-                        case 0:
-                        case 1: {
+                        case 0: {
+                            if (typeof nodes[0].nameForm !== "undefined" &&
+                                !(["itu-t", "ccitt", "itu-r"].includes(nodes[0].nameForm))) {
+                                var diag = new vscode_1.Diagnostic(range, nodes[0].numberForm + " is not the correct root arc for " + nodes[0].nameForm + ".", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
                             if (nodes[1].numberForm > 39) {
-                                var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", vscode_1.DiagnosticSeverity.Error);
+                                var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0.", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
+                            break;
+                        }
+                        case 1: {
+                            if (typeof nodes[0].nameForm !== "undefined" &&
+                                !(["iso"].includes(nodes[0].nameForm))) {
+                                var diag = new vscode_1.Diagnostic(range, nodes[0].numberForm + " is not the correct root arc for " + nodes[0].nameForm + ".", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
+                            if (nodes[1].numberForm > 39) {
+                                var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 1.", vscode_1.DiagnosticSeverity.Error);
                                 diagnostics.push(diag);
                             }
                             break;
                         }
                         case 2: {
+                            if (typeof nodes[0].nameForm !== "undefined" &&
+                                !(["joint-iso-itu-t", "joint-iso-ccitt"].includes(nodes[0].nameForm))) {
+                                var diag = new vscode_1.Diagnostic(range, nodes[0].numberForm + " is not the correct root arc for " + nodes[0].nameForm + ".", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
                             if (nodes[1].numberForm > 175) {
                                 var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 175 if the first node is 2.", vscode_1.DiagnosticSeverity.Error);
                                 diagnostics.push(diag);
@@ -88,7 +183,13 @@ function diagnoseObjectIdentifier(line, lineNumber, diagnostics) {
                     switch (nodes[0].nameForm) {
                         case "itu-t":
                         case "ccitt":
-                        case "itu-r":
+                        case "itu-r": {
+                            if (nodes[1].numberForm > 39) {
+                                var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", vscode_1.DiagnosticSeverity.Error);
+                                diagnostics.push(diag);
+                            }
+                            break;
+                        }
                         case "iso": {
                             if (nodes[1].numberForm > 39) {
                                 var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", vscode_1.DiagnosticSeverity.Error);
@@ -112,110 +213,6 @@ function diagnoseObjectIdentifier(line, lineNumber, diagnostics) {
     } while (i < line.length);
 }
 exports.diagnoseObjectIdentifier = diagnoseObjectIdentifier;
-// export
-// function diagnoseShortObjectIdentifier (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
-//     let i : number = 0;
-//     let match : RegExpExecArray | null;
-//     do {
-//         match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s*(\d+\s*)?\}/g.exec(line.slice(i));
-//         if (match === null) break;
-//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-//         // REVIEW: Any way I can assert(0) if either number is NaN?
-//         const startPosition : Position = new Position(lineNumber, match.index + match[1].length);
-//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
-//         const range : Range = new Range(startPosition, endPosition);
-//         const diag : Diagnostic = new Diagnostic(range, "An OBJECT IDENTIFIER must have at least two nodes.", DiagnosticSeverity.Error);
-//         diagnostics.push(diag);
-//     } while (i < line.length);
-// }
-// export
-// function diagnoseCompleteObjectIdentifier (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
-//     let i : number = 0;
-//     let match : RegExpExecArray | null;
-//     do {
-//         match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s+(\d+)\s+(\d+)(?:\s+(\d+))*\s+\}/g.exec(line.slice(i));
-//         if (match === null) break;
-//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-//         const firstNode : number = Number(match[2]);
-//         const secondNode : number = Number(match[3]);
-//         // REVIEW: Any way I can assert(0) if either number is NaN?
-//         const startPosition : Position = new Position(lineNumber, match.index + match[1].length);
-//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
-//         const range : Range = new Range(startPosition, endPosition);
-//         if (firstNode > 2) {
-//             const diag : Diagnostic = new Diagnostic(range, "First node of an OBJECT IDENTIFIER cannot be greater than 2.", DiagnosticSeverity.Error);
-//             diagnostics.push(diag);
-//         }
-//         if (firstNode === 2 && secondNode > 175) {
-//             const diag : Diagnostic = new Diagnostic(range, "Second node of an OBJECT IDENTIFIER cannot be greater than 175 if first node is 2.", DiagnosticSeverity.Error);
-//             diagnostics.push(diag);
-//         } else if (secondNode > 39) {
-//             const diag : Diagnostic = new Diagnostic(range, "Second node of an OBJECT IDENTIFIER cannot be greater than 39 if first node is 0 or 1.", DiagnosticSeverity.Error);
-//             diagnostics.push(diag);
-//         }
-//     } while (i < line.length);
-// }
-// export
-// function diagnoseNegativeObjectIdentifier (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
-//     let i : number = 0;
-//     let match : RegExpExecArray | null;
-//     do {
-//         match = /\b(OBJECT IDENTIFIER\s+::=\s+)\{\s+(?:\d+\s+)*(?:-\d+\s+)+(?:\d+\s+)*\}/g.exec(line.slice(i));
-//         if (match === null) break;
-//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-//         const startPosition : Position = new Position(lineNumber, match.index + match[1].length);
-//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
-//         const range : Range = new Range(startPosition, endPosition);
-//         const diag : Diagnostic = new Diagnostic(range, "OBJECT IDENTIFIER node cannot be negative.", DiagnosticSeverity.Error);
-//         diagnostics.push(diag);
-//     } while (i < line.length);
-// }
-/* Why the stuff below is commented out:
-    Looking at X.680, it looks like the Tag definition can be a lot more
-    complicated than it often appears, which foils my plans for now.
-*/
-// export
-// function diagnoseTag (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
-//     let i : number = 0;
-//     let match : RegExpExecArray | null;
-//     do {
-//         match = /\[\s*([A-Z]+)\s+(-?\d+)\s*\]/g.exec(line.slice(i));
-//         if (match === null) break;
-//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-//         const startPosition : Position = new Position(lineNumber, match.index);
-//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
-//         const range : Range = new Range(startPosition, endPosition);
-//         if (["UNIVERSAL","APPLICATION","PRIVATE"].indexOf(match[1]) === -1) {
-//             const diag : Diagnostic = new Diagnostic(range, "Tagging class must be UNIVERSAL, APPLICATION, or PRIVATE.", DiagnosticSeverity.Error);
-//             diagnostics.push(diag);
-//         }
-//         if (Number(match[2]) < 0) {
-//             const diag : Diagnostic = new Diagnostic(range, "Tag numbers may not be negative.", DiagnosticSeverity.Error);
-//             diagnostics.push(diag);
-//         }
-//     } while (i < line.length);
-// }
-// export
-// function diagnoseDuplicatedTag (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
-//     let i : number = 0;
-//     let match : RegExpExecArray | null;
-//     do {
-//         match = /\[\s*([A-Z]+)\s+(-?\d+)\s*\]/g.exec(line.slice(i));
-//         if (match === null) break;
-//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-//         const startPosition : Position = new Position(lineNumber, match.index);
-//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
-//         const range : Range = new Range(startPosition, endPosition);
-//         if (["UNIVERSAL","APPLICATION","PRIVATE"].indexOf(match[1]) === -1) {
-//             const diag : Diagnostic = new Diagnostic(range, "Tagging class must be UNIVERSAL, APPLICATION, or PRIVATE.", DiagnosticSeverity.Error);
-//             diagnostics.push(diag);
-//         }
-//         if (Number(match[2]) < 0) {
-//             const diag : Diagnostic = new Diagnostic(range, "Tag numbers may not be negative.", DiagnosticSeverity.Error);
-//             diagnostics.push(diag);
-//         }
-//     } while (i < line.length);
-// }
 function diagnoseBinaryStringLiterals(line, lineNumber, diagnostics) {
     var i = 0;
     var match;
@@ -271,44 +268,6 @@ function diagnoseMultipleContextSpecificTagsNextToEachOther(line, lineNumber, di
     } while (i < line.length);
 }
 exports.diagnoseMultipleContextSpecificTagsNextToEachOther = diagnoseMultipleContextSpecificTagsNextToEachOther;
-function diagnoseUTCTime(line, lineNumber, diagnostics) {
-    var i = 0;
-    var match;
-    do {
-        match = /\b(UTCTime\s+::=\s+)"(.*)"/.exec(line.slice(i));
-        if (match === null)
-            break;
-        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-        var innerMatch = /^\d{2}((?:1[0-2])|(?:0\d))((?:3[01])|(?:[0-2]\d))((?:2[0-3])|(?:[01]\d))[0-5]\d(?:[0-5]\d)?(?:(?:(\+|\-)((?:2[0-3])|(?:[01]\d))[0-5]\d)|Z)$/g.exec(match[2]);
-        if (innerMatch !== null)
-            break;
-        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
-        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
-        var range = new vscode_1.Range(startPosition, endPosition);
-        var diag = new vscode_1.Diagnostic(range, "Malformed UTCTime.", vscode_1.DiagnosticSeverity.Error);
-        diagnostics.push(diag);
-    } while (i < line.length);
-}
-exports.diagnoseUTCTime = diagnoseUTCTime;
-function diagnoseGeneralizedTime(line, lineNumber, diagnostics) {
-    var i = 0;
-    var match;
-    do {
-        match = /\b(GeneralizedTime\s+::=\s+)"(.*)"/.exec(line.slice(i));
-        if (match === null)
-            break;
-        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-        var innerMatch = /^\d{4}((?:1[0-2])|(?:0\d))((?:3[01])|(?:[0-2]\d))((?:2[0-3])|(?:[01]\d))(?:[0-5]\d)?(?:[0-5]\d)?(?:(\.|,)(?:\d+))?(?:(?:(\+|\-)((?:2[0-3])|(?:[01]\d))[0-5]\d)|Z)?$/.exec(match[2]);
-        if (innerMatch !== null)
-            break;
-        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
-        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
-        var range = new vscode_1.Range(startPosition, endPosition);
-        var diag = new vscode_1.Diagnostic(range, "Malformed GeneralizedTime.", vscode_1.DiagnosticSeverity.Error);
-        diagnostics.push(diag);
-    } while (i < line.length);
-}
-exports.diagnoseGeneralizedTime = diagnoseGeneralizedTime;
 function diagnoseTwoContradictoryWordsNextToEachOther(word1, word2, line, lineNumber, diagnostics) {
     var i = 0;
     var match;
@@ -343,19 +302,6 @@ function diagnoseTwoDuplicatedWordsNextToEachOther(word1, line, lineNumber, diag
     } while (i < line.length);
 }
 exports.diagnoseTwoDuplicatedWordsNextToEachOther = diagnoseTwoDuplicatedWordsNextToEachOther;
-function diagnoseNumber(numberString) {
-    // const match : RegExpExecArray | null = /^(\-?\d+)$/.exec(numberString);
-    // if (match === null) return -4; // Not actually a number.
-    if (numberString.length > 1 && (numberString.slice(0, 2) === "-0" || numberString.charAt(0) === "0"))
-        return -1; // Integer literal may not start with a leading 0 if it is not 0.
-    var numberInQuestion = Number(numberString);
-    if (numberInQuestion > 2147483647)
-        return -2; // This number is too big to encode as a signed integer on 32-bits.
-    else if (numberInQuestion < -2147483648)
-        return -3; // This number is too negative to encode as a signed integer on 32-bits.
-    return 0;
-}
-exports.diagnoseNumber = diagnoseNumber;
 function diagnoseUnsignedNumber(numberString, range, diagnostics) {
     if (numberString.length === 0)
         return;
@@ -436,4 +382,227 @@ function convertObjectIdentifierTokensToNodes(objIdComponentList, range, diagnos
     ;
     return nodes;
 }
+function diagnoseTags(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        var matcher = /\[\s*([A-Z][A-Za-z0-9\-]*[A-Za-z0-9]:\s+)?((UNIVERSAL|APPLICATION|PRIVATE)\s+)?([^\s\]]+)\s*\]/;
+        match = matcher.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        var startPosition = new vscode_1.Position(lineNumber, match.index);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        if (/^\-?\d+$/.test(match[(match.length - 1)]))
+            diagnoseUnsignedNumber(match[(match.length - 1)], range, diagnostics);
+    } while (i < line.length);
+}
+exports.diagnoseTags = diagnoseTags;
+function diagnoseCharacterStringType(typeName, stringRegex, line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    var matcher = new RegExp("\\b(" + typeName + "\\s+::=\\s+)\"([^\"]+)\"");
+    do {
+        match = matcher.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        if (!stringRegex.test(match[2])) {
+            var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+            var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+            var range = new vscode_1.Range(startPosition, endPosition);
+            var diag = new vscode_1.Diagnostic(range, "Invalid " + typeName + ".", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+        }
+    } while (i < line.length);
+}
+exports.diagnoseCharacterStringType = diagnoseCharacterStringType;
+function diagnoseIntegerLiteral(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /\b(INTEGER\s+::=\s+)(\-?\d+)/.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        diagnoseSignedNumber(match[2], range, diagnostics);
+    } while (i < line.length);
+}
+exports.diagnoseIntegerLiteral = diagnoseIntegerLiteral;
+function diagnoseEnumerated(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /\b(ENUMERATED\s+::=\s+)\{([^\{\}]*)\}/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        var enums = enumerate(match[2], range, diagnostics);
+        if (!enums) {
+            var diag = new vscode_1.Diagnostic(range, "Malformed ENUMERATED.", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+        }
+        else {
+            // TODO: Validate that there are no duplicated numbers.
+        }
+    } while (i < line.length);
+}
+exports.diagnoseEnumerated = diagnoseEnumerated;
+function enumerate(enumString, range, diagnostics) {
+    var tokens = enumString.trim().replace(/\s*\(\s*(\d+)\s*\)/, "($1)").split(/\s*,\s*/g);
+    var enums = [];
+    for (var _i = 0, tokens_2 = tokens; _i < tokens_2.length; _i++) {
+        var token = tokens_2[_i];
+        if (token === "")
+            continue;
+        if (token.startsWith("..."))
+            continue; // REVIEW: You could perform more validation here.
+        var match = void 0;
+        match = /^([a-z][A-Za-z0-9\-]*[A-Za-z0-9])(?:\(([^\)+]+)\))?$/.exec(token);
+        if (!match)
+            return null;
+        if (match[2]) {
+            if (/^\-?\d+$/.exec(match[2]))
+                diagnoseSignedNumber(match[2], range, diagnostics);
+            enums.push(new enumerated_1.Enumeration(match[1], Number(match[2])));
+        }
+        else {
+            enums.push(new enumerated_1.Enumeration(match[1]));
+        }
+    }
+    ;
+    return enums;
+}
+exports.enumerate = enumerate;
+function diagnoseStructuredLabeledReal(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /\b(REAL\s+::=\s+)\{\s*mantissa\s*(\-?\d+)\s*,\s*base\s*(\d+)\s*,\s*exponent\s*(\-?\d+)\s*\}/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        diagnoseSignedNumber(match[2], range, diagnostics);
+        diagnoseUnsignedNumber(match[3], range, diagnostics);
+        var base = Number(match[3]);
+        if (base !== 2 && base !== 10) {
+            var diag = new vscode_1.Diagnostic(range, "Base must be 2 or 10.", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+        }
+        diagnoseSignedNumber(match[4], range, diagnostics);
+    } while (i < line.length);
+}
+exports.diagnoseStructuredLabeledReal = diagnoseStructuredLabeledReal;
+function diagnoseStructuredUnlabeledReal(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /\b(REAL\s+::=\s+)\{\s*(\-?\d+)\s*,\s*(\d+)\s*,\s*(\-?\d+)\s*\}/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        diagnoseSignedNumber(match[2], range, diagnostics);
+        diagnoseUnsignedNumber(match[3], range, diagnostics);
+        var base = Number(match[3]);
+        if (base !== 2 && base !== 10) {
+            var diag = new vscode_1.Diagnostic(range, "Base must be 2 or 10.", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+        }
+        diagnoseSignedNumber(match[4], range, diagnostics);
+    } while (i < line.length);
+}
+exports.diagnoseStructuredUnlabeledReal = diagnoseStructuredUnlabeledReal;
+function diagnoseBoolean(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /\b(BOOLEAN\s+::=\s+)(\w+)/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        if (match[2] !== "TRUE" && match[2] !== "FALSE") {
+            var diag = new vscode_1.Diagnostic(range, "Invalid BOOLEAN. BOOLEAN must be TRUE or FALSE. (Case Sensitive)", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+        }
+    } while (i < line.length);
+}
+exports.diagnoseBoolean = diagnoseBoolean;
+function diagnoseBitString(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /\b(BIT STRING\s+::=\s+)"([^"]+)"B/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        if (regexes.bstring.test(match[2])) {
+            var diag = new vscode_1.Diagnostic(range, "Invalid BIT STRING.", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+        }
+    } while (i < line.length);
+}
+exports.diagnoseBitString = diagnoseBitString;
+function diagnoseOctetString(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /\b(OCTET STRING\s+::=\s+)"([^"]+)"H/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        if (regexes.hstring.test(match[2])) {
+            var diag = new vscode_1.Diagnostic(range, "Invalid OCTET STRING.", vscode_1.DiagnosticSeverity.Error);
+            diagnostics.push(diag);
+        }
+    } while (i < line.length);
+}
+exports.diagnoseOctetString = diagnoseOctetString;
+function diagnoseRelativeObjectIdentifier(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        match = /\b(RELATIVE-OID\s+::=\s+)\{([^\{\}]*)\}/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        // REVIEW: Any way I can assert(0) if either number is NaN?
+        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+        var range = new vscode_1.Range(startPosition, endPosition);
+        var nodes = convertObjectIdentifierTokensToNodes(match[2], range, diagnostics);
+        if (!nodes)
+            return;
+    } while (i < line.length);
+}
+exports.diagnoseRelativeObjectIdentifier = diagnoseRelativeObjectIdentifier;
 //# sourceMappingURL=diagnostics.js.map
