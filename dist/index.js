@@ -6,10 +6,18 @@ var hints = require("./hints");
 var hover_1 = require("./hover");
 var warnings = require("./warnings");
 var keywords_1 = require("./keywords");
+var definition_1 = require("./definition");
+var reference_1 = require("./reference");
+// import { ASN1DocumentSymbolProvider } from "./symbol";
 var ASN1_MODE = { language: 'asn1', scheme: 'file' };
 var diagnosticCollection;
 function activate(ctx) {
     ctx.subscriptions.push(vscode_1.languages.registerHoverProvider(ASN1_MODE, new hover_1.ASN1HoverProvider()));
+    ctx.subscriptions.push(vscode_1.languages.registerDefinitionProvider(ASN1_MODE, new definition_1.ASN1DefinitionProvider()));
+    ctx.subscriptions.push(vscode_1.languages.registerReferenceProvider(ASN1_MODE, new reference_1.ASN1ReferenceProvider()));
+    // ctx.subscriptions.push(
+    //     languages.registerDocumentSymbolProvider(ASN1_MODE, new ASN1DocumentSymbolProvider()));
+    // TODO: Show all Symbol Definitions in Folder
     // This is in the VS Code extension example, but it does not say where
     // getDisposable() is or what it does.
     // ctx.subscriptions.push(getDisposable()); 
@@ -31,6 +39,10 @@ function onChange(event) {
         diag.diagnoseBadString(/\{\s*,/g, "Leading comma.", line, lineNumber, diagnostics);
         diag.diagnoseBadString(/\|\s*\)/g, "Trailing pipe.", line, lineNumber, diagnostics);
         diag.diagnoseBadString(/\(\s*\|/g, "Leading pipe.", line, lineNumber, diagnostics);
+        diag.diagnoseBadString(/FROM\s*\(\s*"[^"]{2,}"\.\."[^"]*"\s*\)/g, "FROM constraint cannot use multi-character strings in range.", line, lineNumber, diagnostics);
+        diag.diagnoseBadString(/FROM\s*\(\s*"[^"]*"\.\."[^"]{2,}"\s*\)/g, "FROM constraint cannot use multi-character strings in range.", line, lineNumber, diagnostics);
+        diag.diagnoseBadString(/FROM\s*\(\s*""\.\."[^"]*"\s*\)/g, "FROM constraint cannot use empty strings in range.", line, lineNumber, diagnostics);
+        diag.diagnoseBadString(/FROM\s*\(\s*"[^"]*"\.\.""\s*\)/g, "FROM constraint cannot use empty strings in range.", line, lineNumber, diagnostics);
         // TODO: Find a more elegant way of doing this.
         hints.suggestGeneralizedTime(line, lineNumber, diagnostics);
         warnings.findMinMax(line, lineNumber, diagnostics);

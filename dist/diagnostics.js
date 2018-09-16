@@ -20,36 +20,6 @@ function diagnoseBadString(needle, errorMessage, line, lineNumber, diagnostics) 
     } while (i < line.length);
 }
 exports.diagnoseBadString = diagnoseBadString;
-// export
-// function diagnoseTrailingComma (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
-//     let i : number = 0;
-//     let match : RegExpExecArray | null;
-//     do {
-//         match = /,\}/g.exec(line.slice(i));
-//         if (match === null) break;
-//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-//         const startPosition : Position = new Position(lineNumber, match.index);
-//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
-//         const range : Range = new Range(startPosition, endPosition);
-//         const diag : Diagnostic = new Diagnostic(range, "Trailing comma.", DiagnosticSeverity.Error);
-//         diagnostics.push(diag);
-//     } while (i < line.length);
-// }
-// export
-// function diagnoseTrailingPipe (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
-//     let i : number = 0;
-//     let match : RegExpExecArray | null;
-//     do {
-//         match = /\|\)/g.exec(line.slice(i));
-//         if (match === null) break;
-//         i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-//         const startPosition : Position = new Position(lineNumber, match.index);
-//         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
-//         const range : Range = new Range(startPosition, endPosition);
-//         const diag : Diagnostic = new Diagnostic(range, "Trailing pipe.", DiagnosticSeverity.Error);
-//         diagnostics.push(diag);
-//     } while (i < line.length);
-// }
 function diagnoseSize(line, lineNumber, diagnostics) {
     var i = 0;
     var match;

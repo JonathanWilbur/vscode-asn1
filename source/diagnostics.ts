@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Position, Range, MarkdownString } from "vscode";
+import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
 import * as regexes from "./regexes";
 import { ObjectIdentifierNode as OIDNode } from "./oidnodes";
 import { Enumeration } from "./enumerated";

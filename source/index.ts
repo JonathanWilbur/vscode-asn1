@@ -4,14 +4,27 @@ import * as hints from "./hints";
 import { ASN1HoverProvider } from "./hover";
 import * as warnings from "./warnings";
 import { keywords } from "./keywords";
+import { ASN1DefinitionProvider } from "./definition";
+import { ASN1ReferenceProvider } from "./reference";
+// import { ASN1DocumentSymbolProvider } from "./symbol";
 
 const ASN1_MODE: DocumentFilter = { language: 'asn1', scheme: 'file' };
 let diagnosticCollection : DiagnosticCollection;
 
 export function activate(ctx: ExtensionContext): void {
     ctx.subscriptions.push(
-        languages.registerHoverProvider(
-            ASN1_MODE, new ASN1HoverProvider()));
+        languages.registerHoverProvider(ASN1_MODE, new ASN1HoverProvider()));
+
+    ctx.subscriptions.push(
+        languages.registerDefinitionProvider(ASN1_MODE, new ASN1DefinitionProvider()));
+
+    ctx.subscriptions.push(
+        languages.registerReferenceProvider(ASN1_MODE, new ASN1ReferenceProvider()));
+
+    // ctx.subscriptions.push(
+    //     languages.registerDocumentSymbolProvider(ASN1_MODE, new ASN1DocumentSymbolProvider()));
+
+    // TODO: Show all Symbol Definitions in Folder
     
     // This is in the VS Code extension example, but it does not say where
     // getDisposable() is or what it does.

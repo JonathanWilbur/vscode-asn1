@@ -91,8 +91,8 @@ Note that not all of these will actually be done before version 1.0.0 is release
   - [ ] One blank line between definitions
   - [ ] Remove trailing comma
   - [ ] Single space between SIZE and parentheses
-- [ ] Go to definitions
-- [ ] Solution explorer
+- [x] Go to definitions
+- [ ] Solution explorer?
 - [ ] Common type definitions
 - [ ] Commands
   - [ ] Append extensibility
