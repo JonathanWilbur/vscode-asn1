@@ -39,7 +39,6 @@ function onChange(event : TextDocumentChangeEvent): void {
         // diag.diagnoseTaggingMode(line, lineNumber, diagnostics);
         diag.diagnoseBinaryStringLiterals(line, lineNumber, diagnostics);
         diag.diagnoseHexadecimalStringLiterals(line, lineNumber, diagnostics);
-        diag.diagnoseIntegerLiteral(line, lineNumber, diagnostics);
         diag.diagnoseUTCTime(line, lineNumber, diagnostics);
         diag.diagnoseGeneralizedTime(line, lineNumber, diagnostics);
         

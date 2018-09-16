@@ -28,7 +28,6 @@ function diagnoseRange (line : string, lineNumber : number, diagnostics : Diagno
     } while (i < line.length);
 }
 
-
 export
 function diagnoseObjectIdentifier (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
     let i : number = 0;
@@ -41,7 +40,8 @@ function diagnoseObjectIdentifier (line : string, lineNumber : number, diagnosti
         const startPosition : Position = new Position(lineNumber, match.index + match[1].length);
         const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
         const range : Range = new Range(startPosition, endPosition);
-        const nodes : OIDNode[] = convertObjectIdentifierTokensToNodes(match[2], range, diagnostics);
+        const nodes : OIDNode[] | null = convertObjectIdentifierTokensToNodes(match[2], range, diagnostics);
+        if (!nodes) return;
 
         if (nodes.length < 2) {
             const diag : Diagnostic = new Diagnostic(range, "An OBJECT IDENTIFIER may not be shorter than two nodes.", DiagnosticSeverity.Error);
@@ -255,22 +255,6 @@ function diagnoseHexadecimalStringLiterals (line : string, lineNumber : number, 
 }
 
 export
-function diagnoseIntegerLiteral (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
-    let i : number = 0;
-    let match : RegExpExecArray | null;
-    do {
-        // Leading \b omitted here, because '-' is not counted as a "word" in Regex.
-        match = /(\s+)(\-?\d+)\b/g.exec(line.slice(i));
-        if (match === null) break;
-        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-        const startPosition : Position = new Position(lineNumber, match.index + match[1].length);
-        const endPosition : Position = new Position(lineNumber, match.index + match[0].length);
-        const range : Range = new Range(startPosition, endPosition);
-        diagnoseSignedNumber(match[2], range, diagnostics);
-    } while (i < line.length);
-}
-
-export
 function diagnoseMultipleContextSpecificTagsNextToEachOther (line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
     let i : number = 0;
     let match : RegExpExecArray | null;
@@ -406,7 +390,7 @@ function diagnoseSignedNumber (numberString : string, range : Range, diagnostics
 
 // The OID string this receives should not contain "{" or "}"
 // identifier, number, identifier(number), valuereference, modulereference.typereference
-function convertObjectIdentifierTokensToNodes (objIdComponentList : string, range : Range, diagnostics : Diagnostic[]) : OIDNode[] {
+function convertObjectIdentifierTokensToNodes (objIdComponentList : string, range : Range, diagnostics : Diagnostic[]) : OIDNode[] | null {
     const tokens : string[] = objIdComponentList.replace(/\s*\(\s*(\d+)\s*\)/, "($1)").split(/\s+/g);
     let nodes : OIDNode[] = [];
     for (const token of tokens) {
@@ -421,12 +405,12 @@ function convertObjectIdentifierTokensToNodes (objIdComponentList : string, rang
             if (regexes.modulereference.test(moduleReference)) {
                 const diag : Diagnostic = new Diagnostic(range, "Malformed ModuleReference.", DiagnosticSeverity.Error);
                 diagnostics.push(diag);
-                return [];
+                return null;
             }
             if (regexes.typereference.test(typeReference)) {
                 const diag : Diagnostic = new Diagnostic(range, "Malformed TypeReference.", DiagnosticSeverity.Error);
                 diagnostics.push(diag);
-                return [];
+                return null;
             }
             nodes.push(new OIDNode(undefined, token));
         } else {
@@ -434,7 +418,7 @@ function convertObjectIdentifierTokensToNodes (objIdComponentList : string, rang
             if (!match) {
                 const diag : Diagnostic = new Diagnostic(range, "Malformed OBJECT IDENTIFIER literal.", DiagnosticSeverity.Error);
                 diagnostics.push(diag);
-                return [];
+                return null;
             }
             diagnoseUnsignedNumber(match[2], range, diagnostics);
             nodes.push(new OIDNode(Number(match[2]), match[1]));

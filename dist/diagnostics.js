@@ -43,6 +43,8 @@ function diagnoseObjectIdentifier(line, lineNumber, diagnostics) {
         var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
         var range = new vscode_1.Range(startPosition, endPosition);
         var nodes = convertObjectIdentifierTokensToNodes(match[2], range, diagnostics);
+        if (!nodes)
+            return;
         if (nodes.length < 2) {
             var diag = new vscode_1.Diagnostic(range, "An OBJECT IDENTIFIER may not be shorter than two nodes.", vscode_1.DiagnosticSeverity.Error);
             diagnostics.push(diag);
@@ -252,22 +254,6 @@ function diagnoseHexadecimalStringLiterals(line, lineNumber, diagnostics) {
     } while (i < line.length);
 }
 exports.diagnoseHexadecimalStringLiterals = diagnoseHexadecimalStringLiterals;
-function diagnoseIntegerLiteral(line, lineNumber, diagnostics) {
-    var i = 0;
-    var match;
-    do {
-        // Leading \b omitted here, because '-' is not counted as a "word" in Regex.
-        match = /(\s+)(\-?\d+)\b/g.exec(line.slice(i));
-        if (match === null)
-            break;
-        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
-        var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
-        var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
-        var range = new vscode_1.Range(startPosition, endPosition);
-        diagnoseSignedNumber(match[2], range, diagnostics);
-    } while (i < line.length);
-}
-exports.diagnoseIntegerLiteral = diagnoseIntegerLiteral;
 function diagnoseMultipleContextSpecificTagsNextToEachOther(line, lineNumber, diagnostics) {
     var i = 0;
     var match;
@@ -427,12 +413,12 @@ function convertObjectIdentifierTokensToNodes(objIdComponentList, range, diagnos
             if (regexes.modulereference.test(moduleReference)) {
                 var diag = new vscode_1.Diagnostic(range, "Malformed ModuleReference.", vscode_1.DiagnosticSeverity.Error);
                 diagnostics.push(diag);
-                return [];
+                return null;
             }
             if (regexes.typereference.test(typeReference)) {
                 var diag = new vscode_1.Diagnostic(range, "Malformed TypeReference.", vscode_1.DiagnosticSeverity.Error);
                 diagnostics.push(diag);
-                return [];
+                return null;
             }
             nodes.push(new oidnodes_1.ObjectIdentifierNode(undefined, token));
         }
@@ -441,7 +427,7 @@ function convertObjectIdentifierTokensToNodes(objIdComponentList, range, diagnos
             if (!match) {
                 var diag = new vscode_1.Diagnostic(range, "Malformed OBJECT IDENTIFIER literal.", vscode_1.DiagnosticSeverity.Error);
                 diagnostics.push(diag);
-                return [];
+                return null;
             }
             diagnoseUnsignedNumber(match[2], range, diagnostics);
             nodes.push(new oidnodes_1.ObjectIdentifierNode(Number(match[2]), match[1]));
