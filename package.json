@@ -1,14 +1,17 @@
 {
     "name": "asn1",
     "displayName": "ASN.1",
-    "description": "ASN.1 syntax, autocompletion, autocorrect, and more.",
+    "description": "ASN.1 syntax, snippets, formatting, and more.",
     "version": "0.2.0",
-    "publisher": "Wildboar",
+    "publisher": "wildboar",
     "engines": {
         "vscode": "^1.26.0"
     },
     "categories": [
-        "Programming Languages"
+        "Formatters",
+        "Language Packs",
+        "Programming Languages",
+        "Snippets"
     ],
     "contributes": {
         "languages": [
@@ -52,5 +55,15 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/JonathanWilbur/vscode-asn1.git"
-    }
+    },
+    "keywords": [
+        "ASN",
+        "ASN.1",
+        "BER",
+        "DER",
+        "X.680",
+        "ITU"
+    ],
+    "icon": "images/Icon512.png",
+    "homepage": "https://github.com/JonathanWilbur/vscode-asn1/README.md"
 }
