@@ -2,7 +2,7 @@
     "name": "asn1",
     "displayName": "ASN.1",
     "description": "ASN.1 syntax, autocompletion, autocorrect, and more.",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "publisher": "Wildboar",
     "engines": {
         "vscode": "^1.26.0"

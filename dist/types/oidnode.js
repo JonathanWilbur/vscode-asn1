@@ -8,5 +8,4 @@ var ObjectIdentifierNode = /** @class */ (function () {
     return ObjectIdentifierNode;
 }());
 exports.ObjectIdentifierNode = ObjectIdentifierNode;
-// const oid1 : ObjectIdentifierNode = new ObjectIdentifierNode(undefined, "iso");
 //# sourceMappingURL=oidnode.js.map

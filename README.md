@@ -66,6 +66,16 @@ You can build this library by running `tsc`. The outputs will all be in `dist`.
 - Go to definition
 - Hover definitions
 
+## Limitations
+
+Unfortunately, I designed this extension poorly from the start, so don't get too creative:
+
+- Validation can't occur across lines.
+- Comments inserted in the middle of lines can screw things up.
+- Strings are treated just like syntax.
+
+But don't let that scare you. This will work fine for 99% of cases.
+
 ## See Also
 
 * [X.680 - Abstract Syntax Notation One (ASN.1)](https://www.itu.int/rec/T-REC-X.680/en), published by the
