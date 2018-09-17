@@ -85,14 +85,13 @@ Note that not all of these will actually be done before version 1.0.0 is release
   - [ ] Unmatched Brackets
   - [x] Trailing Comma
   - [x] Leading zeros in numeric literal (X.680 S 12.8)
-- [ ] Formatting
-  - [ ] One single space between moustaches and content
-  - [ ] Single spaces surrounding "::="
-  - [ ] One blank line between definitions
-  - [ ] Remove trailing comma
-  - [ ] Single space between SIZE and parentheses
+- [x] Formatting
+  - [x] One single space between moustaches and content
+  - [x] Single spaces surrounding "::="
+  - [x] One blank line between definitions
+  - [x] Single space between SIZE and parentheses
 - [x] Go to definitions
-- [ ] Solution explorer?
+- [ ] Solution explorer (I believe this is contingent upon symbol lookup working)
 - [ ] Common type definitions
 - [ ] Commands
   - [ ] Append extensibility
@@ -101,7 +100,7 @@ Note that not all of these will actually be done before version 1.0.0 is release
   - [ ] Show DER Encoding
 - [ ] Code completion
 - [ ] Possible actions on errors or warnings
-- [ ] Try to make diagnostics span lines
+- [ ] Try to make diagnostics span lines (Look into document.positionAt)
 - [ ] Rename Symbol
 - [ ] Code Lens?
 - [ ] Note that X.409 (1984) was the first specification of ASN.1, which later became X.208 and X.209. X.208 later was replaced by X.680-X.683.

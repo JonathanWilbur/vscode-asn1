@@ -8,6 +8,7 @@ var warnings = require("./warnings");
 var keywords_1 = require("./keywords");
 var definition_1 = require("./definition");
 var reference_1 = require("./reference");
+var format_1 = require("./format");
 // import { ASN1DocumentSymbolProvider } from "./symbol";
 var ASN1_MODE = { language: 'asn1', scheme: 'file' };
 var diagnosticCollection;
@@ -18,6 +19,7 @@ function activate(ctx) {
     // ctx.subscriptions.push(
     //     languages.registerDocumentSymbolProvider(ASN1_MODE, new ASN1DocumentSymbolProvider()));
     // TODO: Show all Symbol Definitions in Folder
+    ctx.subscriptions.push(vscode_1.languages.registerDocumentFormattingEditProvider(ASN1_MODE, new format_1.ASN1DocumentFormatter()));
     // This is in the VS Code extension example, but it does not say where
     // getDisposable() is or what it does.
     // ctx.subscriptions.push(getDisposable()); 

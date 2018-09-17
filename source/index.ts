@@ -6,6 +6,7 @@ import * as warnings from "./warnings";
 import { keywords } from "./keywords";
 import { ASN1DefinitionProvider } from "./definition";
 import { ASN1ReferenceProvider } from "./reference";
+import { ASN1DocumentFormatter } from "./format";
 // import { ASN1DocumentSymbolProvider } from "./symbol";
 
 const ASN1_MODE: DocumentFilter = { language: 'asn1', scheme: 'file' };
@@ -25,6 +26,9 @@ export function activate(ctx: ExtensionContext): void {
     //     languages.registerDocumentSymbolProvider(ASN1_MODE, new ASN1DocumentSymbolProvider()));
 
     // TODO: Show all Symbol Definitions in Folder
+
+    ctx.subscriptions.push(
+        languages.registerDocumentFormattingEditProvider(ASN1_MODE, new ASN1DocumentFormatter()));
     
     // This is in the VS Code extension example, but it does not say where
     // getDisposable() is or what it does.
