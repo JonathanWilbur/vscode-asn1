@@ -201,41 +201,40 @@ var LineDiagnosis = /** @class */ (function () {
                 }
             }
             else {
-                if (!["itu-t", "ccitt", "itu-r", "iso", "joint-iso-itu-t", "joint-iso-ccitt"].includes(nodes[0].nameForm)) {
-                    var diag = new vscode_1.Diagnostic(range, "Invalid first OBJECT IDENTIFIER node: " + nodes[0].nameForm + ".", vscode_1.DiagnosticSeverity.Error);
-                    this.diagnostics.push(diag);
-                }
-                else {
-                    if (typeof nodes[1].numberForm !== "undefined") {
-                        switch (nodes[0].nameForm) {
-                            case "itu-t":
-                            case "ccitt":
-                            case "itu-r": {
-                                if (nodes[1].numberForm > 39) {
-                                    var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", vscode_1.DiagnosticSeverity.Error);
-                                    this.diagnostics.push(diag);
-                                }
-                                break;
-                            }
-                            case "iso": {
-                                if (nodes[1].numberForm > 39) {
-                                    var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", vscode_1.DiagnosticSeverity.Error);
-                                    this.diagnostics.push(diag);
-                                }
-                                break;
-                            }
-                            case "joint-iso-itu-t":
-                            case "joint-iso-ccitt": {
-                                if (nodes[1].numberForm > 175) {
-                                    var diag = new vscode_1.Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 175 if the first node is 2.", vscode_1.DiagnosticSeverity.Error);
-                                    this.diagnostics.push(diag);
-                                }
-                                break;
-                            }
-                            default: return; // REVIEW
-                        }
-                    }
-                }
+                // if (!["itu-t", "ccitt", "itu-r", "iso", "joint-iso-itu-t", "joint-iso-ccitt"].includes(nodes[0].nameForm)) {
+                //     const diag : Diagnostic = new Diagnostic(range, `Invalid first OBJECT IDENTIFIER node: ${nodes[0].nameForm}.`, DiagnosticSeverity.Error);
+                //     this.diagnostics.push(diag);
+                // } else {
+                //     if (typeof nodes[1].numberForm !== "undefined") {
+                //         switch (nodes[0].nameForm) {
+                //             case "itu-t":
+                //             case "ccitt":
+                //             case "itu-r": {
+                //                 if (nodes[1].numberForm > 39) {
+                //                     const diag : Diagnostic = new Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", DiagnosticSeverity.Error);
+                //                     this.diagnostics.push(diag);
+                //                 }
+                //                 break;
+                //             }
+                //             case "iso": {
+                //                 if (nodes[1].numberForm > 39) {
+                //                     const diag : Diagnostic = new Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 39 if the first node is 0 or 1.", DiagnosticSeverity.Error);
+                //                     this.diagnostics.push(diag);
+                //                 }
+                //                 break;
+                //             }
+                //             case "joint-iso-itu-t":
+                //             case "joint-iso-ccitt": {
+                //                 if (nodes[1].numberForm > 175) {
+                //                     const diag : Diagnostic = new Diagnostic(range, "Second node of an OBJECT IDENTIFIER may not exceed 175 if the first node is 2.", DiagnosticSeverity.Error);
+                //                     this.diagnostics.push(diag);
+                //                 }
+                //                 break;
+                //             }
+                //             default: return; // REVIEW
+                //         }
+                //     }
+                // }
             }
         } while (i < this.line.length);
     };
