@@ -72,6 +72,17 @@ var ASN1DocumentFormatter = /** @class */ (function () {
                         edits.push(new vscode.TextEdit(range, "SIZE ("));
                     }
                 }
+                // Single space within and after IDENTIFIED BY
+                {
+                    var matcher = /\s+IDENTIFIED\s+BY\s+/;
+                    match = matcher.exec(lines[lineNumber]);
+                    if (match) {
+                        var startPosition = new vscode.Position(lineNumber, match.index);
+                        var endPosition = new vscode.Position(lineNumber, match.index + match[0].length);
+                        var range = new vscode.Range(startPosition, endPosition);
+                        edits.push(new vscode.TextEdit(range, " IDENTIFIED BY "));
+                    }
+                }
                 // Remove double newlines
                 if (/^\s*$/.test(lines[lineNumber])) {
                     if (previousLineWasBlank) {

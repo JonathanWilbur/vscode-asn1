@@ -81,6 +81,18 @@ class ASN1DocumentFormatter implements vscode.DocumentFormattingEditProvider {
                     }
                 }
 
+                // Single space within and after IDENTIFIED BY
+                {
+                    const matcher : RegExp = /\s+IDENTIFIED\s+BY\s+/;
+                        match = matcher.exec(lines[lineNumber]);
+                        if (match) {
+                            const startPosition : vscode.Position = new vscode.Position(lineNumber, match.index);
+                            const endPosition : vscode.Position = new vscode.Position(lineNumber, match.index + match[0].length);
+                            const range : vscode.Range = new vscode.Range(startPosition, endPosition);
+                            edits.push(new vscode.TextEdit(range, " IDENTIFIED BY "));
+                        }
+                }
+
                 // Remove double newlines
                 if (/^\s*$/.test(lines[lineNumber])) {
                     if (previousLineWasBlank) {
