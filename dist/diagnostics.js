@@ -2,8 +2,8 @@
 exports.__esModule = true;
 var vscode_1 = require("vscode");
 var regexes = require("./regexes");
-var oidnode_1 = require("types/oidnode");
-var enumerated_1 = require("types/enumerated");
+var oidnode_1 = require("./types/oidnode");
+var enumerated_1 = require("./types/enumerated");
 function diagnoseBadString(needle, errorMessage, line, lineNumber, diagnostics) {
     var i = 0;
     var match;

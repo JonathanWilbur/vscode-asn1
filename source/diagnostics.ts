@@ -1,7 +1,7 @@
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
 import * as regexes from "./regexes";
-import { ObjectIdentifierNode as OIDNode } from "types/oidnode";
-import { Enumeration } from "types/enumerated";
+import { ObjectIdentifierNode as OIDNode } from "./types/oidnode";
+import { Enumeration } from "./types/enumerated";
 
 export
 function diagnoseBadString (needle : RegExp, errorMessage : string, line : string, lineNumber : number, diagnostics : Diagnostic[]) : void {
