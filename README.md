@@ -1,4 +1,4 @@
-# ASN.1 VS Code Language Server
+# ASN.1 VS Code Extension
 
 * Author: [Jonathan M. Wilbur](https://jonathan.wilbur.space) <[jonathan@wilbur.space](mailto:jonathan@wilbur.space)>
 * Copyright Year: 2018
