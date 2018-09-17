@@ -1,8 +1,6 @@
 import { Diagnostic, DiagnosticCollection, DocumentFilter, ExtensionContext, languages, TextDocumentChangeEvent, Uri, workspace } from "vscode";
 import * as diag from "./diagnostics";
-import * as hints from "./hints";
 import { ASN1HoverProvider } from "./hover";
-import * as warnings from "./warnings";
 import { keywords } from "./keywords";
 import { ASN1DefinitionProvider } from "./definition";
 import { ASN1ReferenceProvider } from "./reference";
@@ -56,10 +54,10 @@ function onChange(event : TextDocumentChangeEvent): void {
         diag.diagnoseBadString(/FROM\s*\(\s*"[^"]*"\.\.""\s*\)/g, "FROM constraint cannot use empty strings in range.", line, lineNumber, diagnostics);
 
         // TODO: Find a more elegant way of doing this.
-        hints.suggestGeneralizedTime(line, lineNumber, diagnostics);
-        warnings.findMinMax(line, lineNumber, diagnostics);
-        warnings.findGeneralString(line, lineNumber, diagnostics);
-        warnings.findGraphicString(line, lineNumber, diagnostics);
+        diag.suggestGeneralizedTime(line, lineNumber, diagnostics);
+        diag.findMinMax(line, lineNumber, diagnostics);
+        diag.findGeneralString(line, lineNumber, diagnostics);
+        diag.findGraphicString(line, lineNumber, diagnostics);
         diag.diagnoseRange(line, lineNumber, diagnostics);
         diag.diagnoseObjectIdentifier(line, lineNumber, diagnostics);
         // diag.diagnoseRequirementContradiction(line, lineNumber, diagnostics);

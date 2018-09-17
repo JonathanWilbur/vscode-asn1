@@ -19,6 +19,7 @@ Note that not all of these will actually be done before version 1.0.0 is release
   - [x] Consider using GeneralizedTime instead of UTCTime
   - [ ] EXTENSIBILITY IMPLIED, so trailing ... is not necessary*
   - [ ] Consider adding an exception marker
+  - [ ] Consider shortening this OBJECT IDENTIFIER line by joining OBJECT IDENTIFIERs
 - [x] Warnings
   - [x] (MIN..MAX) unnecessary
   - [x] GeneralString use is discouraged (Page 182 Dubuisson)
@@ -42,6 +43,8 @@ Note that not all of these will actually be done before version 1.0.0 is release
     - [x] Contradictory OPTIONAL and DEFAULT
     - [x] Duplicated context-specific tag numbers
   - [ ] Types
+    - [ ] INTEGER
+      - [ ] Named values
     - [x] OBJECT IDENTIFIER
       - [x] Leading OID node greater than 2
       - [x] Second OID node greater than 175
@@ -60,7 +63,11 @@ Note that not all of these will actually be done before version 1.0.0 is release
     - [x] REAL
     - [x] BOOLEAN
     - [x] BIT STRING
+      - [ ] BIT STRING can be an hstring too.
+      - [ ] BIT STRING can also be a list of named identifiers, which indicates which bits are set.
+      - [ ] BIT STRING subtypes can specify bit numbers in parentheses next to the identifiers.
     - [x] OCTET STRING
+      - [ ] OCTET STRING can be a bstring too.
     - [x] RELATIVE-OID
   - [ ] Constraints
     - [x] Cannot have negative SIZE
@@ -90,6 +97,13 @@ Note that not all of these will actually be done before version 1.0.0 is release
   - [x] Single spaces surrounding "::="
   - [x] One blank line between definitions
   - [x] Single space between SIZE and parentheses
+  - [ ] ENUMERATED members indented on separate newlines
+  - [ ] Named BIT STRING members indented on separate newlines
+  - [ ] Named INTEGER members indented on separate newlines
+  - [ ] Structured REAL all on the same line
+  - [ ] BOOLEAN all on one line
+  - [ ] OBJECT IDENTIFIER and RELATIVE-OID all on the same line
+  - [ ] Support multi-line keyword duplication checking
 - [x] Go to definitions
 - [ ] Solution explorer (I believe this is contingent upon symbol lookup working)
 - [ ] Common type definitions
