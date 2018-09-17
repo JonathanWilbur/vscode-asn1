@@ -78,9 +78,14 @@
         "comment": {
             "patterns": [
                 {
-                    "name": "comment",
+                    "name": "comment.line",
                     "begin": "--",
                     "end": "(\n|(?:--))"
+                },
+                {
+                    "name": "comment.block",
+                    "begin": "/\\*",
+                    "end": "\\*/"
                 }
             ]
         },
