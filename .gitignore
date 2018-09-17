@@ -36,11 +36,6 @@ typings/
 # Serverless directories
 .serverless
 
-
-
-
-
-
 # Windows Ignores
 Thumbs.db
 ehthumbs.db

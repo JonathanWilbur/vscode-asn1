@@ -48,5 +48,9 @@
     },
     "scripts": {
         "pkgvars": "node ./node_modules/vscode/bin/install"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/JonathanWilbur/vscode-asn1.git"
     }
 }
