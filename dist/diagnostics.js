@@ -2,8 +2,8 @@
 exports.__esModule = true;
 var vscode_1 = require("vscode");
 var regexes = require("./regexes");
-var oidnodes_1 = require("./oidnodes");
-var enumerated_1 = require("./enumerated");
+var oidnode_1 = require("types/oidnode");
+var enumerated_1 = require("types/enumerated");
 function diagnoseBadString(needle, errorMessage, line, lineNumber, diagnostics) {
     var i = 0;
     var match;
@@ -319,10 +319,10 @@ function convertObjectIdentifierTokensToNodes(objIdComponentList, range, diagnos
             continue;
         if (regexes.number.test(token)) {
             diagnoseUnsignedNumber(token, range, diagnostics);
-            nodes.push(new oidnodes_1.ObjectIdentifierNode(Number(token)));
+            nodes.push(new oidnode_1.ObjectIdentifierNode(Number(token)));
         }
         else if (regexes.identifier.test(token)) {
-            nodes.push(new oidnodes_1.ObjectIdentifierNode(undefined, token));
+            nodes.push(new oidnode_1.ObjectIdentifierNode(undefined, token));
         }
         else if (token.split(".").length === 2) {
             var _a = token.split("."), moduleReference = _a[0], typeReference = _a[1];
@@ -336,7 +336,7 @@ function convertObjectIdentifierTokensToNodes(objIdComponentList, range, diagnos
                 diagnostics.push(diag);
                 return null;
             }
-            nodes.push(new oidnodes_1.ObjectIdentifierNode(undefined, token));
+            nodes.push(new oidnode_1.ObjectIdentifierNode(undefined, token));
         }
         else {
             var match = /^([a-z][A-Za-z0-9\-]*[A-Za-z0-9])\((\d+)\)$/g.exec(token);
@@ -346,7 +346,7 @@ function convertObjectIdentifierTokensToNodes(objIdComponentList, range, diagnos
                 return null;
             }
             diagnoseUnsignedNumber(match[2], range, diagnostics);
-            nodes.push(new oidnodes_1.ObjectIdentifierNode(Number(match[2]), match[1]));
+            nodes.push(new oidnode_1.ObjectIdentifierNode(Number(match[2]), match[1]));
         }
     }
     ;
@@ -575,4 +575,99 @@ function diagnoseRelativeObjectIdentifier(line, lineNumber, diagnostics) {
     } while (i < line.length);
 }
 exports.diagnoseRelativeObjectIdentifier = diagnoseRelativeObjectIdentifier;
+function suggestGeneralizedTime(line, lineNumber, diagnostics) {
+    var i = 0;
+    do {
+        var indexOfMinMax = line.indexOf("UTCTime", i);
+        if (indexOfMinMax !== -1) {
+            var startPosition = new vscode_1.Position(lineNumber, indexOfMinMax);
+            var endPosition = new vscode_1.Position(lineNumber, indexOfMinMax + "UTCTime".length);
+            var range = new vscode_1.Range(startPosition, endPosition);
+            var diag = new vscode_1.Diagnostic(range, "Consider using GeneralizedTime instead of UTCTime", vscode_1.DiagnosticSeverity.Hint);
+            diagnostics.push(diag);
+            i = (indexOfMinMax + 1);
+        }
+        else
+            break;
+    } while (i < line.length);
+}
+exports.suggestGeneralizedTime = suggestGeneralizedTime;
+function findMinMax(line, lineNumber, diagnostics) {
+    var i = 0;
+    do {
+        var indexOfMinMax = line.indexOf("(MIN..MAX)", i);
+        if (indexOfMinMax !== -1) {
+            var startPosition = new vscode_1.Position(lineNumber, indexOfMinMax);
+            var endPosition = new vscode_1.Position(lineNumber, indexOfMinMax + "(MIN..MAX)".length);
+            var range = new vscode_1.Range(startPosition, endPosition);
+            var diag = new vscode_1.Diagnostic(range, "(MIN..MAX) is unnecessary", vscode_1.DiagnosticSeverity.Warning);
+            diagnostics.push(diag);
+            i = (indexOfMinMax + 1);
+        }
+        else
+            break;
+    } while (i < line.length);
+}
+exports.findMinMax = findMinMax;
+function findGeneralString(line, lineNumber, diagnostics) {
+    var i = 0;
+    do {
+        var index = line.indexOf("GeneralString", i);
+        if (index !== -1) {
+            var startPosition = new vscode_1.Position(lineNumber, index);
+            var endPosition = new vscode_1.Position(lineNumber, index + "GeneralString".length);
+            var range = new vscode_1.Range(startPosition, endPosition);
+            var diag = new vscode_1.Diagnostic(range, "GeneralString is discouraged", vscode_1.DiagnosticSeverity.Warning);
+            diagnostics.push(diag);
+            i = (index + 1);
+        }
+        else
+            break;
+    } while (i < line.length);
+}
+exports.findGeneralString = findGeneralString;
+function findGraphicString(line, lineNumber, diagnostics) {
+    var i = 0;
+    do {
+        var index = line.indexOf("GraphicString", i);
+        if (index !== -1) {
+            var startPosition = new vscode_1.Position(lineNumber, index);
+            var endPosition = new vscode_1.Position(lineNumber, index + "GraphicString".length);
+            var range = new vscode_1.Range(startPosition, endPosition);
+            var diag = new vscode_1.Diagnostic(range, "GraphicString is discouraged", vscode_1.DiagnosticSeverity.Warning);
+            diagnostics.push(diag);
+            i = (index + 1);
+        }
+        else
+            break;
+    } while (i < line.length);
+}
+exports.findGraphicString = findGraphicString;
+function findIntegerTooBigFor32Bits(line, lineNumber, diagnostics) {
+    var i = 0;
+    var match;
+    do {
+        // Leading \b omitted here, because '-' is not counted as a "word" in Regex.
+        match = /(\s+)(\-?\d+)\b/g.exec(line.slice(i));
+        if (match === null)
+            break;
+        i += (match.index + 1); // "+ match[0].length" does not work for some reason.
+        var numberInQuestion = Number(match[2]);
+        if (numberInQuestion > 2147483647) {
+            var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+            var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+            var range = new vscode_1.Range(startPosition, endPosition);
+            var diag = new vscode_1.Diagnostic(range, "This number is too big to encode as a signed integer on 32-bits.", vscode_1.DiagnosticSeverity.Warning);
+            diagnostics.push(diag);
+        }
+        else if (numberInQuestion < -2147483648) {
+            var startPosition = new vscode_1.Position(lineNumber, match.index + match[1].length);
+            var endPosition = new vscode_1.Position(lineNumber, match.index + match[0].length);
+            var range = new vscode_1.Range(startPosition, endPosition);
+            var diag = new vscode_1.Diagnostic(range, "This number is too negative to encode as a signed integer on 32-bits.", vscode_1.DiagnosticSeverity.Warning);
+            diagnostics.push(diag);
+        }
+    } while (i < line.length);
+}
+exports.findIntegerTooBigFor32Bits = findIntegerTooBigFor32Bits;
 //# sourceMappingURL=diagnostics.js.map

@@ -2,9 +2,7 @@
 exports.__esModule = true;
 var vscode_1 = require("vscode");
 var diag = require("./diagnostics");
-var hints = require("./hints");
 var hover_1 = require("./hover");
-var warnings = require("./warnings");
 var keywords_1 = require("./keywords");
 var definition_1 = require("./definition");
 var reference_1 = require("./reference");
@@ -46,10 +44,10 @@ function onChange(event) {
         diag.diagnoseBadString(/FROM\s*\(\s*""\.\."[^"]*"\s*\)/g, "FROM constraint cannot use empty strings in range.", line, lineNumber, diagnostics);
         diag.diagnoseBadString(/FROM\s*\(\s*"[^"]*"\.\.""\s*\)/g, "FROM constraint cannot use empty strings in range.", line, lineNumber, diagnostics);
         // TODO: Find a more elegant way of doing this.
-        hints.suggestGeneralizedTime(line, lineNumber, diagnostics);
-        warnings.findMinMax(line, lineNumber, diagnostics);
-        warnings.findGeneralString(line, lineNumber, diagnostics);
-        warnings.findGraphicString(line, lineNumber, diagnostics);
+        diag.suggestGeneralizedTime(line, lineNumber, diagnostics);
+        diag.findMinMax(line, lineNumber, diagnostics);
+        diag.findGeneralString(line, lineNumber, diagnostics);
+        diag.findGraphicString(line, lineNumber, diagnostics);
         diag.diagnoseRange(line, lineNumber, diagnostics);
         diag.diagnoseObjectIdentifier(line, lineNumber, diagnostics);
         // diag.diagnoseRequirementContradiction(line, lineNumber, diagnostics);
