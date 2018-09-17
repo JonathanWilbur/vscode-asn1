@@ -55,18 +55,20 @@ This list can also be found in `documentation/asn1.d`.
 
 ## Building
 
-You can build this library by running:
+You can build this library by running `tsc`. The outputs will all be in `dist`.
 
-* `npm run-script build`
-* `make -f build/Makefile`
+## Capabilities
 
-The outputs will all be in `dist`.
+- Syntax highlighting
+- Bracket matching
+- Limited hints, warnings, and errors
+- Limited formatting
+- Go to definition
+- Hover definitions
 
 ## See Also
 
 * [X.680 - Abstract Syntax Notation One (ASN.1)](https://www.itu.int/rec/T-REC-X.680/en), published by the
-[International Telecommunications Union](https://www.itu.int/en/pages/default.aspx).
-* [X.690 - ASN.1 encoding rules](https://www.itu.int/rec/T-REC-X.690/en), published by the
 [International Telecommunications Union](https://www.itu.int/en/pages/default.aspx).
 * [ASN.1: Communication Between Heterogeneous Systems](https://www.oss.com/asn1/resources/books-whitepapers-pubs/dubuisson-asn1-book.PDF) by Olivier Dubuisson
 
