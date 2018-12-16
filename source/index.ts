@@ -46,6 +46,7 @@ export function activate(ctx: ExtensionContext): void {
 }
 
 function onOpen(document : TextDocument) : void {
+    if (document.languageId !== "asn1") return;
     let diagnosticMap: Map<string, Diagnostic[]> = new Map();
     let diagnostics : Diagnostic[] = diagnosticMap.get(document.uri.toString());
     if (!diagnostics) diagnostics = [];
@@ -61,6 +62,7 @@ function onOpen(document : TextDocument) : void {
 }
 
 function onChange(event : TextDocumentChangeEvent) : void {
+    if (event.document.languageId !== "asn1") return;
     let diagnosticMap: Map<string, Diagnostic[]> = new Map();
     let diagnostics : Diagnostic[] = diagnosticMap.get(event.document.uri.toString());
     if (!diagnostics) diagnostics = [];

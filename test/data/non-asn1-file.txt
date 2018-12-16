@@ -1,0 +1,10 @@
+a1 ::= INTEGER (MIN..MAX) -- Unnecessary MIN..MAX
+
+-- Contradictory OPTIONAL and DEFAULT
+a2 ::= SEQUENCE {
+    testeroni       BOOLEAN OPTIONAL DEFAULT TRUE }
+
+a3 ::= GeneralString -- Use of GeneralString is discouraged
+a4 ::= GraphicString -- Use of GraphicString is discouraged
+a5 INTEGER ::= 2147483648 -- Too big for a 32-bit signed integer
+a6 INTEGER ::= -2147483649 -- Too negative for a 32-bit signed integer

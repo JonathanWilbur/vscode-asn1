@@ -34,6 +34,8 @@ function activate(ctx) {
 }
 exports.activate = activate;
 function onOpen(document) {
+    if (document.languageId !== "asn1")
+        return;
     var diagnosticMap = new Map();
     var diagnostics = diagnosticMap.get(document.uri.toString());
     if (!diagnostics)
@@ -49,6 +51,8 @@ function onOpen(document) {
     });
 }
 function onChange(event) {
+    if (event.document.languageId !== "asn1")
+        return;
     var diagnosticMap = new Map();
     var diagnostics = diagnosticMap.get(event.document.uri.toString());
     if (!diagnostics)
