@@ -1,4 +1,5 @@
 {
+    "wordPattern": "[A-Za-z][A-Za-z0-9\\-]*[A-Za-z0-9]",
     "comments": {
         // symbol used for single line comment. Remove this entry if your language does not support line comments
         "lineComment": "--",

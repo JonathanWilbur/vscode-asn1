@@ -1,0 +1,58 @@
+something-wicked INTEGER ::= 1234569
+something-even-wickeder INTEGER ::= 1234570
+WickedType ::= INTEGER (0..something-wicked)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gotodef INTEGER ::= something-wicked
+gotodef2 INTEGER ::= something-even-wickeder
+gotodef3 WickedType ::= 42

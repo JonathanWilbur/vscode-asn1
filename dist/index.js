@@ -7,6 +7,10 @@ var definition_1 = require("./definition");
 var reference_1 = require("./reference");
 var format_1 = require("./format");
 // import { ASN1DocumentSymbolProvider } from "./symbol";
+// See: https://github.com/Microsoft/vscode/issues/42649
+vscode_1.languages.setLanguageConfiguration('asn1', {
+    wordPattern: /\b[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9]\b/
+});
 var ASN1_MODE = { language: 'asn1', scheme: 'file' };
 var diagnosticCollection;
 function activate(ctx) {

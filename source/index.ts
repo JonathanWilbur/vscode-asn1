@@ -6,6 +6,11 @@ import { ASN1ReferenceProvider } from "./reference";
 import { ASN1DocumentFormatter } from "./format";
 // import { ASN1DocumentSymbolProvider } from "./symbol";
 
+// See: https://github.com/Microsoft/vscode/issues/42649
+languages.setLanguageConfiguration('asn1', {
+    wordPattern: /\b[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9]\b/
+});
+
 const ASN1_MODE: DocumentFilter = { language: 'asn1', scheme: 'file' };
 let diagnosticCollection : DiagnosticCollection;
 
