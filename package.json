@@ -2,7 +2,7 @@
     "name": "asn1",
     "displayName": "ASN.1",
     "description": "ASN.1 syntax, snippets, formatting, and more.",
-    "version": "0.3.2",
+    "version": "0.4.0",
     "publisher": "wildboar",
     "engines": {
         "vscode": "^1.26.0"
@@ -14,6 +14,17 @@
         "Snippets"
     ],
     "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "ASN.1 Configuration",
+            "properties": {
+                "asn1.ignoreIntegerSize": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether or not to ignore the warning when using INTEGER literals that exceed the 32-bit signed extrema."
+                }
+            }
+        },
         "languages": [
             {
                 "id": "asn1",

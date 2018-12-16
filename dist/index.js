@@ -21,6 +21,9 @@ function activate(ctx) {
     //     languages.registerDocumentSymbolProvider(ASN1_MODE, new ASN1DocumentSymbolProvider()));
     // TODO: Show all Symbol Definitions in Folder
     ctx.subscriptions.push(vscode_1.languages.registerDocumentFormattingEditProvider(ASN1_MODE, new format_1.ASN1DocumentFormatter()));
+    // https://github.com/JonathanWilbur/vscode-asn1/issues/2
+    diagnostics_1.LineDiagnosis.ignoreIntegerSize =
+        vscode_1.workspace.getConfiguration("asn1").get("ignoreIntegerSize") || false;
     // This is in the VS Code extension example, but it does not say where
     // getDisposable() is or what it does.
     // ctx.subscriptions.push(getDisposable()); 

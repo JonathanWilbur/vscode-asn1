@@ -85,7 +85,7 @@ But don't let that scare you. This will work fine for 99% of cases.
 ## Contact Me
 
 If you would like to suggest fixes or improvements on this library, please just
-[leave an issue on this GitHub page](https://github.com/JonathanWilbur/asn1-ts/issues). If you would like to contact me for other reasons,
+[leave an issue on this GitHub page](https://github.com/JonathanWilbur/vscode-asn1/issues). If you would like to contact me for other reasons,
 please email me at [jonathan@wilbur.space](mailto:jonathan@wilbur.space)
 ([My GPG Key](https://jonathan.wilbur.space/downloads/jonathan@wilbur.space.gpg.pub))
 ([My TLS Certificate](https://jonathan.wilbur.space/downloads/jonathan@wilbur.space.chain.pem)). :boar:

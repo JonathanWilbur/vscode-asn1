@@ -311,13 +311,15 @@ var LineDiagnosis = /** @class */ (function () {
             this.diagnostics.push(diag);
         }
         var numberInQuestion = Number(numberString);
-        if (numberInQuestion > 2147483647) {
-            var diag = new vscode_1.Diagnostic(range, "Number is too big to encode as a signed integer on 32-bits.", vscode_1.DiagnosticSeverity.Warning);
-            this.diagnostics.push(diag);
-        }
-        else if (numberInQuestion < -2147483648) {
-            var diag = new vscode_1.Diagnostic(range, "Number is too negative to encode as a signed integer on 32-bits.", vscode_1.DiagnosticSeverity.Warning);
-            this.diagnostics.push(diag);
+        if (!LineDiagnosis.ignoreIntegerSize) {
+            if (numberInQuestion > 2147483647) {
+                var diag = new vscode_1.Diagnostic(range, "Number is too positive to encode as a signed integer on 32-bits.", vscode_1.DiagnosticSeverity.Warning);
+                this.diagnostics.push(diag);
+            }
+            else if (numberInQuestion < -2147483648) {
+                var diag = new vscode_1.Diagnostic(range, "Number is too negative to encode as a signed integer on 32-bits.", vscode_1.DiagnosticSeverity.Warning);
+                this.diagnostics.push(diag);
+            }
         }
     };
     // The OID string this receives should not contain "{" or "}"
@@ -667,6 +669,7 @@ var LineDiagnosis = /** @class */ (function () {
             }
         } while (i < this.line.length);
     };
+    LineDiagnosis.ignoreIntegerSize = false;
     return LineDiagnosis;
 }());
 exports.LineDiagnosis = LineDiagnosis;

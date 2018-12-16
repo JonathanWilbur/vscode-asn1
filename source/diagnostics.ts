@@ -7,6 +7,7 @@ import { keywords } from "./keywords";
 export
 class LineDiagnosis {
     protected diagnostics : Diagnostic[] = [];
+    public static ignoreIntegerSize : boolean = false;
 
     constructor(readonly line : string, readonly lineNumber : number, diagnostics : Diagnostic[]) {
         this.diagnostics = diagnostics;
@@ -316,12 +317,14 @@ class LineDiagnosis {
             this.diagnostics.push(diag);
         }
         const numberInQuestion : number = Number(numberString);
-        if (numberInQuestion > 2147483647) {
-            const diag : Diagnostic = new Diagnostic(range, "Number is too big to encode as a signed integer on 32-bits.", DiagnosticSeverity.Warning);
-            this.diagnostics.push(diag);
-        } else if (numberInQuestion < -2147483648) {
-            const diag : Diagnostic = new Diagnostic(range, "Number is too negative to encode as a signed integer on 32-bits.", DiagnosticSeverity.Warning);
-            this.diagnostics.push(diag);
+        if (!LineDiagnosis.ignoreIntegerSize) {
+            if (numberInQuestion > 2147483647) {
+                const diag : Diagnostic = new Diagnostic(range, "Number is too positive to encode as a signed integer on 32-bits.", DiagnosticSeverity.Warning);
+                this.diagnostics.push(diag);
+            } else if (numberInQuestion < -2147483648) {
+                const diag : Diagnostic = new Diagnostic(range, "Number is too negative to encode as a signed integer on 32-bits.", DiagnosticSeverity.Warning);
+                this.diagnostics.push(diag);
+            }
         }
     }
 

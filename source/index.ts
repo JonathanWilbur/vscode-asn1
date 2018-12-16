@@ -32,6 +32,10 @@ export function activate(ctx: ExtensionContext): void {
     ctx.subscriptions.push(
         languages.registerDocumentFormattingEditProvider(ASN1_MODE, new ASN1DocumentFormatter()));
     
+    // https://github.com/JonathanWilbur/vscode-asn1/issues/2
+    LineDiagnosis.ignoreIntegerSize =
+        workspace.getConfiguration("asn1").get("ignoreIntegerSize") || false;
+
     // This is in the VS Code extension example, but it does not say where
     // getDisposable() is or what it does.
     // ctx.subscriptions.push(getDisposable()); 
