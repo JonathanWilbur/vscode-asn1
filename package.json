@@ -2,7 +2,7 @@
     "name": "asn1",
     "displayName": "ASN.1",
     "description": "ASN.1 syntax, snippets, formatting, and more.",
-    "version": "0.4.1",
+    "version": "0.5.0",
     "publisher": "wildboar",
     "engines": {
         "vscode": "^1.26.0"
@@ -44,6 +44,16 @@
                 "language": "asn1",
                 "scopeName": "source.asn1",
                 "path": "./config/asn1.tmLanguage.json"
+            },
+            {
+                "scopeName": "markdown.asn1.codeblock",
+                "path": "./config/asn1.codeblock.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.asn": "asn1"
+                }
             }
         ],
         "snippets": [
