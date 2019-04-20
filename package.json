@@ -67,8 +67,7 @@
         "onLanguage:asn1"
     ],
     "dependencies": {
-        "event-stream": "^3.3.5",
-        "vscode": "^1.1.33"
+        "event-stream": "^3.3.5"
     },
     "scripts": {
         "pkgvars": "node ./node_modules/vscode/bin/install",
@@ -86,5 +85,8 @@
         "X.680"
     ],
     "icon": "images/Icon512.png",
-    "homepage": "https://github.com/JonathanWilbur/vscode-asn1/README.md"
+    "homepage": "https://github.com/JonathanWilbur/vscode-asn1/README.md",
+    "devDependencies": {
+        "vscode": "^1.1.33"
+    }
 }
