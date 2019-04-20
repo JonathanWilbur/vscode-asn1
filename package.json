@@ -2,7 +2,7 @@
     "name": "asn1",
     "displayName": "ASN.1",
     "description": "ASN.1 syntax, snippets, formatting, and more.",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "publisher": "wildboar",
     "engines": {
         "vscode": "^1.26.0"
@@ -67,8 +67,8 @@
         "onLanguage:asn1"
     ],
     "dependencies": {
-        "event-stream": "^3.3.4",
-        "vscode": "^1.1.26"
+        "event-stream": "^3.3.5",
+        "vscode": "^1.1.33"
     },
     "scripts": {
         "pkgvars": "node ./node_modules/vscode/bin/install",
