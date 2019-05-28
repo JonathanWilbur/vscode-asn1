@@ -10,7 +10,7 @@ var ASN1DefinitionProvider = /** @class */ (function () {
             var word = document.getText(wordRange);
             var lines = document.getText().split(/\r?\n/g);
             for (var lineNumber = 0; lineNumber < lines.length; lineNumber++) {
-                var match = (new RegExp("^\\s*" + word + "\\s+(?:[A-Za-z][A-Za-z0-9-]*[A-Za-z0-9]\\s+)?::=")).exec(lines[lineNumber]);
+                var match = (new RegExp("^\\s*" + word + "\\s*(?:(?:\\s+|(?:{+\\s*)+)[A-Za-z][A-Za-z0-9-]*[A-Za-z0-9][\\s}]*)?::=")).exec(lines[lineNumber]);
                 if (!match)
                     continue;
                 var definitionPosition = new vscode.Position(lineNumber, match.index);

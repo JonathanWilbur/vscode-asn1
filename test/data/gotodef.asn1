@@ -1,8 +1,17 @@
 something-wicked INTEGER ::= 1234569
 something-even-wickeder INTEGER ::= 1234570
+wicked-without-space INTEGER::= 3332
 WickedType ::= INTEGER (0..something-wicked)
-
-
+TypeWithoutSpace::= INTEGER
+TypeWithAttr {   Attribute   } ::= SEQUENCE {
+    attr    Attribute
+}
+TypeWithAttrNoSpace{Attribute}::= SEQUENCE {
+    attr    Attribute
+}
+TypeWithAttrSomeSpaces    {Attribute}   ::= SEQUENCE {
+    attr    Attribute
+}
 
 
 
@@ -56,3 +65,10 @@ WickedType ::= INTEGER (0..something-wicked)
 gotodef INTEGER ::= something-wicked
 gotodef2 INTEGER ::= something-even-wickeder
 gotodef3 WickedType ::= 42
+gotodef4 INTEGER::= wicked-without-space
+gotodef5 TypeWithoutSpace ::= 973
+TypeUsingAttr ::= SEQUENCE {
+    field1 TypeWithAttr { INTEGER }
+    field2 TypeWithAttrNoSpace { INTEGER }
+    field3 TypeWithAttrSomeSpaces { INTEGER }
+}
