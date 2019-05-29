@@ -12,6 +12,10 @@ TypeWithAttrNoSpace{Attribute}::= SEQUENCE {
 TypeWithAttrSomeSpaces    {Attribute}   ::= SEQUENCE {
     attr    Attribute
 }
+TypeWithMulAttr {INTEGER : Name1, INTEGER : Name2}   ::= SEQUENCE {
+    name1    Name1
+    name2    Name2
+}
 
 
 
@@ -71,4 +75,5 @@ TypeUsingAttr ::= SEQUENCE {
     field1 TypeWithAttr { INTEGER }
     field2 TypeWithAttrNoSpace { INTEGER }
     field3 TypeWithAttrSomeSpaces { INTEGER }
+    field4 TypeWithMulAttr {INTEGER, INTEGER}
 }

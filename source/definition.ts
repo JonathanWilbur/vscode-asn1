@@ -8,7 +8,7 @@ class ASN1DefinitionProvider implements vscode.DefinitionProvider {
             const word : string = document.getText(wordRange);
             const lines : string[] = document.getText().split(/\r?\n/g);
             for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
-                const match : RegExpExecArray | null = (new RegExp(`^\\s*${word}\\s*(?:(?:\\s+|(?:{+\\s*)+)[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9][\\s}]*)?::=`)).exec(lines[lineNumber]);
+                const match : RegExpExecArray | null = (new RegExp(`^\\s*${word}(?:::=|[{\\s][A-Za-z0-9\-{}\\s:,]*::=)`)).exec(lines[lineNumber]);
                 if (!match) continue;
                 const definitionPosition : vscode.Position = new vscode.Position(lineNumber, match.index);
                 return resolve(new vscode.Location(document.uri, definitionPosition));
