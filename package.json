@@ -2,8 +2,9 @@
     "name": "asn1",
     "displayName": "ASN.1",
     "description": "ASN.1 syntax, snippets, formatting, and more.",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "publisher": "wildboar",
+    "license": "MIT",
     "engines": {
         "vscode": "^1.26.0"
     },
@@ -87,6 +88,6 @@
     "icon": "images/Icon512.png",
     "homepage": "https://github.com/JonathanWilbur/vscode-asn1/README.md",
     "devDependencies": {
-        "vscode": "^1.1.33"
+        "vscode": "^1.1.34"
     }
 }
