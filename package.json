@@ -1,93 +1,64 @@
 {
-    "name": "asn1",
-    "displayName": "ASN.1",
-    "description": "ASN.1 syntax, snippets, formatting, and more.",
-    "version": "0.5.3",
-    "publisher": "wildboar",
-    "license": "MIT",
-    "engines": {
-        "vscode": "^1.26.0"
-    },
-    "categories": [
-        "Formatters",
-        "Programming Languages",
-        "Snippets"
+  "name": "asn1",
+  "type": "module",
+  "displayName": "ASN.1",
+  "description": "ASN.1 syntax, snippets, formatting, and more.",
+  "version": "0.6.0",
+  "engines": {
+    "vscode": "^1.116.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:asn1"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "asn1.helloWorld",
+        "title": "Hello World"
+      }
     ],
-    "contributes": {
-        "configuration": {
-            "type": "object",
-            "title": "ASN.1 Configuration",
-            "properties": {
-                "asn1.ignoreIntegerSize": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Whether or not to ignore the warning when using INTEGER literals that exceed the 32-bit signed extrema."
-                }
-            }
-        },
-        "languages": [
-            {
-                "id": "asn1",
-                "aliases": [
-                    "ASN.1",
-                    "asn1"
-                ],
-                "extensions": [
-                    ".asn1",
-                    ".asn"
-                ],
-                "configuration": "./config/asn1.language-config.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "asn1",
-                "scopeName": "source.asn1",
-                "path": "./config/asn1.tmLanguage.json"
-            },
-            {
-                "scopeName": "markdown.asn1.codeblock",
-                "path": "./config/asn1.codeblock.json",
-                "injectTo": [
-                    "text.html.markdown"
-                ],
-                "embeddedLanguages": {
-                    "meta.embedded.block.asn": "asn1"
-                }
-            }
-        ],
-        "snippets": [
-            {
-                "language": "asn1",
-                "path": "./config/asn1.code-snippets"
-            }
+    "languages": [
+      {
+        "id": "asn1",
+        "aliases": ["asn"],
+        "extensions": [
+          ".asn1",
+          ".asn"
         ]
-    },
-    "main": "./dist/index.js",
-    "activationEvents": [
-        "onLanguage:asn1"
-    ],
-    "dependencies": {
-        "event-stream": "^3.3.5"
-    },
-    "scripts": {
-        "pkgvars": "node ./node_modules/vscode/bin/install",
-        "postinstall": "node ./node_modules/vscode/bin/install"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/JonathanWilbur/vscode-asn1.git"
-    },
-    "keywords": [
-        "ASN",
-        "ASN.1",
-        "BER",
-        "DER",
-        "X.680"
-    ],
-    "icon": "images/Icon512.png",
-    "homepage": "https://github.com/JonathanWilbur/vscode-asn1/README.md",
-    "devDependencies": {
-        "vscode": "^1.1.34"
-    }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.cjs",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.cjs --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.118.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.3",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  },
+  "dependencies": {
+    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^1.0.2"
+  }
 }
