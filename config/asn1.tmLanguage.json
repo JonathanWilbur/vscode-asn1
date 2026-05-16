@@ -1,0 +1,168 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "ASN.1",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+        {
+            "include": "#typereference"
+        },
+        {
+            "include": "#identifier"
+        },
+        {
+            "include": "#valuereference"
+        },
+        {
+            "include": "#modulereference"
+        },
+        {
+            "include": "#comment"
+        },
+        {
+            "include": "#number"
+        },
+        {
+            "include": "#bstring"
+        },
+        {
+            "include": "#hstring"
+        },
+        {
+            "include": "#cstring"
+        },
+        {
+            "include": "#universaltypes"
+        },
+        {
+            "include": "#specialvalues"
+        },
+        {
+            "include": "#taggingclass"
+        }
+	],
+	"repository": {
+        "typereference": {
+            "patterns": [
+                {
+                    "name": "entity.name.type",
+                    "match": "\\b[A-Z](?:[A-Za-z0-9\\-]*[A-Za-z0-9])?\\b"
+                }
+            ]
+        },
+        "identifier": {
+            "patterns": [
+                {
+                    "name": "variable",
+                    "match": "\\b[a-z](?:[A-Za-z0-9\\-]*[A-Za-z0-9])?\\b"
+                }
+            ]
+        },
+        "valuereference": {
+            "patterns": [
+                {
+                    "name": "variable.other",
+                    "match": "\\b[a-z](?:[A-Za-z0-9\\-]*[A-Za-z0-9])?\\b"
+                }
+            ]
+        },
+        "modulereference": {
+            "patterns": [
+                {
+                    "name": "name.other",
+                    "match": "\\b[A-Z](?:[A-Za-z0-9\\-]*[A-Za-z0-9])?\\b"
+                }
+            ]
+        },
+        "comment": {
+            "patterns": [
+                {
+                    "name": "comment.line",
+                    "begin": "--",
+                    "end": "(\n|(?:--))"
+                },
+                {
+                    "name": "comment.block",
+                    "begin": "/\\*",
+                    "end": "\\*/"
+                }
+            ]
+        },
+        "number": {
+            "patterns": [
+                {
+                    "name": "constant.numeric",
+                    "match": "\\b\\d+\\.?\\d*(?:(e|E)-?\\d+)?\\b"
+                }
+            ]
+        },
+        "bstring": {
+            "patterns": [
+                {
+                    "name": "constant.other",
+                    "match": "\\b'[01]+'B\\b"
+                }
+            ]
+        },
+        "hstring": {
+            "patterns": [
+                {
+                    "name": "constant.other",
+                    "match": "\\b'[0-9A-Fa-f]+'H\\b"
+                }
+            ]
+        },
+        "cstring": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": []
+                }
+            ]
+        },
+		"keywords": {
+			"patterns": [
+                {
+                    "name": "keyword",
+                    "match": "\\b(ABSENT|ABSTRACT-SYNTAX|ALL|AUTOMATIC|BEGIN|BY|COMPONENT|COMPONENTS|CONSTRAINED|CONTAINING|DEFAULT|DEFINITIONS|ENCODED|END|EXCEPT|EXPLICIT|EXPORTS|EXTENSIBILITY|FROM|IMPLICIT|IMPLIED|IMPORTS|INCLUDES|INTERSECTION|OPTIONAL|PATTERN|PRESENT|SIZE|TAGS|TYPE-IDENTIFIER|UNION|UNIQUE|WITH)\\b"
+                }
+            ]
+        },
+        "universaltypes": {
+            "patterns": [
+                {
+                    "name": "support.type",
+                    "match": "\\b(END OF CONTENT|BOOLEAN|INTEGER|BIT STRING|OCTET STRING|NULL|OBJECT IDENTIFIER|ObjectDescriptor|EXTERNAL|REAL|ENUMERATED|EMBEDDED PDV|EmbeddedPDV|UTF8String|RELATIVE-OID|SEQUENCE OF|SEQUENCE|SET OF|SET|NumericString|PrintableString|T61String|TeletexString|VideotexString|IA5String|UTCTime|GeneralizedTime|GraphicString|VisibleString|GeneralString|UniversalString|CHARACTER STRING|BMPString|ISO646String)\\b"
+                }
+            ]
+        },
+        "specialvalues": {
+            "patterns": [
+                {
+                    "name": "support.constant",
+                    "match": "\\b(TRUE|FALSE|MINUS-INFINITY|PLUS-INFINITY|MIN|MAX)\\b"
+                }
+            ]
+        },
+        "taggingclass": {
+            "patterns": [
+                {
+                    "name": "support.other",
+                    "match": "\\b(UNIVERSAL|APPLICATION|PRIVATE)\\b"
+                }
+            ]
+        },
+        "assignment": {
+            "patterns": [
+                {
+                    "name": "keyword.operator",
+                    "match": "\\b::=\\b"
+                }
+            ]
+        }
+	},
+	"scopeName": "source.asn1"
+}

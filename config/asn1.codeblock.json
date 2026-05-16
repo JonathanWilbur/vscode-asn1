@@ -1,0 +1,28 @@
+{
+	"fileTypes": [],
+	"injectionSelector": "L:markup.fenced_code.block.markdown",
+	"patterns": [
+		{
+			"include": "#asn1-code-block"
+		}
+	],
+	"repository": {
+		"asn1-code-block": {
+			"begin": "(?<=[`~])asn1(\\s+[^`~]*)?$",
+			"end": "(^|\\G)(?=\\s*[`~]{3,}\\s*$)",
+			"patterns": [
+				{
+					"begin": "(^|\\G)(\\s*)(.*)",  
+					"while": "(^|\\G)(?!\\s*([`~]{3,})\\s*$)",
+					"contentName": "meta.embedded.block.asn1",
+					"patterns": [
+						{
+							"include": "source.asn1"
+						}
+					]
+				}
+			]
+		}
+	},
+	"scopeName": "markdown.asn1.codeblock"
+}

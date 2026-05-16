@@ -7,13 +7,15 @@
   "engines": {
     "vscode": "^1.116.0"
   },
+  "publisher": "wildboar",
   "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onLanguage:asn1"
+      "Formatters",
+      "Programming Languages",
+      "Snippets"
   ],
   "main": "./dist/extension.js",
+  "icon": "images/Icon512.png",
+  "homepage": "https://github.com/JonathanWilbur/vscode-asn1/README.md",
   "contributes": {
     "commands": [
       {
@@ -24,11 +26,37 @@
     "languages": [
       {
         "id": "asn1",
-        "aliases": ["asn"],
+        "aliases": [
+          "asn"
+        ],
         "extensions": [
           ".asn1",
           ".asn"
-        ]
+        ],
+        "configuration": "./config/asn1.language-config.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "asn1",
+        "scopeName": "source.asn1",
+        "path": "./config/asn1.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.asn1.codeblock",
+        "path": "./config/asn1.codeblock.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.asn": "asn1"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "asn1",
+        "path": "./config/asn1.code-snippets"
       }
     ]
   },
@@ -59,6 +87,10 @@
     "typescript-eslint": "^8.56.1"
   },
   "dependencies": {
-    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^1.0.2"
+    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JonathanWilbur/vscode-asn1.git"
   }
 }

@@ -1,7 +1,19 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { lex, parse, grok, correct, type Module, TaggingMode, Production, Assignment, Location, AssignmentType } from '@wildboar/asn1-parser';
+import {
+	lex,
+	parse,
+	grok,
+	correct,
+	type Module,
+	TaggingMode,
+	Production,
+	Assignment,
+	type Location,
+	AssignmentType,
+	type NameAndOrNumber,
+} from '@wildboar/asn1-parser';
 
 const LANGUAGE: string = "asn1";
 
@@ -14,29 +26,49 @@ function getRangeFromLocation(
 	return new vscode.Range(start, end);
 }
 
+const builtinRootArcNamesToNumber: Map<string, number> = new Map([
+	["itu-t", 0],
+	["ccitt", 0],
+	["iso", 1],
+	["joint-iso-itu-t", 2],
+	["joint-iso-ccitt", 2],
+]);
+
+function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | null {
+	if (!(mid.slice(1).every((m) => "number" in m))) {
+		return null;
+	}
+	const first = mid[0];
+	if ("number" in first) {
+		return mid.map((m) => ("number" in m) ? m.number : -1);
+	} else if ("name" in first) {
+		const num = builtinRootArcNamesToNumber.get(first.name);
+		if (typeof num === "undefined") {
+			return null;
+		}
+		return [
+			num,
+			...mid.map((m) => ("number" in m) ? m.number : -1),
+		];
+	}
+	return null;
+}
+
 function getDocumentSymbolDetailsFromAsn1Module(mod: Module): string {
 	const details: string[] = [];
 	if (mod.oid) {
-		// FIXME: This OID is not displaying correctly.
-		details.push(`oid:${mod.oid}`);
-	}
-	if (mod.iri) {
-		const iri = mod.iri.replaceAll(/\s+/, "");
-		// TODO: More validation?
-		details.push(`iri:${iri}`);
+		const oid = getOidNodesFromModuleIdentifier(mod.oid);
+		oid && details.push(`oid:${oid.join(".")}`);
 	}
 	if (mod.extensibilityImplied) {
-		details.push("extensibility-implied");
-	}
-	if (mod.exports) { // TODO: Does `undefined` mean EXPORTS ALL?
-
+		details.push("ext-imp");
 	}
 	if (mod.taggingMode === TaggingMode.EXPLICIT) {
-		details.push("explicit-tagging");
+		details.push("exp");
 	} else if (mod.taggingMode === TaggingMode.IMPLICIT) {
-		details.push("implicit-tagging");
+		details.push("imp");
 	} else if (mod.taggingMode === TaggingMode.AUTOMATIC) {
-		details.push("automatic-tagging");
+		details.push("auto");
 	}
 	return details.join(" ");
 }
