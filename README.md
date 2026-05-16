@@ -1,71 +1,135 @@
-# asn1 README
+# ASN.1 VS Code Extension
 
-This is the README for your extension "asn1". After writing up a brief description, we recommend including the following sections.
+Current in progress.
 
-## Features
+## To Do
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- [ ] Syntax highlighting
+- [ ] Snippet completion
+- [ ] Bracket matching
+- [ ] Bracket autoclosing
+- [ ] Bracket autosurrounding
+- [ ] Comment toggling
+- [ ] Auto indentation
+- [ ] Folding (by markers)
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- [ ] Lexing and Parsing
+- [ ] Tree View
+- [ ] Hover Info
+  - [ ] DEFAULT
+  - [ ] OPTIONAL
+  - [ ] EXPLICIT
+  - [ ] IMPLICIT
+  - [ ] TRUE
+  - [ ] FALSE
+  - [ ] TAGS
+  - [ ] ~~Display dates in a more human friendly format~~ (This cannot be done _well_ until VS Code supports named regex capture groups.)
+  - [ ] Support aliases
+    - [ ] ISO646String
+    - [ ] EmbeddedPDV
+    - [ ] External
+    - [ ] TeletexString
+- [ ] Hints
+  - [ ] Consider using GeneralizedTime instead of UTCTime
+  - [ ] EXTENSIBILITY IMPLIED, so trailing ... is not necessary*
+  - [ ] Consider adding an exception marker
+  - [ ] Consider shortening this OBJECT IDENTIFIER line by joining OBJECT IDENTIFIERs
+- [ ] Warnings
+  - [ ] (MIN..MAX) unnecessary
+  - [ ] GeneralString use is discouraged (Page 182 Dubuisson)
+  - [ ] GraphicString use is discouraged (Page 182 Dubuisson)
+  - [ ] INTEGER is too big to encode in 32 bits
+- [ ] Errors
+  - [ ] Module*
+    - [ ] BEGIN with no END*
+    - [ ] END with no BEGIN*
+  - [ ] Tag
+    - [ ] Contradictory APPLICATION and PRIVATE
+    - [ ] Contradictory UNIVERSAL and APPLICATION
+    - [ ] Contradictory UNIVERSAL and PRIVATE
+    - [ ] Cannot have negative tag number
+    - [ ] No leading 0 on tag number
+    - [ ] Contradictory EXPLICIT and IMPLICIT
+  - [ ] Structured Types
+    - [ ] Contradictory OPTIONAL and PRESENT
+    - [ ] Contradictory OPTIONAL and ABSENT
+    - [ ] Contradictory PRESENT and ABSENT
+    - [ ] Contradictory OPTIONAL and DEFAULT
+    - [ ] Duplicated context-specific tag numbers
+  - [ ] Types
+    - [ ] INTEGER
+      - [ ] Named values
+    - [ ] OBJECT IDENTIFIER
+      - [ ] Leading OID node greater than 2
+      - [ ] Second OID node greater than 175
+      - [ ] OID node cannot be negative
+      - [ ] OID mismatch between node descriptor and node number (e.g. iso(2))
+    - [ ] Invalid UTCTime
+    - [ ] Invalid GeneralizedTime
+    - [ ] Invalid character in string type
+      - [ ] NumericString
+      - [ ] PrintableString
+      - [ ] VisibleString
+    - [ ] Invalid character in binary string
+    - [ ] Invalid character in hexadecimal string
+    - [ ] ENUMERATED 
+      - [ ] Duplicated numbers in ENUMERATED (e.g. { on(0), off(1), out-of-order(2), idle(1) })
+    - [ ] REAL
+    - [ ] BOOLEAN
+    - [ ] BIT STRING
+      - [ ] BIT STRING can be an hstring too.
+      - [ ] BIT STRING can also be a list of named identifiers, which indicates which bits are set.
+      - [ ] BIT STRING subtypes can specify bit numbers in parentheses next to the identifiers.
+    - [ ] OCTET STRING
+      - [ ] OCTET STRING can be a bstring too.
+    - [ ] RELATIVE-OID
+  - [ ] Constraints
+    - [ ] Cannot have negative SIZE
+    - [ ] No leading 0 on SIZE constraint
+    - [ ] Make sure SIZE is only applied to types that support it
+    - [ ] Range boundaries: minimum greater than maximum in SIZE
+    - [ ] Range boundaries: minimum greater than maximum
+    - [ ] Leading or Trailing "|" Alternation Operator in FROM
+    - [ ] FROM range cannot span multi-character strings
+    - [ ] PATTERN validation
+      - [ ] Unbalanced set `[]` brackets
+      - [ ] Unbalanced option `{}` brackets
+      - [ ] Unrecognized backslash escape
+      - [ ] Trailing alternation pipe
+      - [ ] Unbalanced grouping `()` brackets
+      - [ ] Nothing to repeat
+      - [ ] Invalid range
+  - [ ] Extensions
+    - [ ] Negative version number
+  - [ ] Undefined type
+  - [ ] Field cannot have two different types "e.g. OBJECT IDENTIFIER REAL"
+  - [ ] Unmatched Brackets
+  - [ ] Trailing Comma
+  - [ ] Leading zeros in numeric literal (X.680 S 12.8)
+- [ ] Formatting
+  - [ ] One single space between moustaches and content
+  - [ ] Single spaces surrounding "::="
+  - [ ] One blank line between definitions
+  - [ ] Single space between SIZE and parentheses
+  - [ ] ENUMERATED members indented on separate newlines
+  - [ ] Named BIT STRING members indented on separate newlines
+  - [ ] Named INTEGER members indented on separate newlines
+  - [ ] Structured REAL all on the same line
+  - [ ] BOOLEAN all on one line
+  - [ ] OBJECT IDENTIFIER and RELATIVE-OID all on the same line
+  - [ ] Support multi-line keyword duplication checking
+- [ ] Go to definitions
+- [ ] Solution explorer (I believe this is contingent upon symbol lookup working)
+- [ ] Common type definitions
+- [ ] Commands
+  - [ ] Append extensibility
+  - [ ] Make all tags context specific
+  - [ ] Show BER Encoding
+  - [ ] Show DER Encoding
+- [ ] Code completion
+- [ ] Possible actions on errors or warnings
+- [ ] Try to make diagnostics span lines (Look into document.positionAt)
+- [ ] Rename Symbol
+- [ ] Code Lens?
+- [ ] Create enum for tagging mode
+- [ ] Create the newer data types
