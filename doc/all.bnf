@@ -1,0 +1,1524 @@
+; The productions below are like Backus-Naur Form (BNF), but not exactly. All productions are separated by a newline.
+
+ModuleDefinition ::=
+    ModuleIdentifier
+    DEFINITIONS
+    EncodingReferenceDefault
+    TagDefault
+    ExtensionDefault
+    "::="
+    BEGIN
+    ModuleBody
+    EncodingControlSections
+    END
+
+ModuleIdentifier ::=
+    modulereference
+    DefinitiveIdentification
+
+; In the official X.680 specification, there is an extra | character before DefinitiveOID below. I think this was a mistake.
+DefinitiveIdentification ::=
+	DefinitiveOID
+	| DefinitiveOIDandIRI
+	| empty
+
+DefinitiveOID ::=
+    "{" DefinitiveObjIdComponentList "}"
+
+DefinitiveOIDandIRI ::=
+    DefinitiveOID IRIValue
+
+DefinitiveObjIdComponentList ::=
+    DefinitiveObjIdComponent
+	| DefinitiveObjIdComponent DefinitiveObjIdComponentList
+
+DefinitiveObjIdComponent ::=
+    NameForm
+	| DefinitiveNumberForm
+	| DefinitiveNameAndNumberForm
+
+DefinitiveNumberForm ::=
+	number
+
+DefinitiveNameAndNumberForm ::=
+	identifier "(" DefinitiveNumberForm ")"
+
+EncodingReferenceDefault ::=
+    encodingreference INSTRUCTIONS
+	| empty
+
+TagDefault ::=
+    EXPLICIT TAGS
+	| IMPLICIT TAGS
+	| AUTOMATIC TAGS
+	| empty
+
+ExtensionDefault ::=
+    EXTENSIBILITY IMPLIED
+	| empty
+
+ModuleBody ::=
+    Exports Imports AssignmentList
+	| empty
+
+Exports ::=
+    EXPORTS SymbolsExported ";"
+	| EXPORTS ALL ";"
+	| empty
+
+SymbolsExported ::=
+    SymbolList
+	| empty
+
+Imports ::=
+    IMPORTS SymbolsImported ";"
+	| empty
+
+SymbolsImported ::=
+    SymbolsFromModuleList
+	| empty
+
+SymbolsFromModuleList ::=
+    SymbolsFromModule
+	| SymbolsFromModuleList SymbolsFromModule
+
+; The SelectionOption was added in ITU X.680, Amendment 1.
+SymbolsFromModule ::=
+	SymbolList FROM GlobalModuleReference SelectionOption
+
+GlobalModuleReference ::=
+    modulereference AssignedIdentifier
+
+AssignedIdentifier ::=
+    ObjectIdentifierValue
+	| DefinedValue
+	| empty
+
+SymbolList ::=
+    Symbol
+	| SymbolList "," Symbol
+
+Symbol ::=
+    Reference
+	| ParameterizedReference
+
+Reference ::=
+    typereference
+	| valuereference
+	| objectclassreference
+	| objectreference
+	| objectsetreference
+
+AssignmentList ::=
+    Assignment
+	| AssignmentList Assignment
+
+Assignment ::=
+    TypeAssignment
+	| ValueAssignment
+	| XMLValueAssignment
+	| ValueSetTypeAssignment
+	| ObjectClassAssignment
+	| ObjectAssignment
+	| ObjectSetAssignment
+	| ParameterizedAssignment
+
+DefinedType ::=
+    ExternalTypeReference
+	| typereference
+	| ParameterizedType
+	| ParameterizedValueSetType
+
+DefinedValue ::=
+    ExternalValueReference
+	| valuereference
+	| ParameterizedValue
+
+NonParameterizedTypeName ::=
+    ExternalTypeReference
+	| typereference
+	| xmlasn1typename
+
+ExternalTypeReference ::=
+    modulereference "." typereference
+
+ExternalValueReference ::=
+    modulereference "." valuereference
+
+AbsoluteReference ::=
+    "@" ModuleIdentifier "." ItemSpec
+
+ItemSpec ::=
+    typereference
+	| ItemId "." ComponentId
+
+ItemId ::= ItemSpec
+
+ComponentId ::=
+    identifier
+	| number
+	| "*"
+
+TypeAssignment ::=
+    typereference "::=" Type
+
+ValueAssignment ::=
+    valuereference Type "::=" Value
+
+XMLValueAssignment ::=
+    valuereference "::=" XMLTypedValue
+
+XMLTypedValue ::=
+    "<" & NonParameterizedTypeName ">" XMLValue "</" & NonParameterizedTypeName ">"
+	| "<" & NonParameterizedTypeName "/>"
+
+ValueSetTypeAssignment ::=
+    typereference Type "::=" ValueSet
+
+ValueSet ::=
+	"{" ElementSetSpecs "}"
+
+Type ::=
+    BuiltinType
+	| ReferencedType
+	| ConstrainedType
+
+BuiltinType ::=
+    BitStringType
+	| BooleanType
+	| CharacterStringType
+	| ChoiceType
+	| DateType
+	| DateTimeType
+	| DurationType
+	| EmbeddedPDVType
+	| EnumeratedType
+	| ExternalType
+	| InstanceOfType
+	| IntegerType
+	| IRIType
+	| NullType
+	| ObjectClassFieldType
+	| ObjectIdentifierType
+	| OctetStringType
+	| RealType
+	| RelativeIRIType
+	| RelativeOIDType
+	| SequenceType
+	| SequenceOfType
+	| SetType
+	| SetOfType
+	| PrefixedType
+	| TimeType
+	| TimeOfDayType
+
+ReferencedType ::=
+    DefinedType
+	| UsefulType
+	| SelectionType
+	| TypeFromObject
+	| ValueSetFromObjects
+
+NamedType ::=
+	identifier Type
+
+Value ::=
+    BuiltinValue
+	| ReferencedValue
+	| ObjectClassFieldValue
+
+XMLValue ::=
+    XMLBuiltinValue
+	| XMLObjectClassFieldValue
+
+BuiltinValue ::=
+    BitStringValue
+	| BooleanValue
+	| CharacterStringValue
+	| ChoiceValue
+	| EmbeddedPDVValue
+	| EnumeratedValue
+	| ExternalValue
+	| InstanceOfValue
+	| IntegerValue
+	| IRIValue
+	| NullValue
+	| ObjectIdentifierValue
+	| OctetStringValue
+	| RealValue
+	| RelativeIRIValue
+	| RelativeOIDValue
+	| SequenceValue
+	| SequenceOfValue
+	| SetValue
+	| SetOfValue
+	| PrefixedValue
+	| TimeValue
+
+XMLBuiltinValue ::=
+    XMLBitStringValue
+	| XMLBooleanValue
+	| XMLCharacterStringValue
+	| XMLChoiceValue
+	| XMLEmbeddedPDVValue
+	| XMLEnumeratedValue
+	| XMLExternalValue
+	| XMLInstanceOfValue
+	| XMLIntegerValue
+	| XMLIRIValue
+	| XMLNullValue
+	| XMLObjectIdentifierValue
+	| XMLOctetStringValue
+	| XMLRealValue
+	| XMLRelativeIRIValue
+	| XMLRelativeOIDValue
+	| XMLSequenceValue
+	| XMLSequenceOfValue
+	| XMLSetValue
+	| XMLSetOfValue
+	| XMLPrefixedValue
+	| XMLTimeValue
+
+ReferencedValue ::=
+    DefinedValue
+	| ValueFromObject
+
+NamedValue ::=
+	identifier Value
+
+XMLNamedValue ::=
+	"<" & identifier ">" XMLValue "</" & identifier ">"
+
+BooleanType ::=
+	BOOLEAN
+
+BooleanValue ::=
+	TRUE
+	| FALSE
+
+XMLBooleanValue ::=
+    EmptyElementBoolean
+	| TextBoolean
+
+EmptyElementBoolean ::=
+	"<" & "true" "/>"
+	| "<" & "false" "/>"
+
+TextBoolean ::=
+    extended-true
+	| extended-false
+
+IntegerType ::=
+    INTEGER
+	| INTEGER "{" NamedNumberList "}"
+
+NamedNumberList ::=
+    NamedNumber
+	| NamedNumberList "," NamedNumber
+
+NamedNumber ::=
+    identifier "(" SignedNumber ")"
+	| identifier "(" DefinedValue ")"
+
+SignedNumber ::=
+    number
+	| "-" number
+
+IntegerValue ::=
+    SignedNumber
+	| identifier
+
+XMLIntegerValue ::=
+    XMLSignedNumber
+	| EmptyElementInteger
+	| TextInteger
+
+XMLSignedNumber ::=
+    number
+	| "-" & number
+
+; I believe there was a typo here
+EmptyElementInteger ::=
+	"<" & identifier "/>"
+
+TextInteger ::=
+    identifier
+
+EnumeratedType ::=
+    ENUMERATED "{" Enumerations "}"
+
+Enumerations ::=
+    RootEnumeration
+	| RootEnumeration "," "..." ExceptionSpec
+	| RootEnumeration "," "..." ExceptionSpec "," AdditionalEnumeration
+
+RootEnumeration ::=
+    Enumeration
+
+AdditionalEnumeration ::=
+    Enumeration
+
+Enumeration ::=
+    EnumerationItem
+	| EnumerationItem "," Enumeration
+
+EnumerationItem ::=
+    identifier
+	| NamedNumber
+
+EnumeratedValue ::=
+    identifier
+
+XMLEnumeratedValue ::=
+    EmptyElementEnumerated
+	| TextEnumerated
+
+EmptyElementEnumerated ::=
+	"<" & identifier "/>"
+
+TextEnumerated ::=
+	identifier
+
+RealType ::=
+	REAL
+
+RealValue ::=
+    NumericRealValue
+	| SpecialRealValue
+
+NumericRealValue ::=
+    realnumber
+	| "-" realnumber
+	| SequenceValue
+
+SpecialRealValue ::=
+    PLUS-INFINITY
+	| MINUS-INFINITY
+	| NOT-A-NUMBER
+
+XMLRealValue ::=
+    XMLNumericRealValue
+	| XMLSpecialRealValue
+
+XMLNumericRealValue ::=
+    realnumber
+	| "-" & realnumber
+
+XMLSpecialRealValue ::=
+    EmptyElementReal
+	| TextReal
+
+EmptyElementReal ::=
+    "<" & PLUS-INFINITY "/>"
+    | "<" & MINUS-INFINITY "/>"
+    | "<" & NOT-A-NUMBER "/>"
+
+TextReal ::=
+    "INF"
+    | "-" & "INF"
+    | "NaN"
+
+BitStringType ::=
+    BIT STRING
+    | BIT STRING "{" NamedBitList "}"
+
+NamedBitList ::=
+    NamedBit
+	| NamedBitList "," NamedBit
+
+NamedBit ::=
+    identifier "(" number ")"
+	| identifier "(" DefinedValue ")"
+
+BitStringValue ::=
+    bstring
+	| hstring
+	| "{" IdentifierList "}"
+	| "{" "}"
+	| CONTAINING Value
+
+IdentifierList ::=
+    identifier
+	| IdentifierList "," identifier
+
+XMLBitStringValue ::=
+    XMLTypedValue
+	| xmlbstring
+	| XMLIdentifierList
+	| empty
+
+XMLIdentifierList ::=
+    EmptyElementList
+	| TextList
+
+EmptyElementList ::=
+    "<" & identifier "/>"
+	| EmptyElementList "<" & identifier "/>"
+
+TextList ::=
+    identifier
+	| TextList identifier
+
+OctetStringType ::=
+	OCTET STRING
+
+OctetStringValue ::=
+    bstring
+	| hstring
+	| CONTAINING Value
+
+XMLOctetStringValue ::=
+    XMLTypedValue
+	| xmlhstring
+
+NullType ::=
+	NULL
+
+NullValue ::=
+	NULL
+
+XMLNullValue ::=
+	empty
+
+SequenceType ::=
+	SEQUENCE "{" "}"
+	| SEQUENCE "{" ExtensionAndException OptionalExtensionMarker "}"
+	| SEQUENCE "{" ComponentTypeLists "}"
+
+ExtensionAndException ::=
+    "..."
+	| "..." ExceptionSpec
+
+OptionalExtensionMarker ::=
+	"," "..."
+	| empty
+
+ComponentTypeLists ::=
+    RootComponentTypeList
+	| RootComponentTypeList "," ExtensionAndException ExtensionAdditions OptionalExtensionMarker
+	| RootComponentTypeList "," ExtensionAndException ExtensionAdditions ExtensionEndMarker  "," RootComponentTypeList
+	| ExtensionAndException ExtensionAdditions ExensionEndMarker "," RootComponentTypeList
+	| ExtensionAndException ExtensionAdditions OptionalExtensionMarker
+
+RootComponentTypeList ::=
+    ComponentTypeList
+
+ExtensionEndMarker ::= "," "..."
+
+ExtensionAdditions ::=
+    "," ExtensionAdditionList
+	| empty
+
+ExtensionAdditionList ::=
+    ExtensionAddition
+	| ExtensionAdditionList "," ExtensionAddition
+
+ExtensionAddition ::=
+    ComponentType
+	| ExtensionAdditionGroup
+
+ExtensionAdditionGroup ::=
+	"[[" VersionNumber ComponentTypeList "]]"
+
+VersionNumber ::=
+	empty
+	| number ":"
+
+ComponentTypeList ::=
+    ComponentType
+	| ComponentTypeList "," ComponentType
+
+ComponentType ::=
+    NamedType
+	| NamedType OPTIONAL
+	| NamedType DEFAULT Value
+	| COMPONENTS OF Type
+
+SequenceValue ::=
+    "{" ComponentValueList "}"
+    | "{" "}"
+
+ComponentValueList ::=
+    NamedValue
+	| ComponentValueList "," NamedValue
+
+XMLSequenceValue ::=
+    XMLComponentValueList
+	| empty
+
+XMLComponentValueList ::=
+    XMLNamedValue
+	| XMLComponentValueList XMLNamedValue
+
+SequenceOfType ::=
+	SEQUENCE OF Type | SEQUENCE OF NamedType
+
+SequenceOfValue ::=
+    "{" ValueList "}"
+	| "{" NamedValueList "}"
+	| "{" "}"
+
+ValueList ::=
+	Value
+	| ValueList "," Value
+
+NamedValueList ::=
+    NamedValue
+	| NamedValueList "," NamedValue
+
+XMLSequenceOfValue ::=
+    XMLValueList
+	| XMLDelimitedItemList
+	| empty
+
+XMLValueList ::=
+    XMLValueOrEmpty
+	| XMLValueOrEmpty XMLValueList
+
+XMLValueOrEmpty ::=
+    XMLValue
+	| "<" & NonParameterizedTypeName "/>"
+
+XMLDelimitedItemList ::=
+    XMLDelimitedItem
+	| XMLDelimitedItem XMLDelimitedItemList
+
+XMLDelimitedItem ::=
+    "<" & NonParameterizedTypeName ">" XMLValue "</" & NonParameterizedTypeName ">"
+	| "<" & identifier ">" XMLValue "</" & identifier ">"
+
+SetType ::=
+    SET "{" "}"
+	| SET "{" ExtensionAndException OptionalExtensionMarker "}"
+	| SET "{" ComponentTypeLists "}"
+
+SetValue ::=
+    "{" ComponentValueList "}"
+	| "{" "}"
+
+XMLSetValue ::=
+    XMLComponentValueList
+	| empty
+
+SetOfType ::=
+    SET OF Type
+	| SET OF NamedType
+
+SetOfValue ::=
+    "{" ValueList "}"
+	| "{" NamedValueList "}"
+	| "{" "}"
+
+XMLSetOfValue ::=
+    XMLValueList
+	| XMLDelimitedItemList
+	| empty
+
+ChoiceType ::=
+	CHOICE "{" AlternativeTypeLists "}"
+
+AlternativeTypeLists ::=
+    RootAlternativeTypeList
+	| RootAlternativeTypeList "," ExtensionAndException ExtensionAdditionAlternatives OptionalExtensionMarker
+
+RootAlternativeTypeList ::=
+    AlternativeTypeList
+
+ExtensionAdditionAlternatives ::=
+    "," ExtensionAdditionAlternativesList
+	| empty
+
+ExtensionAdditionAlternativesList ::=
+    ExtensionAdditionAlternative
+	| ExtensionAdditionAlternativesList "," ExtensionAdditionAlternative
+
+ExtensionAdditionAlternative ::=
+    ExtensionAdditionAlternativesGroup
+	| NamedType
+
+ExtensionAdditionAlternativesGroup ::=
+	"[[" VersionNumber AlternativeTypeList "]]"
+
+AlternativeTypeList ::=
+    NamedType
+	| AlternativeTypeList "," NamedType
+
+ChoiceValue ::=
+	identifier ":" Value
+
+XMLChoiceValue ::=
+	"<" & identifier ">" XMLValue "</" & identifier ">"
+
+SelectionType ::=
+    identifier "<" Type
+
+PrefixedType ::=
+    TaggedType
+	| EncodingPrefixedType
+
+PrefixedValue ::=
+	Value
+
+XMLPrefixedValue ::=
+	XMLValue
+
+EncodingPrefixedType ::=
+    EncodingPrefix Type
+
+EncodingPrefix ::=
+	"[" EncodingReference EncodingInstruction "]"
+
+TaggedType ::=
+	Tag Type
+	| Tag IMPLICIT Type
+	| Tag EXPLICIT Type
+
+Tag ::=
+	"[" EncodingReference Class ClassNumber "]"
+
+EncodingReference ::=
+    encodingreference ":"
+	| empty
+
+ClassNumber ::=
+    number
+	| DefinedValue
+
+Class ::=
+    UNIVERSAL
+	| APPLICATION
+	| PRIVATE
+	| empty
+
+ObjectIdentifierType ::=
+	OBJECT IDENTIFIER
+
+ObjectIdentifierValue ::=
+    "{" ObjIdComponentsList "}"
+	| "{" DefinedValue ObjIdComponentsList "}"
+
+ObjIdComponentsList ::=
+    ObjIdComponents
+	| ObjIdComponents ObjIdComponentsList
+
+ObjIdComponents ::=
+    NameForm
+	| NumberForm
+	| NameAndNumberForm
+	| DefinedValue
+
+NameForm ::=
+    identifier
+
+NumberForm ::=
+    number
+	| DefinedValue
+
+NameAndNumberForm ::=
+    identifier "(" NumberForm ")"
+
+XMLObjectIdentifierValue ::=
+    XMLObjIdComponentList
+
+XMLObjIdComponentList ::=
+    XMLObjIdComponent
+	| XMLObjIdComponent & "." & XMLObjIdComponentList
+
+XMLObjIdComponent ::=
+    NameForm
+	| XMLNumberForm
+	| XMLNameAndNumberForm
+
+XMLNumberForm ::=
+    number
+
+XMLNameAndNumberForm ::=
+    identifier & "(" & XMLNumberForm & ")"
+
+RelativeOIDType ::=
+    RELATIVE-OID
+
+RelativeOIDValue ::=
+    "{" RelativeOIDComponentsList "}"
+
+RelativeOIDComponentsList ::=
+    RelativeOIDComponents
+	| RelativeOIDComponents RelativeOIDComponentsList
+
+RelativeOIDComponents ::=
+    NumberForm
+	| NameAndNumberForm
+	| DefinedValue
+
+XMLRelativeOIDValue ::=
+    XMLRelativeOIDComponentList
+
+XMLRelativeOIDComponentList ::=
+    XMLRelativeOIDComponent
+	| XMLRelativeOIDComponent & "." & XMLRelativeOIDComponentList
+
+XMLRelativeOIDComponent ::=
+    XMLNumberForm
+	| XMLNameAndNumberForm
+
+IRIType ::=
+	OID-IRI
+
+IRIValue ::=
+    """ FirstArcIdentifier SubsequentArcIdentifier """
+
+FirstArcIdentifier ::=
+    "/" ArcIdentifier
+
+SubsequentArcIdentifier ::=
+    "/" ArcIdentifier SubsequentArcIdentifier
+	| empty
+
+ArcIdentifier ::=
+    integerUnicodeLabel
+	| non-integerUnicodeLabel
+
+XMLIRIValue ::=
+    FirstArcIdentifier SubsequentArcIdentifier
+
+RelativeIRIType ::=
+	RELATIVE-OID-IRI
+
+RelativeIRIValue ::=
+    """ FirstRelativeArcIdentifier SubsequentArcIdentifier """
+
+FirstRelativeArcIdentifier ::=
+    ArcIdentifier
+
+XMLRelativeIRIValue ::=
+    FirstRelativeArcIdentifier SubsequentArcIdentifier
+
+EmbeddedPDVType ::=
+	EMBEDDED PDV
+
+EmbeddedPDVValue ::=
+	SequenceValue
+
+XMLEmbeddedPDVValue ::=
+	XMLSequenceValue
+
+ExternalType ::=
+	EXTERNAL
+
+ExternalValue ::=
+	SequenceValue
+
+XMLExternalValue ::=
+	XMLSequenceValue
+
+TimeType ::=
+	TIME
+
+TimeValue ::=
+	tstring
+
+XMLTimeValue ::=
+	xmltstring
+
+DateType ::=
+	DATE
+
+TimeOfDayType ::=
+	TIME-OF-DAY
+
+DateTimeType ::=
+	DATE-TIME
+
+DurationType ::=
+	DURATION
+
+CharacterStringType ::=
+    RestrictedCharacterStringType
+	| UnrestrictedCharacterStringType
+
+CharacterStringValue ::=
+    RestrictedCharacterStringValue
+	| UnrestrictedCharacterStringValue
+
+XMLCharacterStringValue ::=
+    XMLRestrictedCharacterStringValue
+	| XMLUnrestrictedCharacterStringValue
+
+RestrictedCharacterStringType ::=
+    BMPString
+	| GeneralString
+	| GraphicString
+	| IA5String
+	| ISO646String
+	| NumericString
+	| PrintableString
+	| TeletexString
+	| T61String
+	| UniversalString
+	| UTF8String
+	| VideotexString
+	| VisibleString
+
+RestrictedCharacterStringValue ::=
+    cstring
+	| CharacterStringList
+	| Quadruple
+	| Tuple
+
+CharacterStringList ::=
+	"{" CharSyms "}"
+
+CharSyms ::=
+    CharsDefn
+	| CharSyms "," CharsDefn
+
+CharsDefn ::=
+    cstring
+	| Quadruple
+	| Tuple
+	| DefinedValue
+
+Quadruple ::=
+	"{" Group "," Plane "," Row "," Cell "}"
+
+Group ::=
+	number
+
+Plane ::=
+	number
+
+Row ::=
+	number
+
+Cell ::=
+	number
+
+Tuple ::=
+	"{" TableColumn "," TableRow "}"
+
+TableColumn ::=
+	number
+
+TableRow ::=
+	number
+
+XMLRestrictedCharacterStringValue ::=
+	xmlcstring
+
+UnrestrictedCharacterStringType ::=
+	CHARACTER STRING
+
+UnrestrictedCharacterStringValue ::=
+	SequenceValue
+
+XMLUnrestrictedCharacterStringValue ::=
+	XMLSequenceValue
+
+UsefulType ::=
+	typereference
+
+; The following character string types are defined in 41.1:
+; UTF8String
+; GraphicString
+; NumericString
+; VisibleString
+; PrintableString
+; ISO646String
+; TeletexString
+; GeneralString
+; T61String
+; UniversalString
+; VideotexString
+; BMPString
+; IA5String
+
+; The following useful types are defined in clauses 46 to 48:
+; GeneralizedTime
+; UTCTime
+; ObjectDescriptor
+
+; The following productions are used in clauses 49 to 51:
+
+ConstrainedType ::=
+    Type Constraint
+	| TypeWithConstraint
+
+TypeWithConstraint ::=
+	SET Constraint OF Type
+	| SET SizeConstraint OF Type
+	| SEQUENCE Constraint OF Type
+	| SEQUENCE SizeConstraint OF Type
+	| SET Constraint OF NamedType
+	| SET SizeConstraint OF NamedType
+	| SEQUENCE Constraint OF NamedType
+	| SEQUENCE SizeConstraint OF NamedType
+
+Constraint ::=
+	"(" ConstraintSpec ExceptionSpec ")"
+
+ConstraintSpec ::=
+    SubtypeConstraint
+	| GeneralConstraint
+
+SubtypeConstraint ::=
+    ElementSetSpecs
+
+ElementSetSpecs ::=
+    RootElementSetSpec
+	| RootElementSetSpec "," "..."
+	| RootElementSetSpec "," "..." "," AdditionalElementSetSpec
+
+RootElementSetSpec ::=
+	ElementSetSpec
+
+AdditionalElementSetSpec ::=
+	ElementSetSpec
+
+ElementSetSpec ::=
+    Unions
+	| ALL Exclusions
+
+Unions ::=
+    Intersections
+	| UElems UnionMark Intersections
+
+UElems ::=
+	Unions
+
+Intersections ::=
+    IntersectionElements
+	| IElems IntersectionMark IntersectionElements
+
+IElems ::=
+	Intersections
+
+IntersectionElements ::=
+    Elements
+	| Elems Exclusions
+
+Elems ::=
+	Elements
+
+Exclusions ::=
+	EXCEPT Elements
+
+UnionMark ::=
+	"|"
+	| UNION
+
+IntersectionMark ::=
+	"^"
+	| INTERSECTION
+
+Elements ::=
+    SubtypeElements
+	| ObjectSetElements
+	| "(" ElementSetSpec ")"
+
+SubtypeElements ::=
+    SingleValue
+	| ContainedSubtype
+	| ValueRange
+	| PermittedAlphabet
+	| SizeConstraint
+	| TypeConstraint
+	| InnerTypeConstraints
+	| PatternConstraint
+	| PropertySettings
+	| DurationRange
+	| TimePointRange
+	| RecurrenceRange
+
+SingleValue ::=
+	Value
+
+ContainedSubtype ::=
+	Includes Type
+
+Includes ::=
+	INCLUDES
+	| empty
+
+ValueRange ::=
+	LowerEndpoint ".." UpperEndpoint
+
+LowerEndpoint ::=
+	LowerEndValue
+	| LowerEndValue "<"
+
+UpperEndpoint ::=
+	UpperEndValue
+	| "<" UpperEndValue
+
+LowerEndValue ::=
+	Value
+	| MIN
+
+UpperEndValue ::=
+	Value
+	| MAX
+
+SizeConstraint ::=
+	SIZE Constraint
+
+TypeConstraint ::=
+	Type
+
+PermittedAlphabet ::=
+	FROM Constraint
+
+InnerTypeConstraints ::=
+    WITH COMPONENT SingleTypeConstraint
+	| WITH COMPONENTS MultipleTypeConstraints
+
+SingleTypeConstraint ::=
+	Constraint
+
+MultipleTypeConstraints ::=
+    FullSpecification
+	| PartialSpecification
+
+FullSpecification ::=
+	"{" TypeConstraints "}"
+
+PartialSpecification ::=
+	"{" "..." "," TypeConstraints "}"
+
+TypeConstraints ::=
+    NamedConstraint
+	| NamedConstraint "," TypeConstraints
+
+NamedConstraint ::=
+	identifier ComponentConstraint
+
+ComponentConstraint ::=
+	ValueConstraint PresenceConstraint
+
+ValueConstraint ::=
+	Constraint
+	| empty
+
+PresenceConstraint ::=
+    PRESENT
+	| ABSENT
+	| OPTIONAL
+	| empty
+
+PatternConstraint ::=
+	PATTERN Value
+
+; From ITU X.680, Section 51.10.2:
+; The contents of the "simplestring" shall be "PropertySettingsList"
+;
+PropertySettings ::=
+	SETTINGS simplestring
+
+PropertySettingsList ::=
+    PropertyAndSettingPair
+	| PropertySettingsList PropertyAndSettingPair
+
+PropertyAndSettingPair ::=
+	PropertyName "=" SettingName
+
+PropertyName ::=
+	psname
+
+SettingName ::=
+	psname
+
+DurationRange ::=
+	ValueRange
+
+TimePointRange ::=
+	ValueRange
+
+RecurrenceRange ::=
+	ValueRange
+
+ExceptionSpec ::=
+    "!" ExceptionIdentification
+	| empty
+
+ExceptionIdentification ::=
+    SignedNumber
+	| DefinedValue
+	| Type ":" Value
+
+EncodingControlSections ::=
+    EncodingControlSection EncodingControlSections
+    | empty
+
+EncodingControlSection ::=
+    ENCODING-CONTROL
+    encodingreference
+    EncodingInstructionAssignmentList
+
+; EncodingInstructionAssignmentList is defined per the specification to which
+; encodingreference refers, but it is generally permitted to be anything except
+; END and ENCODING-CONTROL.
+
+DefinedObjectClass ::=
+    ExternalObjectClassReference
+    | objectclassreference
+    | UsefulObjectClassReference
+
+ExternalObjectClassReference ::=
+    modulereference "." objectclassreference
+
+UsefulObjectClassReference ::=
+    TYPE-IDENTIFIER
+    | ABSTRACT-SYNTAX
+
+ObjectClassAssignment ::=
+    objectclassreference "::=" ObjectClass
+
+ObjectClass ::=
+    DefinedObjectClass
+    | ObjectClassDefn
+    | ParameterizedObjectClass
+
+ObjectClassDefn ::=
+    CLASS "{" FieldSpec "," + "}" WithSyntaxSpec?
+
+FieldSpec ::=
+    TypeFieldSpec
+    | FixedTypeValueFieldSpec
+    | VariableTypeValueFieldSpec
+    | FixedTypeValueSetFieldSpec
+    | VariableTypeValueSetFieldSpec
+    | ObjectFieldSpec
+    | ObjectSetFieldSpec
+
+PrimitiveFieldName ::=
+    typefieldreference
+    | valuefieldreference
+    | valuesetfieldreference
+    | objectfieldreference
+    | objectsetfieldreference
+
+FieldName ::=
+    PrimitiveFieldName "." +
+
+TypeFieldSpec ::=
+    typefieldreference TypeOptionalitySpec?
+
+TypeOptionalitySpec ::=
+    OPTIONAL
+    | DEFAULT Type
+
+FixedTypeValueFieldSpec ::=
+    valuefieldreference Type UNIQUE? ValueOptionalitySpec ?
+
+ValueOptionalitySpec ::=
+    OPTIONAL
+    | DEFAULT Value
+
+VariableTypeValueFieldSpec ::=
+    valuefieldreference FieldName ValueOptionalitySpec ?
+
+FixedTypeValueSetFieldSpec ::=
+    valuesetfieldreference Type ValueSetOptionalitySpec ?
+
+ValueSetOptionalitySpec ::=
+    OPTIONAL
+    | DEFAULT ValueSet
+
+VariableTypeValueSetFieldSpec ::=
+    valuesetfieldreference FieldName ValueSetOptionalitySpec?
+
+ObjectFieldSpec ::=
+    objectfieldreference DefinedObjectClass ObjectOptionalitySpec?
+
+ObjectOptionalitySpec ::=
+    OPTIONAL
+    | DEFAULT Object
+
+ObjectSetFieldSpec ::=
+    objectsetfieldreference DefinedObjectClass ObjectSetOptionalitySpec ?
+
+ObjectSetOptionalitySpec ::=
+    OPTIONAL
+    | DEFAULT ObjectSet
+
+WithSyntaxSpec ::=
+    WITH SYNTAX SyntaxList
+
+SyntaxList ::=
+    "{" TokenOrGroupSpec empty + "}"
+
+TokenOrGroupSpec ::=
+    RequiredToken
+    | OptionalGroup
+
+OptionalGroup ::=
+    "[" TokenOrGroupSpec empty + "]"
+
+RequiredToken ::=
+    Literal
+    | PrimitiveFieldName
+
+Literal ::=
+    word
+    | ","
+
+DefinedObject ::=
+    ExternalObjectReference
+    | objectreference
+
+ExternalObjectReference ::=
+    modulereference "." objectreference
+
+ObjectAssignment ::=
+    objectreference DefinedObjectClass "::=" Object
+
+Object ::=
+    DefinedObject
+    | ObjectDefn
+    | ObjectFromObject
+    | ParameterizedObject
+
+ObjectDefn ::=
+    DefaultSyntax
+    | DefinedSyntax
+
+DefaultSyntax ::=
+    "{" FieldSetting "," * "}"
+
+FieldSetting ::=
+    PrimitiveFieldName Setting
+
+DefinedSyntax ::=
+    "{" DefinedSyntaxToken empty * "}"
+
+DefinedSyntaxToken ::=
+    Literal
+    | Setting
+
+Setting ::=
+    Type
+    | Value
+    | ValueSet
+    | Object
+    | ObjectSet
+
+DefinedObjectSet ::=
+    ExternalObjectSetReference
+    | objectsetreference
+
+ExternalObjectSetReference ::=
+    modulereference "." objectsetreference
+
+ObjectSetAssignment ::=
+    objectsetreference DefinedObjectClass "::=" ObjectSet
+
+ObjectSet ::=
+    "{" ObjectSetSpec "}"
+
+ObjectSetSpec ::=
+    RootElementSetSpec
+    | RootElementSetSpec "," "..."
+    | "..."
+    | "..." "," AdditionalElementSetSpec
+    | RootElementSetSpec "," "..." "," AdditionalElementSetSpec
+
+ObjectSetElements ::=
+    Object
+    | DefinedObjectSet
+    | ObjectSetFromObjects
+    | ParameterizedObjectSet
+
+ObjectClassFieldType ::=
+    DefinedObjectClass "." FieldName
+
+ObjectClassFieldValue ::=
+    OpenTypeFieldVal
+    | FixedTypeFieldVal
+
+OpenTypeFieldVal ::=
+    Type ":" Value
+
+FixedTypeFieldVal ::=
+    BuiltinValue
+    | ReferencedValue
+
+XMLObjectClassFieldValue ::=
+    XMLOpenTypeFieldVal
+    | XMLFixedTypeFieldVal
+
+XMLOpenTypeFieldVal ::=
+    XMLTypedValue
+    | xmlhstring
+
+XMLFixedTypeFieldVal ::=
+    XMLBuiltinValue
+
+InformationFromObjects ::=
+    ValueFromObject
+    | ValueSetFromObjects
+    | TypeFromObject
+    | ObjectFromObject
+    | ObjectSetFromObjects
+
+ReferencedObjects ::=
+    DefinedObject
+    | ParameterizedObject
+    | DefinedObjectSet
+    | ParameterizedObjectSet
+
+ValueFromObject ::=
+    ReferencedObjects "." FieldName
+
+ValueSetFromObjects ::=
+    ReferencedObjects "." FieldName
+
+TypeFromObject ::=
+    ReferencedObjects "." FieldName
+
+ObjectFromObject ::=
+    ReferencedObjects "." FieldName
+
+ObjectSetFromObjects ::=
+    ReferencedObjects "." FieldName
+
+InstanceOfType ::=
+    INSTANCE OF DefinedObjectClass
+
+InstanceOfValue ::=
+    Value
+
+XMLInstanceOfValue ::=
+    XMLValue
+
+GeneralConstraint ::=
+    UserDefinedConstraint
+    | TableConstraint
+    | ContentsConstraint
+
+UserDefinedConstraint ::=
+    CONSTRAINED BY "{" UserDefinedConstraintParameter "," * "}"
+
+UserDefinedConstraintParameter ::=
+    Governor ":" Value
+    | Governor ":" Object
+    | DefinedObjectSet
+    | Type
+    | DefinedObjectClass
+
+TableConstraint ::=
+    SimpleTableConstraint
+    | ComponentRelationConstraint
+
+SimpleTableConstraint ::=
+    ObjectSet
+
+ComponentRelationConstraint ::=
+    "{" DefinedObjectSet "}" "{" AtNotation "," + "}"
+
+AtNotation ::=
+    "@" ComponentIdList
+    | "@." Level ComponentIdList
+
+Level ::=
+    "." Level
+    | empty
+
+ComponentIdList ::=
+    identifier "." +
+
+ContentsConstraint ::=
+    CONTAINING Type
+    | ENCODED BY Value
+    | CONTAINING Type ENCODED BY Value
+
+ParameterizedAssignment ::=
+    ParameterizedTypeAssignment
+    | ParameterizedValueAssignment
+    | ParameterizedValueSetTypeAssignment
+    | ParameterizedObjectClassAssignment
+    | ParameterizedObjectAssignment
+    | ParameterizedObjectSetAssignment
+
+ParameterizedTypeAssignment ::=
+    typereference ParameterList "::=" Type
+
+ParameterizedValueAssignment ::=
+    valuereference ParameterList Type "::=" Value
+
+ParameterizedValueSetTypeAssignment ::=
+    typereference ParameterList Type "::=" ValueSet
+
+ParameterizedObjectClassAssignment ::=
+    objectclassreference ParameterList "::=" ObjectClass
+
+ParameterizedObjectAssignment ::=
+    objectreference ParameterList DefinedObjectClass "::=" Object
+
+ParameterizedObjectSetAssignment ::=
+    objectsetreference ParameterList DefinedObjectClass "::=" ObjectSet
+
+ParameterList ::=
+    "{" Parameter "," + "}"
+
+Parameter ::=
+    ParamGovernor ":" DummyReference
+    | DummyReference
+
+ParamGovernor ::=
+    Governor
+    | DummyGovernor
+
+Governor ::=
+    Type
+    | DefinedObjectClass
+
+DummyGovernor ::=
+    DummyReference
+
+DummyReference ::=
+    Reference
+
+ParameterizedReference ::=
+    Reference
+    | Reference "{"  "}"
+
+SimpleDefinedType ::=
+    ExternalTypeReference
+    | typereference
+
+SimpleDefinedValue ::=
+    ExternalValueReference
+    | valuereference
+
+ParameterizedType ::=
+    SimpleDefinedType ActualParameterList
+
+ParameterizedValue ::=
+    SimpleDefinedValue ActualParameterList
+
+ParameterizedValueSetType ::=
+    SimpleDefinedType ActualParameterList
+
+ParameterizedObjectClass ::=
+    DefinedObjectClass ActualParameterList
+
+ParameterizedObjectSet ::=
+    DefinedObjectSet ActualParameterList
+
+ParameterizedObject ::=
+    DefinedObject ActualParameterList
+
+ActualParameterList ::=
+    "{" ActualParameter "," + "}"
+
+ActualParameter ::=
+    Type
+    | Value
+    | ValueSet
+    | DefinedObjectClass
+    | Object
+    | ObjectSet
+
+; Added in ITU X.680, Amendment 1.
+SelectionOption ::= empty
+    | WITH "SUCCESSORS"
+    | WITH "DESCENDANTS"

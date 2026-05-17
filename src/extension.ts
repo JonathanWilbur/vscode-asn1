@@ -14,6 +14,9 @@ import {
 	AssignmentType,
 	type NameAndOrNumber,
 } from '@wildboar/asn1-parser';
+import { ASN1HoverProvider } from "./hover.js";
+import { getParserOutputs } from "./parsing.js";
+import { Asn1DefinitionProvider } from './gotodef.js';
 
 const LANGUAGE: string = "asn1";
 
@@ -135,27 +138,30 @@ function getDocumentSymbolFromAssignment(
 }
 
 class Asn1SymbolProvider implements vscode.DocumentSymbolProvider {
-  provideDocumentSymbols(
-    document: vscode.TextDocument,
-    token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.DocumentSymbol[]> {
-    const text = document.getText();
-	const lexResults = Array.from(lex(text));
-	const parseResults = parse(text, lexResults);
-	const modules = grok(text, parseResults);
-	correct(modules);
-
-	// FIXME: ProductionType doesn't seem to be exported correctly.
-	try {
-		const parseModules = parseResults.cst.children
+	provideDocumentSymbols(
+		document: vscode.TextDocument,
+		token: vscode.CancellationToken
+	): vscode.ProviderResult<vscode.DocumentSymbol[]> {
+		const p = getParserOutputs(document);
+		if (
+			!p.parserEndState
+			|| ("err" in p.parserEndState)
+			|| p.parserEndState.ok.error
+			|| (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
+			|| !p.parsedModules
+			|| ("err" in p.parsedModules)
+		) {
+			return [];
+		}
+		const modules = p.parsedModules.ok;
+		const cst = p.parserEndState.ok.cst;
+		const parseModules = cst.children
 			.find((c) => c.type === 'modules')
 			?.children.filter((c) => c.type === 'ModuleDefinition')
 			?? [];
 		if (modules.length !== parseModules.length) {
-			console.log('hi');
 			return [];
 		}
-
 		const symbols: vscode.DocumentSymbol[] = [];
 		for (const [i, module] of modules.entries()) {
 			const moduleProduction = parseModules[i];
@@ -180,20 +186,19 @@ class Asn1SymbolProvider implements vscode.DocumentSymbolProvider {
 			}
 		}
 		return symbols;
-	} catch (e) {
-		console.error(e);
-		return [];
 	}
-  }
 }
+
+// See: https://github.com/Microsoft/vscode/issues/42649
+vscode.languages.setLanguageConfiguration(LANGUAGE, {
+    wordPattern: /\b[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9]\b/
+});
+
+const ASN1_MODE: vscode.DocumentFilter = { language: LANGUAGE, scheme: 'file' };
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "asn1" is now active!');
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -212,6 +217,13 @@ export function activate(context: vscode.ExtensionContext) {
 			new Asn1SymbolProvider()
 		)
 	);
+
+	context.subscriptions.push(
+        vscode.languages.registerHoverProvider(ASN1_MODE, new ASN1HoverProvider()));
+
+	context.subscriptions.push(
+        vscode.languages.registerDefinitionProvider(
+            ASN1_MODE, new Asn1DefinitionProvider()));
 }
 
 // This method is called when your extension is deactivated

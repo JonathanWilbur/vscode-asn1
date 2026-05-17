@@ -4,17 +4,17 @@ Current in progress.
 
 ## To Do
 
-- [ ] Syntax highlighting
-- [ ] Snippet completion
-- [ ] Bracket matching
-- [ ] Bracket autoclosing
-- [ ] Bracket autosurrounding
-- [ ] Comment toggling
+- [x] Syntax highlighting
+- [x] Snippet completion
+- [x] Bracket matching
+- [x] Bracket autoclosing
+- [x] Bracket autosurrounding
+- [x] Comment toggling
 - [ ] Auto indentation
 - [ ] Folding (by markers)
 
-- [ ] Lexing and Parsing
-- [ ] Tree View
+- [x] Lexing and Parsing
+- [x] Tree View
 - [ ] Hover Info
   - [ ] DEFAULT
   - [ ] OPTIONAL
