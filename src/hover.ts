@@ -2,6 +2,47 @@ import { CancellationToken, Hover, HoverProvider, Position, TextDocument, worksp
 import * as definitions from "./definitions/index.js";
 
 // TODO: I am having second thoughts about this, because these tokens can appear as literals within objects.
+/*
+ITU-T Rec. X.681, Section 10.6, says that these words MUST NOT appear as word literals in objects:
+
+- `ABSTRACT-SYNTAX`
+- `BIT`
+- `BOOLEAN`
+- `CHARACTER`
+- `CHOICE`
+- `CONTAINING`
+- `DATE`
+- `DATE-TIME`
+- `DURATION`
+- `EMBEDDED`
+- `END`
+- `ENUMERATED`
+- `EXTERNAL`
+- `FALSE`
+- `INSTANCE`
+- `INTEGER`
+- `MINUS-INFINITY`
+- `NOT-A-NUMBER`
+- `NULL`
+- `OBJECT`
+- `OCTET`
+- `OID-IRI`
+- `PLUS-INFINITY`
+- `REAL`
+- `RELATIVE-OID`
+- `RELATIVE-OID-IRI`
+- `SEQUENCE`
+- `SET`
+- `TIME`
+- `TIME-OF-DAY`
+- `TRUE`
+- `TYPE-IDENTIFIER`
+
+So those are fine for unconditional hovers, except in comments and strings.
+
+This also means that I can identify the end of modules by searching for the
+first END literal that comes after the first BEGIN literal.
+*/
 const keywordHovers: Map<string, Hover> = new Map([
     // Booleans
     [ "TRUE", new Hover(definitions.TRUE_DEFINITION) ],

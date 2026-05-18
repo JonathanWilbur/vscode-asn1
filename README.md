@@ -4,17 +4,72 @@ Current in progress.
 
 ## To Do
 
+- [ ] Add imports into tree view?
+- [ ] Use different symbol kinds for X.500 object classes?
 - [x] Syntax highlighting
 - [x] Snippet completion
 - [x] Bracket matching
 - [x] Bracket autoclosing
 - [x] Bracket autosurrounding
 - [x] Comment toggling
+- [x] Go-to defintion
 - [ ] Auto indentation
 - [ ] Folding (by markers)
+- [ ] Make hover not apply within defined syntax or ECN sections
+  - [ ] Maybe not do hovers for `OBJECT IDENTIFIER` as well.
+- [ ] Hover: display `UTCTime` and `GeneralizedTime` values in human-friendly format
+- [ ] Hover: display `OBJECT IDENTIFIER` values with encodings / OID info URLs, etc.
+- [ ] Hover: display `BIT STRING` and `OCTET STRING` as hexadecimal, binary, etc.
+- [ ] Hover: display `INTEGER` as X.690 encoding
+- [ ] Hover: display `NULL` as X.690 encoding
+- [ ] Hover: display `BOOLEAN` as X.690 encoding
+- [ ] Hover: display `DURATION` in human-friendly format
+- [ ] Hover: display `DATE`, `DATE-TIME`, `TIME` in human friendly format
+- [ ] Hover: display `RELATIVE-OID` with X.690 encoding
+- [ ] Hover: display `hstring` as `bstring` equivalent and vice versa
+- [ ] Commands for generating encodings from values
+- [ ] Highlighting:
+  - [ ] Only within the current module, filter for assignments whose text contains the identifier.
+  - [ ] Within those assignments, drill down into the CST to find a `Defined` that corresponds to the highlighted identifier
+- [ ] Code Action: remove duplicate import
+- [ ] Code Action: include missing import? (this would be kind of computationally expensive)
+- [ ] CodeLens: Convert to and from defined syntax
+- [ ] CodeLens or Right-Click: Display defined syntax
+- [ ] Format Document / Format Range
+  - [ ] Format imports
+  - [ ] One newline between all assignments that themselves are more than one line.
+  - [ ] All object assignments using defined syntax that aren't already single-line get one line per setting, indented
+  - [ ] Same indents for `SET`, `SEQUENCE` and `CHOICE`
+  - [ ] `ENUMERATED`, `INTEGER`, and `BIT STRING` types: one line or one line per named value
+  - [ ] `OBJECT IDENTIFIER` single space between arcs, wrapping to 80 characters if multi-line
+  - [ ] Single space between assignment token `::=`
+  - [ ] No spaces between parameters and brackets
+  - [ ] Inline completions
+- Diagnostics: validate `DATE`
 
-- [x] Lexing and Parsing
-- [x] Tree View
+## Features Requiring Indexing the Workspace 
+
+In addition to "ghetto-indexing" using just lexical token streams, you could parallelize the indexing per file.
+
+- [ ] Go to Definition that drills into the module
+- [ ] Signature Help for Information Objects
+  - Gracefully fallible, so does not have to be great.
+  - Look up the object class (could maybe be done lazy via text search e.g. `IOC-IDENTIFIER\s+::=\s+CLASS\s+\{`)
+  - Maybe support configuration for defined syntaxes?
+- [ ] Signature Help for Parameterized Assignments
+  - Gracefully fallible, so does not have to be great.
+  - Could use text search as a lazy short-cut, e.g. `Identifier\s*\{`
+- [ ] Find All References (might not require pre-indexing, actually)
+  - [ ] You can make this more efficient by grepping files for the identifier and the assigning module's identifier first.
+    - For example, if the file truly uses `Certificate`, it must:
+      - Include the text `Certificate` somewhere.
+      - Contain `AuthenticationFramework` somewhere
+        - You cannot limit the search to the first semi-colon: there may be multiple ASN.1 modules per file,
+          but if you pre-index, you might be able to.
+- [ ] Rename symbol (basically same implementation as Find all references)
+
+## Other To Dos
+
 - [ ] Hover Info
   - [ ] DEFAULT
   - [ ] OPTIONAL
