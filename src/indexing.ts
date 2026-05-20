@@ -1,21 +1,14 @@
+/**
+ * @module
+ * 
+ * Functions for indexing and looking up what files contain what ASN.1 modules
+ * and what ASN.1 modules are in what files.
+ */
 import * as vscode from 'vscode';
-import {
-	lex,
-	parse,
-	grok,
-	correct,
-	type Module,
-	TaggingMode,
-	Production,
-	Assignment,
-	type Location,
-	AssignmentType,
-	type NameAndOrNumber,
-    type SymbolsFromModule,
-} from '@wildboar/asn1-parser';
-// import { setImmediate } from "node:timers";
-
-type FileURI = string;
+import type { FileURIStr, ASN1ModuleName, LexedTokens, VersionNumber, VersionNumbered } from "./types.js";
+import { getParserOutputs, ParserStopAt } from './parsing.js';
+import { setImmediate } from "node:timers";
+import { log } from "./logging.js";
 
 /*
 
@@ -59,44 +52,132 @@ Note that you should gracefully handle the situation in ITU-T Rec. X.680, Sectio
 because that is an easy case.
 
 */
-type ImportIndexKey = `${string}:${string}`;
 
-
-function getImportIndexKeys(
-    identifier: string,
-    sfm: SymbolsFromModule,
-): ImportIndexKey[] {
-    if (!sfm.assignedIdentifier) {
-        return [`${sfm.identifier}:${identifier}`];
+// TODO: Test this.
+// TODO: This could be moved to @wildboar/asn1-parser
+/**
+ * @internal Only exported for testing purposes.
+ * @param tokens 
+ * @param text 
+ * @returns 
+ */
+export function* getModuleNamesFromTokenStream(
+    tokens: LexedTokens,
+    text: string,
+): IterableIterator<string> {
+    let i = 0;
+    while (i < tokens.length) {
+        const token = tokens[i++];
+        if (
+            (token.type !== 'typereference')
+            && (token.type !== 'objectclassreference')
+        ) {
+            continue;
+        }
+        // This token looks like a module identifier.
+        // Now loop until we find end.
+        const moduleEndIndex = tokens
+            .slice(i).findIndex((t) => t.type === 'END');
+        if (moduleEndIndex === -1) {
+            return; // No module end.
+        }
+        i += (moduleEndIndex + 1);
+        const loc = token.location;
+        yield text.slice(loc.startIndex, loc.endIndex);
     }
-    // TODO: Shit, this means I have to resolve (recursively!) `DefinedValue`,
-    // which means fully parsing every module. 
-    // Sloppy solution is to just use the name, but this would have some inaccuracies.
-    if ("reference" in sfm.assignedIdentifier) {
-        // sfm.assignedIdentifier.
-        return [];
-    }
-    return [];
 }
 
-interface Asn1FileIndex {
-    importMap: Set<ImportIndexKey>;
+const filesToModules: Map<FileURIStr, VersionNumbered<Set<ASN1ModuleName>>> = new Map();
+const modulesToFiles: Map<ASN1ModuleName, Map<FileURIStr, VersionNumber>> = new Map();
+
+export async function indexAsn1File(docOrUri: vscode.Uri | vscode.TextDocument) {
+    const document = docOrUri instanceof vscode.Uri
+        ? await vscode.workspace.openTextDocument(docOrUri)
+        : docOrUri;
+    if (document.languageId !== "asn1") {
+        return;
+    }
+    const text = document.getText();
+    const p = await getParserOutputs(document, ParserStopAt.lexing);
+    if (!p.lexicalTokens || "err" in p.lexicalTokens) {
+        // TODO: Log some kind of error.
+        return;
+    }
+    const tokens = p.lexicalTokens.ok;
+    const uristr = document.uri.toString();
+    const modulesFound: Set<ASN1ModuleName> = new Set();
+    for (const modname of getModuleNamesFromTokenStream(tokens, text)) {
+        modulesFound.add(modname);
+        const files = modulesToFiles.get(modname);
+        if (files) {
+            const indexedVersion = files.get(uristr);
+            if (
+                (typeof indexedVersion === "undefined")
+                || (document.version > indexedVersion)
+            ) {
+                files.set(uristr, document.version);
+            }
+        } else {
+            modulesToFiles.set(modname, new Map([[uristr, document.version]]));
+        }
+    }
+    const ftm = filesToModules.get(uristr);
+    if (document.version > (ftm?.version ?? -1)) {
+        const newftm = { version: document.version, item: modulesFound };
+        filesToModules.set(uristr, newftm);
+    }
 }
 
-const asn1Index: Map<FileURI, Asn1FileIndex> = new Map();
+export async function indexAsn1Files(): Promise<void> {
+    const uris = await vscode.workspace.findFiles(
+        "**/*.{asn,asn1}",
+        "**/{node_modules,dist,out,build,.git}/**", // TODO: Configurable ignores.
+    );
 
-export async function indexAsn1Module(doc: vscode.TextDocument) {
-    // const uris = await vscode.workspace.findFiles(
-    //     "**/*.{asn,asn1}",
-    //     "**/{node_modules,dist,out,build,.git}/**"
-    // );
-    // vscode.workspace.
+    // TODO: Change this to use multithreading / worker threads
+    for (const uri of uris) {
+        // To give other extensions a chance to run.
+        await new Promise(resolve => setImmediate(resolve));
+        await indexAsn1File(uri);
+    }
+    log.appendLine(`${new Date()}: total of ${uris.length} asn.1 files indexed`);
+}
 
-    // for (const uri of uris) {
-    //     // TODO: await new Promise(resolve => setImmediate(resolve));
-    //     const doc = await vscode.workspace.openTextDocument(uri);
-    //     if (doc.languageId === "asn1") {
-    //         indexDocument(doc);
-    //     }
-    // }
+export
+function* getFilesContainingModule(
+    modname: string,
+): IterableIterator<FileURIStr> {
+    const files = modulesToFiles.get(modname);
+    if (!files) {
+        return;
+    }
+    yield *files.keys();
+}
+
+export
+function* getModulesWithinFile(
+    uristr: FileURIStr,
+): IterableIterator<ASN1ModuleName> {
+    const modules = filesToModules.get(uristr);
+    if (!modules) {
+        return;
+    }
+    yield *modules.item.values();
+}
+
+// Intended to be called upon file changes.
+export
+async function reindexAsn1File(uri: vscode.Uri) {
+    const uristr = uri.toString();
+    filesToModules.delete(uristr);
+    // FIXME: Not done yet.
+    // modulesToFiles
+}
+
+// TODO: deindexAsn1File()
+
+export
+function clearAsn1ModuleIndexes() {
+    filesToModules.clear();
+    modulesToFiles.clear();
 }

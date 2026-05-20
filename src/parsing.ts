@@ -14,14 +14,12 @@ import {
     // type TerminalProductionType,
     type ParseContext,
 } from '@wildboar/asn1-parser';
+import type { YieldType, Result, VersionNumbered } from "./types.js";
 
-type YieldType<T> =
-	T extends IterableIterator<infer Y> ? Y : never;
-
-// Inspired by Rust
-export type Result<T, E = unknown> =
-    { ok: T }
-    | { err: E };
+export enum ParserStopAt {
+    lexing = 1,
+    parsing = 2,
+}
 
 export interface ParserOutputs {
     // TODO: Change this to a different type signature when you fix the missing export
@@ -30,14 +28,16 @@ export interface ParserOutputs {
     parsedModules?: Result<Module[]>,
 }
 
-export interface VersionNumbered<T> {
-    readonly version: number;
-    readonly item: T;
-}
-
 const cache = new Map<string, VersionNumbered<ParserOutputs>>();
 
-export function getParserOutputs(document: vscode.TextDocument): ParserOutputs {
+export async function getParserOutputs(docOrUri: vscode.Uri | vscode.TextDocument, stopAt?: ParserStopAt): Promise<ParserOutputs> {
+    /* I confirmed: openTextDocument does not open a tab or something in the
+    user interface--it just opens a file for use by the extension. It also
+    clearly says in the JSDoc for it that it immediately returns if the file
+    is already open. */
+    const document = docOrUri instanceof vscode.Uri
+        ? await vscode.workspace.openTextDocument(docOrUri)
+        : docOrUri;
     const key = document.uri.toString();
     const cached = cache.get(key);
     if (cached && cached.version === document.version) {
@@ -53,6 +53,11 @@ export function getParserOutputs(document: vscode.TextDocument): ParserOutputs {
     } catch (e) {
         outputs.lexicalTokens = { err: e };
         cache.set(key, { version: document.version, item: outputs });
+        return outputs;
+    }
+
+    if (stopAt === ParserStopAt.lexing) {
+        // TODO: Cache this work.
         return outputs;
     }
 

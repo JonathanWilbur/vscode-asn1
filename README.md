@@ -4,7 +4,7 @@ Current in progress.
 
 ## To Do
 
-- [ ] Add imports into tree view?
+- [ ] Add imports into tree view? (maybe use `SymbolKind.Package`)
 - [ ] Use different symbol kinds for X.500 object classes?
 - [x] Syntax highlighting
 - [x] Snippet completion
@@ -50,6 +50,57 @@ Current in progress.
 ## Features Requiring Indexing the Workspace 
 
 In addition to "ghetto-indexing" using just lexical token streams, you could parallelize the indexing per file.
+
+Actually, I think my plans for this are on pause: I thought that VS Code had an API for doing full text
+searches, but it turns out this is wrong (these APIs are proposed / insiders only). So there is no way to
+pre-filter files that contain identifiers sought (e.g. in go-to-defintiion, rename, find all refs, etc.).
+
+It also means, unless I am willing to accept expecting the file name to match the module name, that I can only:
+
+A. Pre-index every ASN.1 module, so I know where the modules are, or
+B. Do no indexing at all and abandon these features until the text-search API comes out.
+
+[This](https://github.com/microsoft/vscode/issues/59924) is the VS Code issue for the text search API. It
+seems like it could be years before it is released, but it also seems like it is ready to be released, so
+maybe I'll just wait on this.
+
+Then again, maybe you could just look at how fast it is.
+
+One other thing: whether you filter based on contents or merely search all `.asn1?` files, ultimately, you
+are going to get a list of file URIs, and you are going to parse those URIs, so maybe you should just go
+ahead and implement an API to parse a document by its URI, or retrieve the cached parsing. It will be a
+really easy cutover once the text search API is implemented.
+
+Even better: I think you can just change `getParserOutputs` to take a file URI instead, then using the URI, you can
+use `openTextDocument` like so:
+
+```
+const file = await vscode.workspace.openTextDocument(uri);
+```
+
+The above _does not_ open a tab (I checked that there is a separate API for doing this); it just opens the
+file for reading without changing the UI, to be clear. It also says immediately in the JSDoc that the
+function returns immediately if the document is already open, so taking a URI when you already have an open
+doc should have no (or very little) overhead.
+
+So currently:
+
+- Extend the API of `getParserOutputs` to stop at lexing (or parsing).
+- If lexing was fine, continue parsing, if requested later, and so on.
+- Index what modules are defined where:
+  - Use `getParserOutputs` to get lexical tokens
+  - Pick out module identifiers
+  - Cache modules defined by file URI
+  - Put those module identifiers in a map to the file URIs + versions.
+  - I really hate using forward and reverse maps. This has a bad code smell.
+
+What is to be decided upon now: is just identifying the modules enough? Or do I need to parse and index all imports?
+Imports being parsed would make find-all-references less costly, but then again, FAR would still require parsing
+each module comple
+
+- Makes FAR slightly faster because more modules can be ruled out
+- Makes re-exported `Defined*` resolution much faster (kind of an edge case, though)
+- But the startup time is going to be a lot higher.
 
 - [ ] Go to Definition that drills into the module
 - [ ] Signature Help for Information Objects
