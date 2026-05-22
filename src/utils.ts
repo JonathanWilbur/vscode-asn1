@@ -20,7 +20,7 @@ function positionFallsWithin(
     return (start.isBeforeOrEqual(position) && end.isAfterOrEqual(position));
 }
 
-// TODO: Use getDefinedThingAtPosition instead of this.
+// TODO: Use getDefinedThingAtPosition instead of this. (This will fix some failures with go-to-definition.)
 export
 function drillIntoDefinedInCST(
     document: vscode.TextDocument,
@@ -36,9 +36,9 @@ function drillIntoDefinedInCST(
     // are "Defined," such as `DefinedValue`, `DefinedType`, etc.
     if (
         cstnode.type.startsWith('Defined')
-        || cstnode.type === "identifier"
-        || cstnode.type === "typereference"
-        || cstnode.type === "objectclassreference"
+        || (cstnode.type === "identifier")
+        || (cstnode.type === "typereference")
+        || (cstnode.type === "objectclassreference")
     ) {
         return cstnode;
     }
@@ -127,7 +127,7 @@ function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | nul
 		}
 		return [
 			num,
-			...mid.map((m) => ("number" in m) ? m.number : -1),
+			...mid.slice(1).map((m) => ("number" in m) ? m.number : -1),
 		];
 	}
 	return null;

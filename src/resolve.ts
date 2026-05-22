@@ -15,7 +15,11 @@ import {
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
 import { getParserOutputs } from "./parsing.js";
-import { asn1ModuleMatch, getOidNodesFromModuleIdentifier } from "./utils.js";
+import {
+    asn1ModuleMatch,
+    getOidNodesFromModuleIdentifier,
+    builtinRootArcNamesToNumber,
+} from "./utils.js";
 import { log } from "./logging.js";
 import * as vscode from "vscode";
 
@@ -29,16 +33,25 @@ export async function resolveAssignedIdentifier(
     if ("components" in assid) {
         if (assid.prefix) {
             const prefix = assid.prefix;
-            oid = await resolveOID(
-                prefix.module,
-                prefix.reference,
-                currentModule,
-                currentDocUri,
-                recursionTTL - 1,
-            );
-            if (!oid) {
-                log.appendLine("could not resolve oid prefix for for imported module");
-                return undefined;
+            // TODO: @wildboar/asn1-parser: fix this
+            /* It seems that the built-in OID root arc values can be mistaken
+            for the `DefinedValue` prefix. We check for these values here and
+            convert them to numbers. */
+            if (!prefix.module && builtinRootArcNamesToNumber.has(prefix.reference)) {
+                const num = builtinRootArcNamesToNumber.get(prefix.reference);
+                oid = [{ name: prefix.reference, number: num }];
+            } else {
+                oid = await resolveOID(
+                    prefix.module,
+                    prefix.reference,
+                    currentModule,
+                    currentDocUri,
+                    recursionTTL - 1,
+                );
+                if (!oid) {
+                    log.appendLine("could not resolve oid prefix for for imported module");
+                    return undefined;
+                }
             }
         }
         const resolvedComponents = await resolveOIDComponents(
@@ -131,7 +144,7 @@ export async function resolveDefined(
                 || !p.parsedModules
                 || ("err" in p.parsedModules)
             ) {
-                log.appendLine(`malformed asn.1 file ${file}: import will not be resolved`);
+                log.appendLine(`malformed asn.1 file url ${file}: import will not be resolved`);
                 continue;
             }
             const modules = p.parsedModules.ok;
