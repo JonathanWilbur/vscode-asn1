@@ -5,7 +5,15 @@
  * and what ASN.1 modules are in what files.
  */
 import * as vscode from 'vscode';
-import type { FileURIStr, ASN1ModuleName, LexedTokens, VersionNumber, VersionNumbered } from "./types.js";
+import type {
+    FileURIStr,
+    ASN1ModuleName,
+    LexedTokens,
+    VersionNumber,
+    VersionNumbered,
+    ImportKey,
+    ModuleInfo,
+} from "./types.js";
 import { getParserOutputs, ParserStopAt } from './parsing.js';
 import { setImmediate } from "node:timers";
 import { log } from "./logging.js";
@@ -55,39 +63,79 @@ because that is an easy case.
 
 // TODO: Test this.
 // TODO: This could be moved to @wildboar/asn1-parser
+// TODO: Make this return a map of imports as well.
 /**
  * @internal Only exported for testing purposes.
  * @param tokens 
  * @param text 
  * @returns 
  */
-export function* getModuleNamesFromTokenStream(
+export function* getModuleNamesAndImportsFromTokenStream(
     tokens: LexedTokens,
     text: string,
-): IterableIterator<string> {
+): IterableIterator<ModuleInfo> {
     let i = 0;
+    let importsIndex: Set<ImportKey> = new Set();
     while (i < tokens.length) {
         const token = tokens[i++];
         if (
             (token.type !== 'typereference')
             && (token.type !== 'objectclassreference')
         ) {
+            // Skip everything up until the first module identifier.
             continue;
         }
-        // This token looks like a module identifier.
+
+        const importsStartIndex = tokens
+            .slice(i)
+            .findIndex((t) => t.type === "IMPORTS");
+        if (importsStartIndex > -1) {
+            i += importsStartIndex;
+            let symbolsImported: string[] = [];
+            let readingModuleName: boolean = false;
+            while (i < tokens.length) {
+                const importToken = tokens[i++];
+                if (importToken.type === "semiColon") {
+                    break;
+                }
+                if (importToken.type.endsWith("reference")) {
+                    if (readingModuleName) {
+                        const loc = importToken.location;
+                        const modname = text.slice(loc.startIndex, loc.endIndex);
+                        for (const symbol of symbolsImported) {
+                            importsIndex.add(`${modname}:${symbol}`); 
+                        }
+                        symbolsImported = [];
+                        readingModuleName = false;
+                    } else {
+                        const loc = importToken.location;
+                        const ident = text.slice(loc.startIndex, loc.endIndex);
+                        symbolsImported.push(ident);
+                    }
+                }
+                if (importToken.type === "FROM") {
+                    readingModuleName = true;
+                }
+            }
+        }
+
         // Now loop until we find end.
         const moduleEndIndex = tokens
-            .slice(i).findIndex((t) => t.type === 'END');
+            .slice(i)
+            .findIndex((t) => t.type === "END");
         if (moduleEndIndex === -1) {
             return; // No module end.
         }
         i += (moduleEndIndex + 1);
         const loc = token.location;
-        yield text.slice(loc.startIndex, loc.endIndex);
+        yield {
+            name: text.slice(loc.startIndex, loc.endIndex),
+            imports: importsIndex,
+        };
     }
 }
 
-const filesToModules: Map<FileURIStr, VersionNumbered<Set<ASN1ModuleName>>> = new Map();
+const filesToModules: Map<FileURIStr, VersionNumbered<Map<ASN1ModuleName, ModuleInfo>>> = new Map();
 const modulesToFiles: Map<ASN1ModuleName, Map<FileURIStr, VersionNumber>> = new Map();
 
 export async function indexAsn1File(docOrUri: vscode.Uri | vscode.TextDocument) {
@@ -100,15 +148,16 @@ export async function indexAsn1File(docOrUri: vscode.Uri | vscode.TextDocument) 
     const text = document.getText();
     const p = await getParserOutputs(document, ParserStopAt.lexing);
     if (!p.lexicalTokens || "err" in p.lexicalTokens) {
-        // TODO: Log some kind of error.
+        log.appendLine(`malformed asn.1 file ${document.uri} could not be indexed: ${p.lexicalTokens?.err ?? "<unknown lexing error>"}`);
         return;
     }
     const tokens = p.lexicalTokens.ok;
     const uristr = document.uri.toString();
-    const modulesFound: Set<ASN1ModuleName> = new Set();
-    for (const modname of getModuleNamesFromTokenStream(tokens, text)) {
-        modulesFound.add(modname);
-        const files = modulesToFiles.get(modname);
+    const modulesFound: Map<ASN1ModuleName, ModuleInfo> = new Map();
+    const modulesAndImports = getModuleNamesAndImportsFromTokenStream(tokens, text);
+    for (const modinfo of modulesAndImports) {
+        modulesFound.set(modinfo.name, modinfo);
+        const files = modulesToFiles.get(modinfo.name);
         if (files) {
             const indexedVersion = files.get(uristr);
             if (
@@ -118,7 +167,7 @@ export async function indexAsn1File(docOrUri: vscode.Uri | vscode.TextDocument) 
                 files.set(uristr, document.version);
             }
         } else {
-            modulesToFiles.set(modname, new Map([[uristr, document.version]]));
+            modulesToFiles.set(modinfo.name, new Map([[uristr, document.version]]));
         }
     }
     const ftm = filesToModules.get(uristr);
@@ -155,15 +204,35 @@ function* getFilesContainingModule(
 }
 
 export
-function* getModulesWithinFile(
-    uristr: FileURIStr,
-): IterableIterator<ASN1ModuleName> {
-    const modules = filesToModules.get(uristr);
-    if (!modules) {
-        return;
+function* findAllReferencesFallibly(
+    modname: string,
+    identifier: string,
+): IterableIterator<FileURIStr> {
+    const key: ImportKey = `${modname}:${identifier}`;
+    fileloop:
+    for (const [fileuri, { item: modmap }] of filesToModules.entries()) {
+        for (const { imports } of modmap.values()) {
+            for (const importedSymbol of imports.values()) {
+                if (importedSymbol === key) {
+                    yield fileuri;
+                    // No need to examine this file any further.
+                    continue fileloop;
+                }
+            }
+        }
     }
-    yield *modules.item.values();
 }
+
+// export
+// function* getModulesWithinFile(
+//     uristr: FileURIStr,
+// ): IterableIterator<ASN1ModuleName> {
+//     const modules = filesToModules.get(uristr);
+//     if (!modules) {
+//         return;
+//     }
+//     yield *modules.item.values();
+// }
 
 // Intended to be called upon file changes.
 export

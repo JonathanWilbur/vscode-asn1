@@ -19,6 +19,18 @@ async function provideDefinition(
         || !p.parsedModules
         || ("err" in p.parsedModules)
     ) {
+        const e =
+            ((p.lexicalTokens && ("err" in p.lexicalTokens))
+                ? p.lexicalTokens.err
+                : undefined)
+            ?? ((p.parserEndState && ("err" in p.parserEndState))
+                ? p.parserEndState.err
+                : undefined)
+            ?? ((p.parsedModules && ("err" in p.parsedModules))
+                ? p.parsedModules.err
+                : undefined)
+            ;
+        log.appendLine(`the current module seems to be malformed: ${e}`);
         return Promise.reject(null);
     }
     const modules = p.parsedModules.ok;
@@ -47,11 +59,13 @@ async function provideDefinition(
         ?.children.filter((c) => c.type === 'ModuleDefinition')
         ?? [];
     if (modules.length !== parseModules.length) {
+        log.appendLine(`modules.length !== parseModules.length: ${modules.length} !== ${parseModules.length}`);
         return Promise.reject(null);
     }
     const parseModuleSelectedIdx = parseModules
         .findIndex((mod) => positionFallsWithin(document, position, mod));
     if (parseModuleSelectedIdx === -1) {
+        log.appendLine(`no parsed module falls within ${position.line}:${position.character}`);
         return Promise.reject(null);
     }
     const currentModule = modules[parseModuleSelectedIdx];

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ASN1HoverProvider } from "./hover.js";
 import { Asn1DefinitionProvider } from './gotodef.js';
 import { Asn1SymbolProvider } from "./symbols.js";
+import { Asn1ReferenceProvider } from "./findallref.js";
 import { indexAsn1Files, indexAsn1File, reindexAsn1File } from "./indexing.js";
 import { log } from "./logging.js";
 
@@ -40,6 +41,9 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
         vscode.languages.registerDefinitionProvider(
             ASN1_MODE, new Asn1DefinitionProvider()));
+		
+	context.subscriptions.push(
+		vscode.languages.registerReferenceProvider(ASN1_MODE, new Asn1ReferenceProvider()));
 
 	/* We have to do the most minimal indexing so we know what files have what
 	modules and what modules are in what files. This might not even really be

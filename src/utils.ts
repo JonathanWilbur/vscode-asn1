@@ -3,11 +3,10 @@ import {
     SelectionOption,
     type Production,
     type Location,
-    type Module,
-    type SymbolsFromModule,
-    type Assignment,
     type NameAndOrNumber,
 } from "@wildboar/asn1-parser";
+import { log } from "./logging.js";
+import { ASN1ModuleName, ASN1Reference } from "./types.js";
 
 export
 function positionFallsWithin(
@@ -21,6 +20,7 @@ function positionFallsWithin(
     return (start.isBeforeOrEqual(position) && end.isAfterOrEqual(position));
 }
 
+// TODO: Use getDefinedThingAtPosition instead of this.
 export
 function drillIntoDefinedInCST(
     document: vscode.TextDocument,
@@ -34,7 +34,12 @@ function drillIntoDefinedInCST(
     }
     // All productions that are a symbol referring to some other assignment
     // are "Defined," such as `DefinedValue`, `DefinedType`, etc.
-    if (cstnode.type.startsWith('Defined')) {
+    if (
+        cstnode.type.startsWith('Defined')
+        || cstnode.type === "identifier"
+        || cstnode.type === "typereference"
+        || cstnode.type === "objectclassreference"
+    ) {
         return cstnode;
     }
     for (const child of cstnode.children) {
@@ -48,6 +53,46 @@ function drillIntoDefinedInCST(
         }
     }
     return undefined;
+}
+
+export
+function getDefinedThingAtPosition(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    cstnode: Production,
+    recursionTTL = 1000,
+): [ ASN1ModuleName | undefined, ASN1Reference, Production ] | undefined {
+    const defined = drillIntoDefinedInCST(
+        document,
+        position,
+        cstnode,
+        recursionTTL,
+    );
+    if (!defined) {
+        return undefined;
+    }
+    const text = document.getText();
+    const definedText = text
+        .slice(defined.location.startIndex, defined.location.endIndex);
+    const parts = definedText.split(".");
+    let identifier = parts.pop()?.trim();
+    const moduleref = parts.pop()?.trim();
+    if (!identifier || parts.pop()) {
+        log.appendLine(`malformed defined text ${definedText}`);
+        return undefined;
+    }
+    // Remove parameters (e.g. chained{read} becomes chained)
+    const paramStart = identifier.indexOf("{");
+    if (paramStart > -1) {
+        identifier = identifier.slice(0, paramStart);
+    }
+    if (!/[A-Za-z0-9-]+/.test(identifier)) {
+        return undefined;
+    }
+    if (moduleref && !/[A-Z0-9-]+/.test(moduleref)) {
+        return undefined;
+    }
+    return [ moduleref, identifier, defined ];
 }
 
 export function getRangeFromLocation(

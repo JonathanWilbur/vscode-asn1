@@ -11,12 +11,62 @@ import {
     NameAndOrNumberForm,
     ObjIdComponents,
     IntegerValue,
+    // AssignedIdentifier, // FIXME: Not exported.
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
 import { getParserOutputs } from "./parsing.js";
 import { asn1ModuleMatch, getOidNodesFromModuleIdentifier } from "./utils.js";
 import { log } from "./logging.js";
 import * as vscode from "vscode";
+
+export async function resolveAssignedIdentifier(
+    assid: NonNullable<SymbolsFromModule["assignedIdentifier"]>,
+    currentModule: Module,
+    currentDocUri: vscode.Uri,
+    recursionTTL: number = 10,
+): Promise<NameAndOrNumber[] | undefined> {
+    let oid: NameAndOrNumber[] | undefined;
+    if ("components" in assid) {
+        if (assid.prefix) {
+            const prefix = assid.prefix;
+            oid = await resolveOID(
+                prefix.module,
+                prefix.reference,
+                currentModule,
+                currentDocUri,
+                recursionTTL - 1,
+            );
+            if (!oid) {
+                log.appendLine("could not resolve oid prefix for for imported module");
+                return undefined;
+            }
+        }
+        const resolvedComponents = await resolveOIDComponents(
+            assid.components,
+            currentModule,
+            currentDocUri,
+            recursionTTL - 1,
+        );
+        if (!resolvedComponents) {
+            log.appendLine("could not resolve oid components for imported module");
+            return undefined;
+        }
+        if (oid) {
+            oid.push(...resolvedComponents);
+        } else {
+            oid = resolvedComponents;
+        }
+    } else if ("reference" in assid) {
+        oid = await resolveOID(
+            assid.module,
+            assid.reference,
+            currentModule,
+            currentDocUri,
+            recursionTTL - 1,
+        );
+    }
+    return oid;
+}
 
 export async function resolveDefined(
     moduleref: string | undefined,
@@ -55,45 +105,12 @@ export async function resolveDefined(
     // Completely resolve the importing module's assigned identifier to an OID.
     let oid: NameAndOrNumber[] | undefined;
     if (sfm.assignedIdentifier) {
-        if ("components" in sfm.assignedIdentifier) {
-            if (sfm.assignedIdentifier.prefix) {
-                const prefix = sfm.assignedIdentifier.prefix;
-                oid = await resolveOID(
-                    prefix.module,
-                    prefix.reference,
-                    currentModule,
-                    currentDocUri,
-                    recursionTTL - 1,
-                );
-                if (!oid) {
-                    log.appendLine(`could not resolve oid prefix for for imported module ${sfm.identifier}`);
-                    return undefined;
-                }
-            }
-            const resolvedComponents = await resolveOIDComponents(
-                sfm.assignedIdentifier.components,
-                currentModule,
-                currentDocUri,
-                recursionTTL - 1,
-            );
-            if (!resolvedComponents) {
-                log.appendLine(`could not resolve oid components for imported module ${sfm.identifier}`);
-                return undefined;
-            }
-            if (oid) {
-                oid.push(...resolvedComponents);
-            } else {
-                oid = resolvedComponents;
-            }
-        } else if ("reference" in sfm.assignedIdentifier) {
-            oid = await resolveOID(
-                sfm.assignedIdentifier.module,
-                sfm.assignedIdentifier.reference,
-                currentModule,
-                currentDocUri,
-                recursionTTL - 1,
-            );
-        }
+        oid = await resolveAssignedIdentifier(
+            sfm.assignedIdentifier,
+            currentModule,
+            currentDocUri,
+            recursionTTL - 1,
+        );
         if (!oid) {
             log.appendLine(`could not resolve oid for for imported module ${sfm.identifier}`);
             return undefined;
