@@ -86,11 +86,11 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"
   },
-  "dependencies": {
-    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.0.0"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/JonathanWilbur/vscode-asn1.git"
+  },
+  "dependencies": {
+    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.1.0"
   }
 }

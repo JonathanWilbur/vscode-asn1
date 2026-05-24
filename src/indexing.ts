@@ -63,7 +63,6 @@ because that is an easy case.
 
 // TODO: Test this.
 // TODO: This could be moved to @wildboar/asn1-parser
-// TODO: Make this return a map of imports as well.
 /**
  * @internal Only exported for testing purposes.
  * @param tokens 

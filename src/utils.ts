@@ -4,6 +4,7 @@ import {
     type Production,
     type Location,
     type NameAndOrNumber,
+    builtinRootArcNamesToNumber,
 } from "@wildboar/asn1-parser";
 import { log } from "./logging.js";
 import { ASN1ModuleName, ASN1Reference } from "./types.js";
@@ -103,14 +104,6 @@ export function getRangeFromLocation(
     const end = document.positionAt(loc.endIndex);
     return new vscode.Range(start, end);
 }
-
-export const builtinRootArcNamesToNumber: Map<string, number> = new Map([
-    ["itu-t", 0],
-    ["ccitt", 0],
-    ["iso", 1],
-    ["joint-iso-itu-t", 2],
-    ["joint-iso-ccitt", 2],
-]);
 
 export
 function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | null {

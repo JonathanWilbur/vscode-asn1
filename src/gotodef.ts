@@ -52,8 +52,6 @@ async function provideDefinition(
         log.appendLine(`malformed reference ${word}`);
         return Promise.reject(null); // Malformed identifier.
     }
-    // TODO: @wildboar/asn1-parser: Associate a production with a module and a "moduleIndexWithinFile"
-    // TODO: @wildboar/asn1-parser: link CST nodes with their parents in the tree
     const parseModules = cst.children
         .find((c) => c.type === 'modules')
         ?.children.filter((c) => c.type === 'ModuleDefinition')

@@ -6,13 +6,6 @@ Current in progress.
 
 - [ ] Add imports into tree view? (maybe use `SymbolKind.Package`)
 - [ ] Use different symbol kinds for X.500 object classes?
-- [x] Syntax highlighting
-- [x] Snippet completion
-- [x] Bracket matching
-- [x] Bracket autoclosing
-- [x] Bracket autosurrounding
-- [x] Comment toggling
-- [x] Go-to defintion
 - [ ] Auto indentation
 - [ ] Folding (by markers)
 - [ ] Make hover not apply within defined syntax or ECN sections
