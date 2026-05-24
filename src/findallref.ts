@@ -8,7 +8,7 @@ import {
     positionFallsWithin,
 } from "./utils.js";
 import { getParserOutputs } from './parsing.js';
-import { findAllReferencesFallibly, getFilesContainingModule } from "./indexing.js";
+import { findAllReferencesFallibly } from "./indexing.js";
 import { log } from "./logging.js";
 import { LexedTokens } from './types.js';
 import { resolveAssignedIdentifier } from "./resolve.js";
@@ -163,6 +163,7 @@ async function getReferencesWithinFile(
                 log.appendLine(`could not resolve assigned identifier for module ${mod.name} in ${docuri}`);
                 continue; // Skip: could not resolve assigned identifier.
             }
+            // TODO: Make it configurable whether or not this check happens.
             const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
             if (!impoidarcs) {
                 continue;
@@ -181,7 +182,26 @@ async function getReferencesWithinFile(
     return ret;
 }
 
-async function provideReferences(
+/**
+ * @summary Provide references of an ASN.1 identifier assignment (not a module name)
+ * @description
+ * 
+ * This is named to distinguish it from `provideReferencesForModuleName`. Every
+ * reference returned from this is only the identifier, even if prefixed by a
+ * module name to become an "external reference" (fully-qualified reference).
+ * 
+ * @param document The text document
+ * @param position The position within the text document where the user invoked
+ *  "find all references" (and therefore what symbol is searched for).
+ * @param options Options for providing references
+ * @param token A cancellation token
+ * @returns Locations, including in imports and in assignments, where this
+ *  identifier is used.
+ * 
+ * @function
+ */
+export
+async function provideReferencesForSymbol(
     document: vscode.TextDocument,
     position: vscode.Position,
     options: { includeDeclaration: boolean },
@@ -282,6 +302,8 @@ async function provideReferences(
         return Promise.reject(null);
     }
 
+    // FIXME: This is not returning the reference the user clicked on, when it is the assignment itself!
+    // I confirmed that this is because `findAllReferencesFallibly()` only indexes imports.
     const ret: vscode.Location[] = [];
     const refuris = findAllReferencesFallibly(modref, ident);
     for (const refuri of refuris) {
@@ -308,6 +330,6 @@ export class Asn1ReferenceProvider implements vscode.ReferenceProvider {
         document: vscode.TextDocument, position: vscode.Position,
         options: { includeDeclaration: boolean }, token: vscode.CancellationToken):
         Thenable<vscode.Location[]> {
-        return provideReferences(document, position, options, token);
+        return provideReferencesForSymbol(document, position, options, token);
     }
 }

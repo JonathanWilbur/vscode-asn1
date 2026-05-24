@@ -95,7 +95,6 @@ each module comple
 - Makes re-exported `Defined*` resolution much faster (kind of an edge case, though)
 - But the startup time is going to be a lot higher.
 
-- [ ] Go to Definition that drills into the module
 - [ ] Signature Help for Information Objects
   - Gracefully fallible, so does not have to be great.
   - Look up the object class (could maybe be done lazy via text search e.g. `IOC-IDENTIFIER\s+::=\s+CLASS\s+\{`)
@@ -103,13 +102,6 @@ each module comple
 - [ ] Signature Help for Parameterized Assignments
   - Gracefully fallible, so does not have to be great.
   - Could use text search as a lazy short-cut, e.g. `Identifier\s*\{`
-- [ ] Find All References (might not require pre-indexing, actually)
-  - [ ] You can make this more efficient by grepping files for the identifier and the assigning module's identifier first.
-    - For example, if the file truly uses `Certificate`, it must:
-      - Include the text `Certificate` somewhere.
-      - Contain `AuthenticationFramework` somewhere
-        - You cannot limit the search to the first semi-colon: there may be multiple ASN.1 modules per file,
-          but if you pre-index, you might be able to.
 - [ ] Rename symbol (basically same implementation as Find all references)
 
 ## Other To Dos

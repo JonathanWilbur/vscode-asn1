@@ -11,6 +11,7 @@ import {
     NameAndOrNumberForm,
     ObjIdComponents,
     IntegerValue,
+    builtinRootArcNamesToNumber,
     // AssignedIdentifier, // FIXME: Not exported.
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
@@ -18,7 +19,6 @@ import { getParserOutputs } from "./parsing.js";
 import {
     asn1ModuleMatch,
     getOidNodesFromModuleIdentifier,
-    builtinRootArcNamesToNumber,
 } from "./utils.js";
 import { log } from "./logging.js";
 import * as vscode from "vscode";
