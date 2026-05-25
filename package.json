@@ -91,6 +91,6 @@
     "url": "https://github.com/JonathanWilbur/vscode-asn1.git"
   },
   "dependencies": {
-    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.1.0"
+    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.1.1"
   }
 }

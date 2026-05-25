@@ -154,3 +154,8 @@ function asn1ModuleMatch(
     }
     return asserted.every((arc, i) => arc === modoid[i]);
 }
+
+export
+function startsWithCapitalLetter(s: string): boolean {
+    return (s.slice(0, 1).toUpperCase() === s.slice(0, 1));
+}

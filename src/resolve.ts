@@ -279,6 +279,7 @@ export async function resolveOIDComponent(
         };
     } else {
         // TODO: Do you need to handle resolving names here?
+        delete arc.production; // Just so this doesn't become huge.
         log.appendLine(`error resolving oid component ${JSON.stringify(arc)}`);
         return undefined;
     }

@@ -191,6 +191,7 @@ export async function indexAsn1Files(): Promise<void> {
     log.appendLine(`${new Date()}: total of ${uris.length} asn.1 files indexed`);
 }
 
+// FIXME: Make this return the decoded URLs instead. It would clean up a lot of boilerplate.
 export
 function* getFilesContainingModule(
     modname: string,
@@ -213,6 +214,24 @@ function* findAllReferencesFallibly(
         for (const { imports } of modmap.values()) {
             for (const importedSymbol of imports.values()) {
                 if (importedSymbol === key) {
+                    yield fileuri;
+                    // No need to examine this file any further.
+                    continue fileloop;
+                }
+            }
+        }
+    }
+}
+
+export
+function* findAllModuleReferencesFallibly(
+    modname: string,
+): IterableIterator<FileURIStr> {
+    fileloop:
+    for (const [fileuri, { item: modmap }] of filesToModules.entries()) {
+        for (const { imports } of modmap.values()) {
+            for (const importedSymbol of imports.values()) {
+                if (importedSymbol.startsWith(modname + ":")) {
                     yield fileuri;
                     // No need to examine this file any further.
                     continue fileloop;

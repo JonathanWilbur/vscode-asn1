@@ -1,19 +1,20 @@
 import * as vscode from 'vscode';
-import type { NameAndOrNumber, SelectionOption } from '@wildboar/asn1-parser';
+import type { NameAndOrNumber, SelectionOption, SymbolsFromModule, Module } from '@wildboar/asn1-parser';
 import {
     asn1ModuleMatch,
     getDefinedThingAtPosition,
     getOidNodesFromModuleIdentifier,
     getRangeFromLocation,
     positionFallsWithin,
+    startsWithCapitalLetter,
 } from "./utils.js";
 import { getParserOutputs } from './parsing.js';
-import { findAllReferencesFallibly, getFilesContainingModule } from "./indexing.js";
+import { findAllModuleReferencesFallibly, findAllReferencesFallibly, getFilesContainingModule } from "./indexing.js";
 import { log } from "./logging.js";
-import { ASN1ModuleName, ASN1Reference, LexedTokens } from './types.js';
+import { ASN1ModuleName, ASN1Reference, FileURIStr, LexedTokens } from './types.js';
 import { resolveAssignedIdentifier } from "./resolve.js";
 
-// TODO: You need another implementation that finds all references of imported modules too.
+// TODO: I think FAR on an imported symbol does not work, but double-check this.
 
 const ignoredTokenTypes: Set<string> = new Set([
     "newlineWhitespace",
@@ -27,9 +28,7 @@ const moduleReferenceTokens: Set<string> = new Set([
     "typereference",
 ]);
 
-function startsWithCapitalLetter(s: string): boolean {
-    return (s.slice(0, 1).toUpperCase() === s.slice(0, 1));
-}
+
 
 enum DefinedThingParsingState {
     module,
@@ -47,6 +46,7 @@ async function getReferencesWithinModule(
     ident: string,
     tokens: LexedTokens,
     skipModulesCount: number = 0,
+    ignoreImportsExports: boolean = false,
 ): Promise<[vscode.Location[], number]> { // Last element is tokens read
     // iterate over lexed tokens.
     // ignore ones that fall before or after the module. (maybe the caller should just slice tokens)
@@ -69,6 +69,7 @@ async function getReferencesWithinModule(
     }
 
     let pastBegin: boolean = false;
+    let ignoreUntilSemicolon: boolean = false;
     let state: DefinedThingParsingState = DefinedThingParsingState.module;
     const locations: vscode.Location[] = [];
     let endIndex: number | undefined;
@@ -84,6 +85,29 @@ async function getReferencesWithinModule(
             if (token.type === "BEGIN") {
                 pastBegin = true;
             }
+            continue;
+        }
+
+        if (token.type === "END") {
+            endIndex = i + 1;
+            break;
+        }
+        
+        if (ignoreUntilSemicolon) {
+            if (token.type === "semiColon") {
+                ignoreUntilSemicolon = false;
+            }
+            continue;
+        }
+
+        if (
+            ignoreImportsExports
+            && (
+                (token.type === "IMPORTS")
+                || (token.type === "EXPORTS")
+            )
+        ) {
+            ignoreUntilSemicolon = true;
             continue;
         }
 
@@ -126,17 +150,12 @@ async function getReferencesWithinModule(
                 continue;
             }
         }
-
-        if (token.type === "END") {
-            endIndex = i + 1;
-            break;
-        }
     }
 
     return [locations, endIndex ?? tokens.length];
 }
 
-async function getReferencesWithinFile(
+async function getSymbolReferencesWithinFile(
     docuri: vscode.Uri,
     ident: string,
     modref?: string, // If absent, search the assignments.
@@ -160,6 +179,8 @@ async function getReferencesWithinFile(
     const len = modules.length;
     let j = 0;
     let skipModulesCount: number = 0;
+
+    // All modules in this file could contain the module
     for (let i = 0; i < len; i++) {
         const mod = modules[i];
         if (modref) {
@@ -204,6 +225,112 @@ async function getReferencesWithinFile(
         );
         j += tokensRead;
         skipModulesCount = 0;
+        ret.push(...locs);
+    }
+    return ret;
+}
+
+/*
+This differs from getSymbolReferencesWithinFile() by using the modoid to
+filter out 
+*/
+async function getModuleReferencesWithinFile(
+    docuri: vscode.Uri,
+    ident: string,
+    seloid?: NameAndOrNumber[],
+    selopt?: SelectionOption,
+): Promise<vscode.Location[]> {
+    const doc = await vscode.workspace.openTextDocument(docuri);
+    const p = await getParserOutputs(docuri);
+    if (
+        !p.parsedModules
+        || ("err" in p.parsedModules)
+        || !p.lexicalTokens
+        || ("err" in p.lexicalTokens)
+        || !p.parserEndState
+        // || ("err" in p.parserEndState)
+        // || (Object.keys(p.parserEndState.ok.syntaxErrors).length > 0)
+    ) {
+        // TODO: Everywhere you do this, do better logging of the errors.
+        return Promise.reject(null);
+    }
+    const modules = p.parsedModules.ok;
+    const tokens = p.lexicalTokens.ok;
+    const selarcs = seloid ? getOidNodesFromModuleIdentifier(seloid) : undefined;
+    const ret: vscode.Location[] = [];
+    const len = modules.length;
+    let j = 0;
+    for (let i = 0; i < len; i++) {
+        const mod = modules[i];
+        const modid = mod.production?.children[0]?.children[0];
+        if (!modid) {
+            continue;
+        }
+
+        // Check the module name itself for a match.
+        if (
+            (mod.name === ident)
+            && (!mod.oid === !seloid)
+        ) {
+            if (!mod.oid) {
+                // Both the assertion and the module included no OID.
+                // Therefore, assume it was a match.
+                const range = getRangeFromLocation(doc, modid.location);
+                ret.push(new vscode.Location(docuri, range));
+            } else {
+                const modarcs = getOidNodesFromModuleIdentifier(mod.oid);
+                if (modarcs && selarcs) {
+                    const matchesOid = asn1ModuleMatch(modarcs, selarcs, selopt);
+                    if (matchesOid) {
+                        const range = getRangeFromLocation(doc, modid.location);
+                        ret.push(new vscode.Location(docuri, range));
+                    }
+                }
+            }
+        }
+
+        // Check the import statements for matches
+        const imports = mod.imports?.modules ?? {};
+        const sfm = imports[ident];
+        if (sfm?.production) {
+            const sfmModName = sfm.production.children
+                .find((c) => 'GlobalModuleReference')
+                ?.children[0];
+            if (sfmModName) {
+                if (sfm.assignedIdentifier) {
+                    const impoid = await resolveAssignedIdentifier(
+                        sfm.assignedIdentifier,
+                        mod,
+                        docuri,
+                    );
+                    if (impoid && selarcs) {
+                        // TODO: Make it configurable whether or not this check happens.
+                        const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
+                        if (impoidarcs && asn1ModuleMatch(selarcs, impoidarcs, sfm.selectionOption)) {
+                            // The name and OID matches, so return this module reference.
+                            const range = getRangeFromLocation(doc, sfmModName.location);
+                            ret.push(new vscode.Location(docuri, range));
+                        }
+                    }
+                } else {
+                    // There is only a name, and it matches.
+                    const range = getRangeFromLocation(doc, sfmModName.location);
+                    ret.push(new vscode.Location(docuri, range));
+                }
+            }
+        }
+
+        // Check for references elsewhere.
+        const moduleTokens = tokens.slice(j);
+        const [ locs, tokensRead ] = await getReferencesWithinModule(
+            doc,
+            undefined,
+            ident,
+            moduleTokens,
+            undefined,
+            true, // Ignore imports and exports
+        );
+        j += tokensRead;
         ret.push(...locs);
     }
     return ret;
@@ -268,7 +395,7 @@ async function getReferencesFromAssigningModules(
             }
             // At this point the module is a match: return references from the
             // assignments.
-            const locs = await getReferencesWithinFile(docuri, ident);
+            const locs = await getSymbolReferencesWithinFile(docuri, ident);
             ret.push(...locs);
         }
     }
@@ -417,7 +544,7 @@ async function provideReferencesForSymbol(
             continue;
         }
         try {
-            const locs = await getReferencesWithinFile(docuri, ident, modref, modoid);
+            const locs = await getSymbolReferencesWithinFile(docuri, ident, modref, modoid);
             ret.push(...locs);
         } catch (e) {
             log.appendLine(`failed to get references within file ${refuri}: ${e}`);
@@ -427,11 +554,219 @@ async function provideReferencesForSymbol(
     return ret;
 }
 
+/**
+ * @description
+ * 
+ * Module identifiers can appear in three places, as far as I can tell:
+ * 
+ * 1. As the module name
+ * 2. As the module name within an import
+ * 3. As a qualifier in a `Defined*` thing, such as a `DefinedValue`
+ * 
+ * These three cases, respectively, are identified as follows:
+ * 
+ * 1. Check if the index has that 
+ * 
+ * @param document 
+ * @param position 
+ * @param options 
+ * @param token 
+ */
+export
+async function provideReferencesForModuleName(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    options: { includeDeclaration: boolean },
+    token: vscode.CancellationToken,
+    modoid?: NameAndOrNumber[], // Module must match in the ID or in imports to count
+    selopt?: SelectionOption, // How the module must match.
+): Promise<vscode.Location[]> {
+    const wordRange = document.getWordRangeAtPosition(position);
+    const wordText = wordRange && document.getText(wordRange);
+    if (!wordRange || !wordText) {
+        return [];
+    }
+    const fileUriStrings: Set<FileURIStr> = new Set(getFilesContainingModule(wordText));
+    for (const uristr of findAllModuleReferencesFallibly(wordText)) {
+        fileUriStrings.add(uristr);
+    }
+    const ret: vscode.Location[] = [];
+    for (const modurlstr of fileUriStrings.values()) {
+        // Decode the URI
+        let docuri;
+        try {
+            docuri = vscode.Uri.parse(modurlstr, true);
+        } catch (e) {
+            log.appendLine(`malformed document uri ${modurlstr}: ${e}`);
+            continue;
+        }
+        try {
+            const locs = await getModuleReferencesWithinFile(docuri, wordText, modoid, selopt);
+            ret.push(...locs);
+        } catch (e) {
+            log.appendLine(`failed to get references within file ${docuri}: ${e}`);
+            continue;
+        }
+    }
+    return ret;
+}
+
+/**
+ * @description
+ * 
+ * Module identifiers can appear in three places, as far as I can tell:
+ * 
+ * 1. As the module name
+ * 2. As the module name within an import
+ * 3. As a qualifier in a `Defined*` thing, such as a `DefinedValue`
+ * 
+ * @param document 
+ * @param position 
+ * @param options 
+ * @param token 
+ */
+export
+async function isModuleReference(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    options: { includeDeclaration: boolean },
+    token: vscode.CancellationToken,
+): Promise<[Module, NameAndOrNumber[]?, SelectionOption?] | null> {
+    const wordRange = document.getWordRangeAtPosition(position);
+    const wordText = wordRange && document.getText(wordRange);
+    if (!wordRange || !wordText || !startsWithCapitalLetter(wordText)) {
+        return null;
+    }
+
+    const p = await getParserOutputs(document.uri);
+    if (
+        !p.parserEndState
+        || ("err" in p.parserEndState)
+        || p.parserEndState.ok.error
+        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
+        || !p.parsedModules
+        || ("err" in p.parsedModules)
+    ) {
+        const e =
+            ((p.lexicalTokens && ("err" in p.lexicalTokens))
+                ? p.lexicalTokens.err
+                : undefined)
+            ?? ((p.parserEndState && ("err" in p.parserEndState))
+                ? p.parserEndState.err
+                : undefined)
+            ?? ((p.parsedModules && ("err" in p.parsedModules))
+                ? p.parsedModules.err
+                : undefined)
+            ;
+        log.appendLine(`the current module seems to be malformed: ${e}`);
+        return Promise.reject(null);
+    }
+    const cst = p.parserEndState.ok.cst;
+    const modules = p.parsedModules.ok;
+
+    // const isModuleNameInModuleIdentifier = cst.children
+    //     .filter((child) => child.type === 'modules')
+    //     .flatMap((child) => child.children)
+    //     .filter((child) => child.type === 'ModuleDefinition')
+    //     .map((child) => child.children[0].children[0]) // Now each child is the modulereference in ModuleIdentifier
+    //     .some((child) => positionFallsWithin(document, position, child))
+    //     ; 
+
+    // if (isModuleNameInModuleIdentifier) {
+    //     log.appendLine(`Identifier ${wordText} was found in the module identifier and interpreted as a module name`);
+    //     // return [mod, ];
+    // }
+
+    for (const mod of modules) {
+        if (mod.production) {
+            // modname is the modulereference in ModuleIdentifier
+            const modname = mod.production.children[0].children[0];
+            if (positionFallsWithin(document, position, modname)) {
+                return [mod, mod.oid];
+            }
+        }
+
+        // The user might have clicked on the module name after the FROM
+        const sfm: SymbolsFromModule = (mod.imports?.modules ?? {})[wordText];
+        const importedModuleName = sfm
+            ?.production
+            ?.children
+            .find((child) => child.type === 'GlobalModuleReference')
+            ?.children[0]; // modulereference
+        if (
+            importedModuleName
+            && positionFallsWithin(document, position, importedModuleName)
+        ) {
+            // Yes, the user clicked the module name after FROM.
+            log.appendLine(`Identifier ${wordText} was found in the module identifier of an import and interpreted as a module name`);
+            let modoid: NameAndOrNumber[] | undefined;
+            if (sfm.assignedIdentifier) {
+                modoid = await resolveAssignedIdentifier(
+                    sfm.assignedIdentifier, mod, document.uri);
+            }
+            return [mod, modoid, sfm.selectionOption];
+        }
+    }
+
+    const defined = getDefinedThingAtPosition(document, position, cst);
+    if (!defined) {
+        return null;
+    }
+    let [ modref ] = defined;
+    if (modref === wordText) {
+        log.appendLine(`Identifier ${wordText} was found in the module qualifier of a defined reference`);
+        const moduleIndex = modules
+            .findIndex((m) => m.production && positionFallsWithin(document, position, m.production));
+        const mod = modules[moduleIndex];
+        const sfm = mod.imports.modules[modref];
+        let modoid: NameAndOrNumber[] | undefined;
+        if (sfm?.assignedIdentifier) {
+            modoid = await resolveAssignedIdentifier(
+                sfm.assignedIdentifier, mod, document.uri);
+        }
+        return [mod, modoid, sfm?.selectionOption];
+    }
+
+    log.appendLine(`Identifier ${wordText} was assumed to be a non-module identifier`);
+    return null;
+}
+
+export
+async function provideReferences(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    options: { includeDeclaration: boolean },
+    token: vscode.CancellationToken,
+): Promise<vscode.Location[]> {
+    const isModRef = await isModuleReference(
+        document, position, options, token);
+    if (isModRef) {
+        const [ _, modoid, selopt ] = isModRef ?? [];
+        return provideReferencesForModuleName(
+            document,
+            position,
+            options,
+            token,
+            modoid,
+            selopt,
+        );
+    } else {
+        return provideReferencesForSymbol(
+            document,
+            position,
+            options,
+            token,
+        );
+    }
+}
+
 export class Asn1ReferenceProvider implements vscode.ReferenceProvider {
     public provideReferences(
         document: vscode.TextDocument, position: vscode.Position,
         options: { includeDeclaration: boolean }, token: vscode.CancellationToken):
         Thenable<vscode.Location[]> {
-        return provideReferencesForSymbol(document, position, options, token);
+        return provideReferences(document, position, options, token);
     }
 }
+
+// TODO: Do I need to clean up open documents?
