@@ -237,6 +237,11 @@ export async function resolveOIDComponent(
         return undefined;
     }
     if ("reference" in arc) {
+        // TODO: Ensure this code only runs for the first arc.
+        if (builtinRootArcNamesToNumber.has(arc.reference)) {
+            const num = builtinRootArcNamesToNumber.get(arc.reference)!;
+            return { name: arc.reference, number: num };
+        }
         const roid = await resolveOID(
             arc.module ?? arc.computedModule,
             arc.reference,
@@ -319,6 +324,10 @@ export async function resolveOID(
 ): Promise<NameAndOrNumber[] | undefined> {
     const components: NameAndOrNumber[] = [];
     while (recursionTTL > 0) {
+        if (builtinRootArcNamesToNumber.has(identifier)) {
+            const num = builtinRootArcNamesToNumber.get(identifier)!;
+            return [{ name: identifier, number: num }];
+        }
         const next = await resolveDefined(
             moduleref,
             identifier,

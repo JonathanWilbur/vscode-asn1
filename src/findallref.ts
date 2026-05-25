@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { NameAndOrNumber } from '@wildboar/asn1-parser';
+import type { NameAndOrNumber, SelectionOption } from '@wildboar/asn1-parser';
 import {
     asn1ModuleMatch,
     getDefinedThingAtPosition,
@@ -8,9 +8,9 @@ import {
     positionFallsWithin,
 } from "./utils.js";
 import { getParserOutputs } from './parsing.js';
-import { findAllReferencesFallibly } from "./indexing.js";
+import { findAllReferencesFallibly, getFilesContainingModule } from "./indexing.js";
 import { log } from "./logging.js";
-import { LexedTokens } from './types.js';
+import { ASN1ModuleName, ASN1Reference, LexedTokens } from './types.js';
 import { resolveAssignedIdentifier } from "./resolve.js";
 
 // TODO: You need another implementation that finds all references of imported modules too.
@@ -37,11 +37,16 @@ enum DefinedThingParsingState {
     identifier,
 }
 
+/* NOTE: Even when searching for a reference that is supposedly defined in this file,
+there is no need to skip over the imports, since the identifier could be re-exported
+from another module. If an imported identifier is duplicated with one defined
+locally, it is simply a defect. */
 async function getReferencesWithinModule(
     document: vscode.TextDocument,
-    modref: string,
+    modref: string | undefined,
     ident: string,
     tokens: LexedTokens,
+    skipModulesCount: number = 0,
 ): Promise<[vscode.Location[], number]> { // Last element is tokens read
     // iterate over lexed tokens.
     // ignore ones that fall before or after the module. (maybe the caller should just slice tokens)
@@ -55,11 +60,19 @@ async function getReferencesWithinModule(
             ? "typereference"
             : "identifier");
 
+    // Skip over these modules.
+    let z: number = 0;
+    while (skipModulesCount > 0 && z < tokens.length) {
+        if (tokens[z++].type === "END") {
+            skipModulesCount--;
+        }
+    }
+
     let pastBegin: boolean = false;
     let state: DefinedThingParsingState = DefinedThingParsingState.module;
     const locations: vscode.Location[] = [];
     let endIndex: number | undefined;
-    for (let i = 0; i < tokens.length; i++) {
+    for (let i = z; i < tokens.length; i++) {
         const token = tokens[i];
         if (ignoredTokenTypes.has(token.type)) {
             continue;
@@ -95,7 +108,7 @@ async function getReferencesWithinModule(
         ) {
             const loc = token.location;
             const tokenText = text.slice(loc.startIndex, loc.endIndex);
-            if (tokenText === modref) {
+            if (modref && (tokenText === modref)) {
                 state = DefinedThingParsingState.period;
                 continue;
             }
@@ -125,8 +138,8 @@ async function getReferencesWithinModule(
 
 async function getReferencesWithinFile(
     docuri: vscode.Uri,
-    modref: string,
     ident: string,
+    modref?: string, // If absent, search the assignments.
     modoid?: NameAndOrNumber[],
 ): Promise<vscode.Location[]> {
     const doc = await vscode.workspace.openTextDocument(docuri);
@@ -146,38 +159,118 @@ async function getReferencesWithinFile(
     const ret: vscode.Location[] = [];
     const len = modules.length;
     let j = 0;
+    let skipModulesCount: number = 0;
     for (let i = 0; i < len; i++) {
         const mod = modules[i];
-        const sfm = mod.imports.modules[modref];
-        if (!sfm || !(ident in sfm.symbolList)) {
-            log.appendLine(`module with index ${i} did not seem to import ${ident} within file ${docuri}`);
-            continue; // Try the next module.
-        }
-        if (modoidarcs && sfm.assignedIdentifier) {
-            const impoid = await resolveAssignedIdentifier(
-                sfm.assignedIdentifier,
-                mod,
-                docuri,
-            );
-            if (!impoid) {
-                log.appendLine(`could not resolve assigned identifier for module ${mod.name} in ${docuri}`);
-                continue; // Skip: could not resolve assigned identifier.
+        if (modref) {
+            const sfm = mod.imports.modules[modref];
+            if (!sfm || !(ident in sfm.symbolList)) {
+                log.appendLine(`module with index ${i} did not seem to import ${ident} within module ${mod.name} (index ${i}) in file ${docuri}`);
+                skipModulesCount++;
+                continue; // Try the next module.
             }
-            // TODO: Make it configurable whether or not this check happens.
-            const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
-            if (!impoidarcs) {
-                continue;
-            }
-            if (!asn1ModuleMatch(modoidarcs, impoidarcs, sfm.selectionOption)) {
-                log.appendLine(`non-matching oid used in import statement in module ${mod.name} in ${docuri}`);
-                continue; // Not a matching module.
+            if (modoidarcs && sfm.assignedIdentifier) {
+                const impoid = await resolveAssignedIdentifier(
+                    sfm.assignedIdentifier,
+                    mod,
+                    docuri,
+                );
+                if (!impoid) {
+                    log.appendLine(`could not resolve assigned identifier for module ${mod.name} in ${docuri}`);
+                    skipModulesCount++;
+                    continue; // Skip: could not resolve assigned identifier.
+                }
+                // TODO: Make it configurable whether or not this check happens.
+                const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
+                if (!impoidarcs) {
+                    skipModulesCount++;
+                    continue;
+                }
+                if (!asn1ModuleMatch(modoidarcs, impoidarcs, sfm.selectionOption)) {
+                    log.appendLine(`non-matching oid used in import statement in module ${mod.name} in ${docuri}`);
+                    skipModulesCount++;
+                    continue; // Not a matching module.
+                }
             }
         }
 
         const moduleTokens = tokens.slice(j);
-        const [ locs, tokensRead ] = await getReferencesWithinModule(doc, modref, ident, moduleTokens);
+        const [ locs, tokensRead ] = await getReferencesWithinModule(
+            doc,
+            modref,
+            ident,
+            moduleTokens,
+            skipModulesCount,
+        );
         j += tokensRead;
+        skipModulesCount = 0;
         ret.push(...locs);
+    }
+    return ret;
+}
+
+/**
+ * @summary Get references from modules that have defined an identifier
+ * @description
+ * 
+ * This function is distinguished from other functions that search for
+ * modules that import a symbol and scan them for references to that
+ * symbol: this function searches the modules that have defined those
+ * symbols to return the assignment itself as well as references within
+ * that same module.
+ * 
+ * @param modref The name of the module in which the reference is defined
+ * @param modoid The resolved object identifier of the module in which the reference is defined
+ * @param ident The identifier whose assignment (and other uses) are to be found
+ * @param selopt The selection option governing which ASN.1 module OIDs match
+ * @returns A promise resolving the VS Code locations within the workspace
+ *  where the sought identifier is defined and used within the modules where it
+ *  is defined.
+ * 
+ * @function
+ */
+async function getReferencesFromAssigningModules(
+    modref: ASN1ModuleName,
+    modoid: NameAndOrNumber[] | undefined,
+    ident: ASN1Reference,
+    selopt?: SelectionOption,
+): Promise<vscode.Location[]> {
+    const ret: vscode.Location[] = [];
+    // ... iterate over all possible files that might have a matching module.
+    for (const definingDocUriStr of getFilesContainingModule(modref)) {
+        // Decode the URI
+        let docuri;
+        try {
+            docuri = vscode.Uri.parse(definingDocUriStr, true);
+        } catch (e) {
+            log.appendLine(`malformed document uri ${definingDocUriStr}: ${e}`);
+            continue;
+        }
+
+        // Obtain the ASN.1 modules within this file.
+        const p2 = await getParserOutputs(docuri);
+        if (!p2.parsedModules || ("err" in p2.parsedModules)) {
+            continue;
+        }
+        const mods = p2.parsedModules.ok; 
+
+        // Filter out the non-matching ASN.1 modules in that file.
+        for (const mod of mods) {
+            if (!mod.oid !== !modoid) {
+                continue;
+            }
+            if (mod.oid && modoid) {
+                const oid1 = getOidNodesFromModuleIdentifier(mod.oid);
+                const impoid = getOidNodesFromModuleIdentifier(modoid);
+                if (!oid1 || !impoid || !asn1ModuleMatch(oid1, impoid, selopt)) {
+                    continue;
+                }
+            }
+            // At this point the module is a match: return references from the
+            // assignments.
+            const locs = await getReferencesWithinFile(docuri, ident);
+            ret.push(...locs);
+        }
     }
     return ret;
 }
@@ -259,10 +352,12 @@ async function provideReferencesForSymbol(
         return Promise.reject(null);
     }
 
+    const ret: vscode.Location[] = [];
     let modoid: NameAndOrNumber[] | undefined;
     if (!modref && (ident in currentModule.assignments)) {
         modref = currentModule.name;
         modoid = currentModule.oid;
+        ret.push(new vscode.Location(document.uri, position));
     }
 
     if (!modref) {
@@ -294,17 +389,24 @@ async function provideReferencesForSymbol(
                 log.appendLine("resolved current module's oid");
             }
         }
-    }
 
+        /* We have all imports indexed, but not all assignments. Our search for
+        references uses these imports, but to find references within files
+        where a given identifier is actually defined, we have to traverse the
+        imports of this module and find all modules that satisfy the import,
+        then query their `assignments`. */
+        if (modref) { // If the symbol was imported...
+            const refs = await getReferencesFromAssigningModules(
+                modref, modoid, ident, sfm?.selectionOption);
+            ret.push(...refs);
+        }
+    }
 
     if (!modref) {
         log.appendLine(`identifier ${ident} was not defined locally, nor imported; therefore, cannot be found`);
         return Promise.reject(null);
     }
 
-    // FIXME: This is not returning the reference the user clicked on, when it is the assignment itself!
-    // I confirmed that this is because `findAllReferencesFallibly()` only indexes imports.
-    const ret: vscode.Location[] = [];
     const refuris = findAllReferencesFallibly(modref, ident);
     for (const refuri of refuris) {
         let docuri;
@@ -315,7 +417,7 @@ async function provideReferencesForSymbol(
             continue;
         }
         try {
-            const locs = await getReferencesWithinFile(docuri, modref, ident, modoid);
+            const locs = await getReferencesWithinFile(docuri, ident, modref, modoid);
             ret.push(...locs);
         } catch (e) {
             log.appendLine(`failed to get references within file ${refuri}: ${e}`);

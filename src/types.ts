@@ -1,4 +1,4 @@
-import { lex } from "@wildboar/asn1-parser";
+import { lex, type Module } from "@wildboar/asn1-parser";
 
 export type FileURIStr = string;
 export type VersionNumber = number;
@@ -28,5 +28,6 @@ export type ImportKey = `${ASN1ModuleName}:${ASN1Reference}`;
 
 export interface ModuleInfo {
     name: string;
+    oid?: Module["oid"], // FIXME: @wildboar/asn1-parser: export this
     imports: Set<ImportKey>;
 }
