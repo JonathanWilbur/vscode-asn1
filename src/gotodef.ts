@@ -1,14 +1,99 @@
 import * as vscode from "vscode";
 import { getParserOutputs } from "./parsing.js";
-import { drillIntoDefinedInCST, positionFallsWithin } from "./utils.js";
+import { asn1ModuleMatch, drillIntoDefinedInCST, getOidNodesFromModuleIdentifier, getRangeFromLocation, positionFallsWithin } from "./utils.js";
 import { log } from "./logging.js";
-import { resolveDefined } from "./resolve.js";
+import { resolveAssignedIdentifier, resolveDefined } from "./resolve.js";
+import type { SymbolsFromModule, Module, NameAndOrNumber } from "@wildboar/asn1-parser";
+import { getFilesContainingModule } from "./indexing.js";
+
+async function provideModuleDefinition(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    token: vscode.CancellationToken,
+    sfmmod: Module,
+    sfm: SymbolsFromModule,
+): Promise<vscode.Location> {
+    const urlstrs = Array.from(getFilesContainingModule(sfm.identifier));
+    if (urlstrs.length > 1 && sfm.selectionOption) {
+        // TODO: Warn of ambiguity: unable to resolve to a single module.
+    } // Otherwise, we can just select the first module that matches.
+
+    let sfmarcs: number[] | undefined;
+    const assid = sfm.assignedIdentifier;
+    if (assid) {
+        const sfmoid = await resolveAssignedIdentifier(
+            assid,
+            sfmmod,
+            document.uri,
+        );
+        if (!sfmoid) {
+            // TODO: Log.
+            // Also, is this the right behavior?
+            return Promise.reject(null);
+        }
+        sfmarcs = getOidNodesFromModuleIdentifier(sfmoid) ?? undefined;
+        if (!sfmarcs) {
+            // TODO: Do something?
+            // return Promise.reject(null);
+        }
+    }
+
+    for (const urlstr of urlstrs) {
+        // Decode the URI
+        let docuri;
+        try {
+            docuri = vscode.Uri.parse(urlstr, true);
+        } catch (e) {
+            log.appendLine(`malformed document uri ${urlstr}: ${e}`);
+            continue;
+        }
+        
+        const p = await getParserOutputs(docuri);
+        if (
+            !p.parserEndState
+            || ("err" in p.parserEndState)
+            || p.parserEndState.ok.error
+            || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
+            || !p.parsedModules
+            || ("err" in p.parsedModules)
+        ) {
+            // TODO: Logging
+            continue;
+        }
+        const modules = p.parsedModules.ok;
+        for (const mod of modules) {
+            if (!mod.production) {
+                continue;
+            }
+            if (mod.name !== sfm.identifier) {
+                continue;
+            }
+            
+            if (mod.oid && sfmarcs) {
+                const modoid = getOidNodesFromModuleIdentifier(mod.oid);
+                if (!modoid || !asn1ModuleMatch(modoid, sfmarcs, sfm.selectionOption)) {
+                    continue;
+                }
+            }
+            // TODO: The module matches. Obtain the module reference and return it.
+            const prod = mod.production;
+            const modid = prod.children[0].children[0];
+            if (modid.type !== 'modulereference') {
+                log.appendLine(`Expected a modulereference, but received ${modid.type}`);
+            }
+            const moddoc = await vscode.workspace.openTextDocument(docuri);
+            const range = getRangeFromLocation(moddoc, modid.location);
+            return new vscode.Location(docuri, range);
+        }
+    }
+    return Promise.reject(null); // Nothing matched.
+}
 
 // TODO: Use VS code diagnostics to report errors.
 async function provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
 ): Promise<vscode.Location> {
     const p = await getParserOutputs(document);
     if (
@@ -34,6 +119,36 @@ async function provideDefinition(
         return Promise.reject(null);
     }
     const modules = p.parsedModules.ok;
+
+    const currentModule = modules
+        .find((mod) => (
+            mod.production
+            && positionFallsWithin(document, position, mod.production)
+        ));
+    if (!currentModule) {
+        log.appendLine("user selected a position that does not fall within a module");
+        return Promise.reject(null);
+    }
+
+    const farsfm = Object.values(currentModule.imports.modules ?? {})
+        .find((sfm) => (
+            sfm.production
+            && positionFallsWithin(document, position, sfm.production)
+        ));
+    if (farsfm) {
+        const modulereference = farsfm.production
+            ?.children
+            .find((child) => child.type === 'GlobalModuleReference')
+            ?.children[0];
+        if (
+            modulereference
+            && positionFallsWithin(document, position, modulereference)
+        ) {
+            // The user clicked on the module name in an import statement.
+            return provideModuleDefinition(document, position, token, currentModule, farsfm);
+        }
+    }
+
     const cst = p.parserEndState.ok.cst;
     const wordRange = document.getWordRangeAtPosition(position);
     const word = wordRange ? document.getText(wordRange) : "<bad range or position>";
@@ -52,26 +167,6 @@ async function provideDefinition(
         log.appendLine(`malformed reference ${word}`);
         return Promise.reject(null); // Malformed identifier.
     }
-    const parseModules = cst.children
-        .find((c) => c.type === 'modules')
-        ?.children.filter((c) => c.type === 'ModuleDefinition')
-        ?? [];
-    if (modules.length !== parseModules.length) {
-        log.appendLine(`modules.length !== parseModules.length: ${modules.length} !== ${parseModules.length}`);
-        return Promise.reject(null);
-    }
-    const parseModuleSelectedIdx = parseModules
-        .findIndex((mod) => positionFallsWithin(document, position, mod));
-    if (parseModuleSelectedIdx === -1) {
-        log.appendLine(`no parsed module falls within ${position.line}:${position.character}`);
-        return Promise.reject(null);
-    }
-    const currentModule = modules[parseModuleSelectedIdx];
-    if (!currentModule) {
-        // TODO: Replace with a proper diagnostic error.
-        log.appendLine(`assertion failure: no module with index ${parseModuleSelectedIdx}`);
-        return Promise.reject(null);
-    }
 
     const res = await resolveDefined(moduleref, identifier, currentModule, document.uri);
     if (!res) {
@@ -88,54 +183,6 @@ async function provideDefinition(
     const gotopos = destdoc.positionAt(assnloc.startIndex);
     const codeloc = new vscode.Location(docuri, gotopos);
     return Promise.resolve(codeloc);
-    // /* ITU-T Rec. X.680, Section 14.5, states that `External*Reference` may
-    // only be used if the symbol used in `identifier` is imported, so we do
-    // not search the local assignments if it is used. */
-    // const assignment = moduleref
-    //     ? undefined
-    //     : currentModule.assignments[identifier];
-    // if (assignment?.production) {
-    //     // The identifier is assigned locally in the current module.
-    //     const loc = assignment.production.location;
-    //     const gotopos = document.positionAt(loc.startIndex);
-    //     const codeloc = new vscode.Location(document.uri, gotopos);
-    //     return Promise.resolve(codeloc);
-    // }
-    // // ...otherwise, go to the import if it is present.
-    // const modulesToSearch = moduleref
-    //     ? [currentModule.imports.modules[moduleref]]
-    //     : Object.values(currentModule.imports.modules);
-
-    // for (const sfm of modulesToSearch) {
-    //     // TODO: @wildboar/asn1: Change the non-present value to `null` instead.
-    //     const hasSymbol = (identifier in sfm.symbolList);
-    //     if (!hasSymbol) {
-    //         continue;
-    //     }
-
-    //     // TODO: Support drilling into the symbol in the imported module:
-    //     //  - This requires pre-indexing where all modules are (probably by ghetto-parsing using just the lexical token stream)
-    //     //  - It will also require configuration to find ASN.1 files in the workspace.
-    //     //  - Find the module by the sfm.identifier or sfm.assignedIdentifier.
-    //     //  - Parse the found module completely, or try parsing just a line on which the identifier appears as an assignment.
-    //     //  - Modules sometimes re-export, so this process may be recursive.
-
-    //     const symbol = sfm.symbolList[identifier];
-    //     // FIXME: @wildboar/asn1: No production associated with individual imported symbols
-    //     const loc = symbol?.location
-    //         ?? sfm.production?.location
-    //         ?? currentModule.imports.production?.location;
-    //     if (!loc) {
-    //         // No associated CST productions found that are specific enough to go to.
-    //         return Promise.reject(null);
-    //     }
-    //     const gotopos = document.positionAt(loc.startIndex);
-    //     const codeloc = new vscode.Location(document.uri, gotopos);
-    //     return Promise.resolve(codeloc);
-    // }
-
-    // The identifier was not present in the assignments, nor imported.
-    // return Promise.reject(null);
 }
 
 export

@@ -14,8 +14,6 @@ import { log } from "./logging.js";
 import { ASN1ModuleName, ASN1Reference, FileURIStr, LexedTokens } from './types.js';
 import { resolveAssignedIdentifier } from "./resolve.js";
 
-// TODO: I think FAR on an imported symbol does not work, but double-check this.
-
 const ignoredTokenTypes: Set<string> = new Set([
     "newlineWhitespace",
     "nonNewlineWhitespace",
@@ -27,8 +25,6 @@ const moduleReferenceTokens: Set<string> = new Set([
     "modulereference",
     "typereference",
 ]);
-
-
 
 enum DefinedThingParsingState {
     module,
@@ -460,22 +456,13 @@ async function provideReferencesForSymbol(
     }
     let [ modref, ident ] = defined;
 
-    // TODO: Copied from elsewhere. Refactor.
-    const parseModules = cst.children
-        .find((c) => c.type === 'modules')
-        ?.children.filter((c) => c.type === 'ModuleDefinition')
-        ?? [];
-    if (modules.length !== parseModules.length) {
-        return Promise.reject(null);
-    }
-    const parseModuleSelectedIdx = parseModules
-        .findIndex((mod) => positionFallsWithin(document, position, mod));
-    if (parseModuleSelectedIdx === -1) {
-        return Promise.reject(null);
-    }
-    const currentModule = modules[parseModuleSelectedIdx];
+    const currentModule = modules
+        .find((mod) => (
+            mod.production
+            && positionFallsWithin(document, position, mod.production)
+        ));
     if (!currentModule) {
-        log.appendLine(`assertion failure: no module with index ${parseModuleSelectedIdx}`);
+        log.appendLine("user selected a position that does not fall within a module");
         return Promise.reject(null);
     }
 
@@ -663,19 +650,6 @@ async function isModuleReference(
     }
     const cst = p.parserEndState.ok.cst;
     const modules = p.parsedModules.ok;
-
-    // const isModuleNameInModuleIdentifier = cst.children
-    //     .filter((child) => child.type === 'modules')
-    //     .flatMap((child) => child.children)
-    //     .filter((child) => child.type === 'ModuleDefinition')
-    //     .map((child) => child.children[0].children[0]) // Now each child is the modulereference in ModuleIdentifier
-    //     .some((child) => positionFallsWithin(document, position, child))
-    //     ; 
-
-    // if (isModuleNameInModuleIdentifier) {
-    //     log.appendLine(`Identifier ${wordText} was found in the module identifier and interpreted as a module name`);
-    //     // return [mod, ];
-    // }
 
     for (const mod of modules) {
         if (mod.production) {
