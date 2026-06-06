@@ -7,6 +7,7 @@ import {
     getRangeFromLocation,
     positionFallsWithin,
     startsWithCapitalLetter,
+    moduleReferenceTokens,
 } from "./utils.js";
 import { getParserOutputs } from './parsing.js';
 import { findAllModuleReferencesFallibly, findAllReferencesFallibly, getFilesContainingModule } from "./indexing.js";
@@ -18,12 +19,6 @@ const ignoredTokenTypes: Set<string> = new Set([
     "newlineWhitespace",
     "nonNewlineWhitespace",
     "comment",
-]);
-
-const moduleReferenceTokens: Set<string> = new Set([
-    "objectclassreference",
-    "modulereference",
-    "typereference",
 ]);
 
 enum DefinedThingParsingState {
@@ -292,7 +287,7 @@ async function getModuleReferencesWithinFile(
         const sfm = imports[ident];
         if (sfm?.production) {
             const sfmModName = sfm.production.children
-                .find((c) => 'GlobalModuleReference')
+                .find((c) => c.type === 'GlobalModuleReference')
                 ?.children[0];
             if (sfmModName) {
                 if (sfm.assignedIdentifier) {

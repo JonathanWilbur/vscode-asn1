@@ -1,24 +1,67 @@
 import * as vscode from "vscode";
-import { positionFallsWithin, startsWithCapitalLetter, getDefinedThingAtPosition } from "./utils.js";
+import {
+    positionFallsWithin,
+    moduleReferenceTokens,
+    getDefinedThingAtPosition,
+    getRangeFromLocation,
+} from "./utils.js";
 import { getParserOutputs } from "./parsing.js";
 import { log } from "./logging.js";
 import { type NameAndOrNumber } from "@wildboar/asn1-parser";
 import { resolveAssignedIdentifier } from "./resolve.js";
-import { getSymbolReferencesWithinFile, getReferencesWithinModule } from "./findallref.js";
+import {
+    getSymbolReferencesWithinFile,
+    getReferencesWithinModule,
+} from "./findallref.js";
+import { type LexedTokens } from "./types.js";
 
-// TODO: Dedupe and put in utils
-const ignoredTokenTypes: Set<string> = new Set([
-    "newlineWhitespace",
-    "nonNewlineWhitespace",
-    "comment",
-]);
-
-// TODO: Dedupe and put in utils
-const moduleReferenceTokens: Set<string> = new Set([
-    "objectclassreference",
-    "modulereference",
-    "typereference",
-]);
+/**
+ * @description
+ * 
+ * Note: this has no intelligence. It assumes that every appearance of this
+ * module name is a reference to it, even if used in an import with a
+ * non-matching module object identifier. I did it this way because (1) it
+ * is way easier (2) it is much faster, which matters a lot for highlighting,
+ * which is going to update practically with every keystroke, and (3) it is
+ * such a bizarre use case to even have multiple modules in a file, let alone
+ * modules that do not relate to each other in some way. A user would probably
+ * expect and demand all occurrences of the module name to be highlighted, even
+ * if they differ by module object identifier.
+ * 
+ * @param document 
+ * @param token 
+ * @param ident 
+ * @param lexicalTokens 
+ * @returns 
+ */
+async function provideModuleNameHighlights(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken,
+    ident: string,
+    lexicalTokens: LexedTokens,
+): Promise<vscode.DocumentHighlight[]> {
+    const text = document.getText();
+    const ret: vscode.DocumentHighlight[] = [];
+    for (const lextok of lexicalTokens) {
+        if (token.isCancellationRequested) {
+            break;
+        }
+        if (moduleReferenceTokens.has(lextok.type)) {
+            const tokenText = text.slice(
+                lextok.location.startIndex,
+                lextok.location.endIndex,
+            );
+            if (tokenText === ident) {
+                const range = getRangeFromLocation(document, lextok.location);
+                ret.push(new vscode.DocumentHighlight(
+                    range,
+                    vscode.DocumentHighlightKind.Text,
+                ));
+            }
+        }
+    }
+    return ret;
+}
 
 async function provideDocumentHighlights(
     document: vscode.TextDocument,
@@ -26,21 +69,6 @@ async function provideDocumentHighlights(
     token: vscode.CancellationToken,
 ): Promise<vscode.DocumentHighlight[]> {
     log.appendLine(`getting highlights for symbol at ${position}`);
-    // const wordRange = document.getWordRangeAtPosition(position);
-    // const ident = wordRange && document.getText(wordRange);
-
-    // TODO: Ignore keywords (I think using getDefinedThingAtPosition will fix this)
-    // TODO: Handle module name differently?
-
-    // if (!wordRange || !ident) {
-    //     return [];
-    // }
-    // const identTokenType: string = (ident.toUpperCase() === ident)
-    //     ? "objectclassreference"
-    //     : (startsWithCapitalLetter(ident)
-    //         ? "typereference"
-    //         : "identifier");
-
     const p = await getParserOutputs(document.uri);
     if (
         !p.lexicalTokens
@@ -90,49 +118,24 @@ async function provideDocumentHighlights(
         return Promise.reject(null);
     }
 
-    // const text = document.getText();
+    // modname is the modulereference in ModuleIdentifier
+    const modname = currentModule.production.children[0].children[0];
+    if (positionFallsWithin(document, position, modname)) {
+        return provideModuleNameHighlights(document, token, ident, tokens);
+    }
 
-    // // Check if this ident is part of an External*Reference. If so
-    // // the module identifier parsed below must match.
-    // const identi = tokens
-    //     // TODO: This could be faster by bisecting.
-    //     .findIndex((tok) => positionFallsWithin(document, position, tok));
-    // if (identi < 0) {
-    //     return [];
-    // }
-    // const extRefHaystack = tokens.slice(0, identi);
-    // let expectingModRef: boolean = false;
-    // /**
-    //  * If this is set, it means that the clicked identifier was part of an
-    //  * `External*Reference` production, which means that we have to make
-    //  * sure that we are only highlighting that identifier from that module.
-    //  */
-    // let modref: string | undefined;
-    // let modoid: NameAndOrNumber[] | undefined;
-    // while (extRefHaystack.length > 0) {
-    //     // .pop() works without mutating the original array. I checked.
-    //     const last = extRefHaystack.pop()!;
-    //     if (ignoredTokenTypes.has(last.type)) {
-    //         continue;
-    //     }
-    //     if (expectingModRef) {
-    //         if (moduleReferenceTokens.has(last.type)) {
-    //             modref = text.slice(last.location.startIndex, last.location.endIndex);
-    //         } else {
-    //             // Malformed or something: there was a period, but no module
-    //             // reference before it...
-    //             log.appendLine(`word ${ident} started with a leading period, but no module identifier before that.`);
-    //             return [];
-    //         }
-    //     } else {
-    //         if (last.type === "period") {
-    //             expectingModRef = true;
-    //         } else {
-    //             // The most common case: this is not an `External*Reference`.
-    //             break;
-    //         }
-    //     }
-    // }
+    const impsfm = Object.values(currentModule.imports.modules)
+        .find((sfm) => sfm.identifier === ident);
+    if (impsfm?.production) {
+        const sfmModName = impsfm.production.children
+            .find((c) => c.type === 'GlobalModuleReference')
+            ?.children[0];
+        if (sfmModName && positionFallsWithin(document, position, sfmModName)) {
+            // The user is postioned over the module name that comes after
+            // FROM in an import.
+            return provideModuleNameHighlights(document, token, ident, tokens);
+        }
+    }
 
     if (
         !modref // there was no explicit module qualification...

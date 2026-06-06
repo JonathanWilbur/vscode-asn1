@@ -9,6 +9,15 @@ import {
 import { log } from "./logging.js";
 import { ASN1ModuleName, ASN1Reference } from "./types.js";
 
+/**
+ * Tokens that _could_ be an ASN.1 module name.
+ */
+export const moduleReferenceTokens: Set<string> = new Set([
+    "objectclassreference",
+    "modulereference",
+    "typereference",
+]);
+
 export
 function positionFallsWithin(
     document: vscode.TextDocument,

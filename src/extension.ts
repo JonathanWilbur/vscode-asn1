@@ -19,6 +19,16 @@ const ASN1_MODE: vscode.DocumentFilter = { language: LANGUAGE, scheme: 'file' };
 
 export function activate(context: vscode.ExtensionContext) {
 
+	const isExtensionDevelopment = (context.extensionMode === vscode.ExtensionMode.Development);
+	if (isExtensionDevelopment) {
+		vscode.window.showInformationMessage(
+			"When you have the output pane open, you code highlights vanish "
+			+ "immediately. This is a quirk you should know about. "
+			+ "This message will not appear if this extension is not in "
+			+ "development. End users of this extension will not see this."
+		);
+	}
+
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
