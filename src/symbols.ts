@@ -5,7 +5,6 @@ import {
 	Production,
 	Assignment,
 	AssignmentType,
-	type NameAndOrNumber,
 } from '@wildboar/asn1-parser';
 import { getParserOutputs } from "./parsing.js";
 import { getRangeFromLocation } from "./utils.js";
@@ -130,6 +129,19 @@ async function provideDocumentSymbols(
             nameRange ?? moduleRange, // name/selection range
         );
         symbols.push(symbol);
+		for (const sfm of Object.values(module.imports.modules)) {
+			if (!sfm.production) {
+				continue;
+			}
+			const range = getRangeFromLocation(document, sfm.production.location);
+			symbol.children.push(new vscode.DocumentSymbol(
+				sfm.identifier,
+				"",
+				vscode.SymbolKind.Package,
+				range,
+				range,
+			));
+		}
         for (const [assname, ass] of Object.entries(module.assignments)) {
             const asym = getDocumentSymbolFromAssignment(document, assname, ass);
             // FIXME: This isn't working because the assignment never has an associated production.

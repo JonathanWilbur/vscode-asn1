@@ -4,7 +4,6 @@ Current in progress.
 
 ## To Do
 
-- [ ] Add imports into tree view? (maybe use `SymbolKind.Package`)
 - [ ] Use different symbol kinds for X.500 object classes?
 - [ ] Auto indentation
 - [ ] Folding (by markers)
@@ -21,9 +20,6 @@ Current in progress.
 - [ ] Hover: display `RELATIVE-OID` with X.690 encoding
 - [ ] Hover: display `hstring` as `bstring` equivalent and vice versa
 - [ ] Commands for generating encodings from values
-- [ ] Highlighting:
-  - [ ] Only within the current module, filter for assignments whose text contains the identifier.
-  - [ ] Within those assignments, drill down into the CST to find a `Defined` that corresponds to the highlighted identifier
 - [ ] Code Action: remove duplicate import
 - [ ] Code Action: include missing import? (this would be kind of computationally expensive)
 - [ ] CodeLens: Convert to and from defined syntax
