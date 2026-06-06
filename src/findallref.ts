@@ -36,6 +36,7 @@ enum DefinedThingParsingState {
 there is no need to skip over the imports, since the identifier could be re-exported
 from another module. If an imported identifier is duplicated with one defined
 locally, it is simply a defect. */
+export
 async function getReferencesWithinModule(
     document: vscode.TextDocument,
     modref: string | undefined,
@@ -151,6 +152,7 @@ async function getReferencesWithinModule(
     return [locations, endIndex ?? tokens.length];
 }
 
+export
 async function getSymbolReferencesWithinFile(
     docuri: vscode.Uri,
     ident: string,
