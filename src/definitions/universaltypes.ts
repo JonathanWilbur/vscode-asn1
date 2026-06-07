@@ -27,7 +27,12 @@ export const OCTET_STRING_DEFINITION : MarkdownString = new MarkdownString(
 );
 
 export const NULL_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents an absence of a value."
+"A `UNIVERSAL` type that represents an absence of a value. It's encodings are:\n\n\
+- `0x0500` in BER, CER, and DER\n\
+- Zero bytes / zero length in Packed Encoding Rules (PER), Octet Encoding Rules (OER), and XML Encoding Rules (XER)\n\
+- A JSON `null` in the JSON Encoding Rules (JER)\n\
+- `0x4E554C4C` (ASCII \"NULL\") when using Generic String Encoding Rules (GSER)\n\
+"
 );
 
 export const OBJECT_IDENTIFIER_DEFINITION : MarkdownString = new MarkdownString(
@@ -231,7 +236,7 @@ export const UNIVERSAL_STRING_DEFINITION : MarkdownString = new MarkdownString(
 
 export const CHARACTER_STRING_DEFINITION : MarkdownString = new MarkdownString(
 "A `UNIVERSAL` type that is used to change the presentation context defined as:\n\
-```\
+```asn1\
     CHARACTER STRING ::= [UNIVERSAL 29] SEQUENCE { \
         identification CHOICE { \
             syntaxes SEQUENCE { \
@@ -259,11 +264,64 @@ export const CHOICE_DEFINITION : MarkdownString = new MarkdownString(
 );
 
 export const DATE_DEFINITION : MarkdownString = new MarkdownString(
-"DATE ::= [UNIVERSAL 31] IMPLICIT TIME"
+"An ISO 8601 Date in the local time:\n\
+```asn1\
+DATE ::= [UNIVERSAL 31] IMPLICIT TIME (SETTINGS \"Basic=Date Date=YMD Year=Basic\")\
+```\n\
+This data type is newer and is unlikely to be encountered in ASN.1.\
+Its encodings are as follows:\n\
+- Eight bytes of the date as ASCII in `YYYYMMDD` format for BER, CER, and DER.\
+  No hyphens are encoded, and the value MUST be primitively encoded.\
+- Just like the abstract syntax, but without the surrounding quotes in XML\
+  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))\
+- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)\
+\n\
+This type is not recognized in the Generic String Encoding Rules (GSER).\n\
+In the Octet Encoding Rules (OER), it is encoded as though it were defined as:\n\
+```asn1\
+DATE-ENCODING ::= SEQUENCE {\
+    year    INTEGER,\
+    month   INTEGER (1..12),\
+    day     INTEGER (1..31) }\
+```\n\
+In the Packed Encoding Rules (PER), it is encoded as though it were defined as:\n\
+```asn1\
+YEAR-ENCODING ::= CHOICE { -- 2 bits for choice determinant\
+    immediate   INTEGER (2005..2020), -- 4 bits\
+    near-future INTEGER (2021..2276), -- 8 bits\
+    near-past   INTEGER (1749..2004), -- 8 bits\
+    remainder   INTEGER (MIN..1748 | 2277..MAX) }\
+\
+DATE-ENCODING ::= SEQUENCE {\
+    year    YEAR-ENCODING,\
+    month   INTEGER (1..12), -- 4 bits\
+    day     INTEGER (1..31) -- 5 bits -- }\
+```\n\
+"
 );
 
 export const DATE_TIME_DEFINITION : MarkdownString = new MarkdownString(
-"DATE-TIME ::= [UNIVERSAL 33] IMPLICIT TIME"
+"An ISO 8601 Date-Time in the local time:\n\n\
+```asn1\
+DATE-TIME ::= [UNIVERSAL 33] IMPLICIT TIME (SETTINGS \"Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=L\")\n\
+```\n\n\
+This data type is newer and is unlikely to be encountered in ASN.1.\
+Its encodings are as follows:\n\
+- 14 bytes of the datetime as ASCII in `YYYYMMDDhhmmss` format for BER, CER, and DER.\
+  No hyphens, colons, or \"T\" are encoded, and the value MUST be primitively encoded.\
+- Just like the abstract syntax, but without the surrounding quotes in XML\
+  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))\
+- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)\
+\n\
+This type is not recognized in the Generic String Encoding Rules (GSER).\n\
+In the Packed Encoding Rules (PER) and the Octet Encoding Rules (OER), it is\
+encoded as though it were defined as:\n\
+```asn1\
+DATE-TIME-ENCODING {Date-Type, Time-Type} ::= SEQUENCE {\
+    date    Date-Type,\
+    time    Time-Type }\
+```\n\
+"
 );
 
 export const TIME_DEFINITION : MarkdownString = new MarkdownString(
@@ -272,7 +330,78 @@ Section 3.4."
 );
 
 export const TIME_OF_DAY_DEFINITION : MarkdownString = new MarkdownString(
-"TIME-OF-DAY ::= [UNIVERSAL 32] IMPLICIT TIME"
+"An ISO 8601 Date in the local time:\n\
+```asn1\
+TIME-OF-DAY ::= [UNIVERSAL 32] IMPLICIT TIME (SETTINGS \"Basic=Time Time=HMS Local-or-UTC=L\")\
+```\n\
+This data type is newer and is unlikely to be encountered in ASN.1.\
+Its encodings are as follows:\n\
+- Six bytes of the time as ASCII in `HHMMSS` format for BER, CER, and DER.\
+  No colons are encoded, and the value MUST be primitively encoded.\
+- Just like the abstract syntax, but without the surrounding quotes in XML\
+  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))\
+- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)\
+\n\
+This type is not recognized in the Generic String Encoding Rules (GSER).\n\
+In the Octet Encoding Rules (OER) and the Packed Encoding Rules (PER), \
+it is encoded as though it were defined as:\n\
+```asn1\
+TIME-OF-DAY-ENCODING ::= SEQUENCE {\
+    hours   INTEGER (0..24),\
+    minutes INTEGER (0..59),\
+    seconds INTEGER (0..60) }\
+```\n\
+In the Packed Encoding Rules (PER), each component is encoded on five bits.\
+"
+);
+
+export const DURATION_DEFINITION : MarkdownString = new MarkdownString(
+"An ISO 8601 duration:\n\
+```asn1\
+DURATION ::= [UNIVERSAL 34] IMPLICIT TIME (SETTINGS \"Basic=Interval Interval-type=D\")\
+```\n\
+This data type is newer and is unlikely to be encountered in ASN.1.\
+Its encodings are as follows:\n\
+- Just like the abstract value for BER, CER, and DER, but with the leading\
+  \"P\" removed. The value MUST be primitively encoded. Further restrictions\
+  apply for CER and DER encodings, including using only period `.` for fractions.\
+- Just like the abstract syntax, but without the surrounding quotes in XML\
+  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))\
+- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)\
+\n\
+This type is not recognized in the Generic String Encoding Rules (GSER).\n\
+In the Octet Encoding Rules (OER), it is encoded as though it were defined as:\n\
+```asn1\
+DURATION-INTERVAL-ENCODING ::= SEQUENCE {\
+    years   INTEGER (0..MAX) OPTIONAL,\
+    months  INTEGER (0..MAX) OPTIONAL,\
+    weeks   INTEGER (0..MAX) OPTIONAL,\
+    days    INTEGER (0..MAX) OPTIONAL,\
+    hours   INTEGER (0..MAX) OPTIONAL,\
+    minutes INTEGER (0..MAX) OPTIONAL,\
+    seconds INTEGER (0..MAX) OPTIONAL,\
+    fractional-part SEQUENCE {\
+        number-of-digits    INTEGER (0..MAX),\
+        fractional-value    INTEGER (0..MAX)\
+    } OPTIONAL\
+}\
+```\n\
+In the Packed Encoding Rules (PER), it is encoded as though it were defined as:\n\
+```asn1\
+DURATION-INTERVAL-ENCODING ::= SEQUENCE { -- 8 bits for optionality\
+    years   INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 years\
+    months  INTEGER (0..15, ..., 16..MAX) OPTIONAL, -- 4 bits for up to 15 months\
+    weeks   INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 weeks\
+    days    INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 days\
+    hours   INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 hours\
+    minutes INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 minutes\
+    seconds INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 seconds\
+    fractional-part SEQUENCE {\
+        number-of-digits    INTEGER(1..3, ..., 4..MAX), -- 3 bits for up to three digits accuracy\
+        fractional-value    INTEGER(0..999, ..., 1000..MAX) -- 11 bits for up to three digits accuracy\
+    } OPTIONAL }\
+```\n\
+"
 );
 
 export const INSTANCE_OF_DEFINITION : MarkdownString = new MarkdownString(

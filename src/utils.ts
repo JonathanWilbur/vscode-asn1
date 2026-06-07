@@ -36,7 +36,8 @@ function drillIntoDefinedInCST(
     document: vscode.TextDocument,
     position: vscode.Position,
     cstnode: Production,
-    recursionTTL = 1000,
+    recursionTTL: number = 1000,
+    definedOnly: boolean = false,
 ): Production | undefined {
     // TODO: Eliminate tail recursion
     if (recursionTTL <= 0) {
@@ -44,13 +45,23 @@ function drillIntoDefinedInCST(
     }
     // All productions that are a symbol referring to some other assignment
     // are "Defined," such as `DefinedValue`, `DefinedType`, etc.
+    if (cstnode.type.startsWith('Defined')) {
+        return cstnode;
+    }
+    /* I think identifiers were supported because I also wanted to find
+    matching assignments, imports, module identifiers, etc. when implementing
+    Find All References. But, this feature is not desirable in other cases
+    like providing hovers, because this will provide hovers over the
+    identifiers that are assigned in an assignment, the field names in 
+    information objects, the component names in `SET` and `SEQUENCE` types,
+    and `CHOICE` alternative names. Hence, I added the `definedOnly` flag
+    so this could be turned on or off as needed. */
     if (
-        cstnode.type.startsWith('Defined')
-        || (cstnode.type === "identifier")
+        (cstnode.type === "identifier")
         || (cstnode.type === "typereference")
         || (cstnode.type === "objectclassreference")
     ) {
-        return cstnode;
+        return definedOnly ? undefined : cstnode;
     }
     for (const child of cstnode.children) {
         if (positionFallsWithin(document, position, child)) {
@@ -59,6 +70,7 @@ function drillIntoDefinedInCST(
                 position,
                 child,
                 recursionTTL - 1,
+                definedOnly,
             );
         }
     }
@@ -71,12 +83,14 @@ function getDefinedThingAtPosition(
     position: vscode.Position,
     cstnode: Production,
     recursionTTL = 1000,
+    definedOnly: boolean = false,
 ): [ ASN1ModuleName | undefined, ASN1Reference, Production ] | undefined {
     const defined = drillIntoDefinedInCST(
         document,
         position,
         cstnode,
         recursionTTL,
+        definedOnly,
     );
     if (!defined) {
         return undefined;
@@ -120,9 +134,9 @@ function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | nul
 		return null;
 	}
 	const first = mid[0];
-	if ("number" in first) {
+	if ("number" in first && (typeof first.number === "number")) {
 		return mid.map((m) => ("number" in m) ? m.number : -1);
-	} else if ("name" in first) {
+	} else if ("name" in first && (typeof first.name === "string")) {
 		const num = builtinRootArcNamesToNumber.get(first.name);
 		if (typeof num === "undefined") {
 			return null;

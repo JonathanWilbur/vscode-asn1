@@ -327,7 +327,8 @@ export async function resolveOID(
     while (recursionTTL > 0) {
         if (builtinRootArcNamesToNumber.has(identifier)) {
             const num = builtinRootArcNamesToNumber.get(identifier)!;
-            return [{ name: identifier, number: num }];
+            components.unshift({ name: identifier, number: num });
+            return components;
         }
         const next = await resolveDefined(
             moduleref,
@@ -347,6 +348,17 @@ export async function resolveOID(
             log.appendLine(`identifier ${identifier} did not refer to a value assignment`);
             return undefined;
         }
+        if (nextass.value.valueType === ValueType.DefinedValue) {
+            const ref = nextass.value.value;
+            // I don't really get why this works. You have to return here, not continue.
+            return resolveOID(
+                ref.computedModule ?? ref.module,
+                ref.reference,
+                nextmod,
+                nextdoc,
+                recursionTTL,
+            );
+        }
         if (nextass.value.valueType === ValueType.RelativeOIDValue) {
             const oid = nextass.value.value;
             const resolvedComponents = await resolveOIDComponents(
@@ -365,7 +377,7 @@ export async function resolveOID(
         if (nextass.value.valueType !== ValueType.ObjectIdentifierValue) {
             // FIXME: If not, try parsing it as an OID value, unless the type
             // totally contradicts it being an OID value.
-            log.appendLine(`identifier ${identifier} did not refer to an object identifier value assignment`);
+            log.appendLine(`identifier ${identifier} did not refer to an object identifier value assignment. type was ${nextass.value.valueType}`);
             return undefined;
         }
         const oid = nextass.value.value;

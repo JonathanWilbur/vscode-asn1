@@ -7,21 +7,22 @@ Current in progress.
 - [ ] Use different symbol kinds for X.500 object classes?
 - [ ] Auto indentation
 - [ ] Folding (by markers)
-- [ ] Make hover not apply within defined syntax or ECN sections
-  - [ ] Maybe not do hovers for `OBJECT IDENTIFIER` as well.
+- [x] Make hover not apply within defined syntax or ECN sections
 - [ ] Hover: display `UTCTime` and `GeneralizedTime` values in human-friendly format
 - [ ] Hover: display `OBJECT IDENTIFIER` values with encodings / OID info URLs, etc.
 - [ ] Hover: display `BIT STRING` and `OCTET STRING` as hexadecimal, binary, etc.
 - [ ] Hover: display `INTEGER` as X.690 encoding
-- [ ] Hover: display `NULL` as X.690 encoding
-- [ ] Hover: display `BOOLEAN` as X.690 encoding
+- [x] Hover: display `NULL` as X.690 encoding
+- [x] Hover: display `BOOLEAN` as X.690 encoding
 - [ ] Hover: display `DURATION` in human-friendly format
 - [ ] Hover: display `DATE`, `DATE-TIME`, `TIME` in human friendly format
 - [ ] Hover: display `RELATIVE-OID` with X.690 encoding
 - [ ] Hover: display `hstring` as `bstring` equivalent and vice versa
 - [ ] Commands for generating encodings from values
-- [ ] Code Action: remove duplicate import
-- [ ] Code Action: include missing import? (this would be kind of computationally expensive)
+- [ ] Code Action: remove duplicate import (blocked on new `@wildboar/asn1-parser` version)
+- [ ] Code Action: remove duplicate assignment (blocked on new `@wildboar/asn1-parser` version)
+- [ ] Detect missing imports (drill into the CST and identify any `Defined*` that has no local assignment or import)
+- [ ] ~~Code Action: include missing import? (this would be kind of computationally expensive)~~
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
 - [ ] Format Document / Format Range
