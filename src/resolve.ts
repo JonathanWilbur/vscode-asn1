@@ -1,18 +1,14 @@
 import {
-    type Defined,
     type Assignment,
     type SymbolsFromModule,
     type Module,
-    ObjectIdentifierValue,
     AssignmentType,
-    TypeType,
     ValueType,
-    NameAndOrNumber,
-    NameAndOrNumberForm,
-    ObjIdComponents,
-    IntegerValue,
+    type NameAndOrNumber,
+    type ObjIdComponents,
+    type IntegerValue,
     builtinRootArcNamesToNumber,
-    // AssignedIdentifier, // FIXME: Not exported.
+    // AssignedIdentifier, // FIXME: Not exported. @wildboar/asn1-parser
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
 import { getParserOutputs } from "./parsing.js";
@@ -24,11 +20,11 @@ import { log } from "./logging.js";
 import * as vscode from "vscode";
 
 export async function resolveAssignedIdentifier(
+    cancel: vscode.CancellationToken,
     assid: NonNullable<SymbolsFromModule["assignedIdentifier"]>,
     currentModule: Module,
     currentDocUri: vscode.Uri,
     recursionTTL: number = 10,
-    cancel?: vscode.CancellationToken,
 ): Promise<NameAndOrNumber[] | undefined> {
     let oid: NameAndOrNumber[] | undefined;
     if ("components" in assid) {
@@ -43,6 +39,7 @@ export async function resolveAssignedIdentifier(
                 oid = [{ name: prefix.reference, number: num }];
             } else {
                 oid = await resolveOID(
+                    cancel,
                     prefix.module,
                     prefix.reference,
                     currentModule,
@@ -56,6 +53,7 @@ export async function resolveAssignedIdentifier(
             }
         }
         const resolvedComponents = await resolveOIDComponents(
+            cancel,
             assid.components,
             currentModule,
             currentDocUri,
@@ -72,6 +70,7 @@ export async function resolveAssignedIdentifier(
         }
     } else if ("reference" in assid) {
         oid = await resolveOID(
+            cancel,
             assid.module,
             assid.reference,
             currentModule,
@@ -83,12 +82,16 @@ export async function resolveAssignedIdentifier(
 }
 
 export async function resolveDefined(
+    cancel: vscode.CancellationToken,
     moduleref: string | undefined,
     identifier: string,
     currentModule: Module,
     currentDocUri: vscode.Uri,
     recursionTTL: number = 10,
 ): Promise<[Assignment, Module, vscode.Uri] | undefined> {
+    if (cancel.isCancellationRequested) {
+        return undefined;
+    }
     if (recursionTTL <= 0) {
         log.appendLine("recursion limit exceeded in resolve()");
         return undefined;
@@ -120,6 +123,7 @@ export async function resolveDefined(
     let oid: NameAndOrNumber[] | undefined;
     if (sfm.assignedIdentifier) {
         oid = await resolveAssignedIdentifier(
+            cancel,
             sfm.assignedIdentifier,
             currentModule,
             currentDocUri,
@@ -133,10 +137,13 @@ export async function resolveDefined(
 
     // Find the module and return the assignment in it.
     for (const file of getFilesContainingModule(moduleref)) {
+        if (cancel.isCancellationRequested) {
+            return undefined;
+        }
         log.appendLine(`checking file ${file} for module ${moduleref}`);
         try {
             const uri = vscode.Uri.parse(file, true);
-            const p = await getParserOutputs(uri);
+            const p = await getParserOutputs(uri, undefined, cancel);
             if (
                 !p.parserEndState
                 || ("err" in p.parserEndState)
@@ -150,6 +157,9 @@ export async function resolveDefined(
             }
             const modules = p.parsedModules.ok;
             for (const module of modules) {
+                if (cancel.isCancellationRequested) {
+                    return undefined;
+                }
                 if (module.name !== moduleref) {
                     // This file could have multiple modules. Skip past all
                     // but the ones having the correct name.
@@ -193,6 +203,7 @@ export async function resolveDefined(
 }
 
 export async function resolveInteger(
+    cancel: vscode.CancellationToken,
     moduleref: string | undefined,
     identifier: string,
     currentModule: Module,
@@ -200,6 +211,7 @@ export async function resolveInteger(
     recursionTTL: number = 10,
 ): Promise<number | undefined> {
     const next = await resolveDefined(
+        cancel,
         moduleref,
         identifier,
         currentModule,
@@ -228,6 +240,7 @@ export async function resolveInteger(
 }
 
 export async function resolveOIDComponent(
+    cancel: vscode.CancellationToken,
     arc: ObjIdComponents,
     currentModule: Module,
     currentDocUri: vscode.Uri,
@@ -244,6 +257,7 @@ export async function resolveOIDComponent(
             return { name: arc.reference, number: num };
         }
         const roid = await resolveOID(
+            cancel,
             arc.module ?? arc.computedModule,
             arc.reference,
             currentModule,
@@ -259,6 +273,7 @@ export async function resolveOIDComponent(
     if ((typeof arc.number === "object") && ("reference" in arc.number)) {
         const intref = arc.number;
         const int = await resolveInteger(
+            cancel,
             intref.module ?? intref.computedModule,
             intref.reference,
             currentModule,
@@ -287,6 +302,7 @@ export async function resolveOIDComponent(
 }
 
 export async function resolveOIDComponents(
+    cancel: vscode.CancellationToken,
     arcs: ObjIdComponents[],
     currentModule: Module,
     currentDocUri: vscode.Uri,
@@ -294,7 +310,11 @@ export async function resolveOIDComponents(
 ): Promise<NameAndOrNumber[] | undefined> {
     const resolvedComponents: NameAndOrNumber[] = [];
     for (const arc of arcs) {
+        if (cancel.isCancellationRequested) {
+            return undefined;
+        }
         const resolved = await resolveOIDComponent(
+            cancel,
             arc,
             currentModule,
             currentDocUri,
@@ -318,6 +338,7 @@ export async function resolveOIDComponents(
 //    "{" ObjIdComponentsList "}"
 // 	| "{" DefinedValue ObjIdComponentsList "}"
 export async function resolveOID(
+    cancel: vscode.CancellationToken,
     moduleref: string | undefined,
     identifier: string,
     currentModule: Module,
@@ -326,12 +347,16 @@ export async function resolveOID(
 ): Promise<NameAndOrNumber[] | undefined> {
     const components: NameAndOrNumber[] = [];
     while (recursionTTL > 0) {
+        if (cancel.isCancellationRequested) {
+            return undefined;
+        }
         if (builtinRootArcNamesToNumber.has(identifier)) {
             const num = builtinRootArcNamesToNumber.get(identifier)!;
             components.unshift({ name: identifier, number: num });
             return components;
         }
         const next = await resolveDefined(
+            cancel,
             moduleref,
             identifier,
             currentModule,
@@ -353,6 +378,7 @@ export async function resolveOID(
             const ref = nextass.value.value;
             // I don't really get why this works. You have to return here, not continue.
             return resolveOID(
+                cancel,
                 ref.computedModule ?? ref.module,
                 ref.reference,
                 nextmod,
@@ -363,6 +389,7 @@ export async function resolveOID(
         if (nextass.value.valueType === ValueType.RelativeOIDValue) {
             const oid = nextass.value.value;
             const resolvedComponents = await resolveOIDComponents(
+                cancel,
                 oid,
                 nextmod,
                 nextdoc,
@@ -384,6 +411,7 @@ export async function resolveOID(
         const oid = nextass.value.value;
 
         const resolvedComponents = await resolveOIDComponents(
+            cancel,
             oid.components,
             nextmod,
             nextdoc,
@@ -413,28 +441,3 @@ export async function resolveOID(
     log.appendLine(`recursion limit reached when trying to resolve object identifier ${identifier}`);
     return undefined;
 }
-
-// export async function recursivelyResolveDefined(
-//     moduleref: string | undefined,
-//     asn1ModuleId: SymbolsFromModule["assignedIdentifier"] | undefined,
-//     identifier: string,
-//     currentModule: Module,
-//     currentDocUri: vscode.Uri,
-//     recursionTTL: number = 10,
-// ): ReturnType<typeof resolveDefined> {
-//     do {
-//         const next = await resolveDefined(
-//             moduleref,
-//             asn1ModuleId,
-//             identifier,
-//             currentModule,
-//             currentDocUri,
-//             recursionTTL,
-//         );
-//         if (!next) {
-//             return undefined;
-//         }
-//         const [nextass, nextdoc] = next;
-        
-//     } while ();
-// }

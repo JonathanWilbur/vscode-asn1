@@ -9,6 +9,7 @@ import {
 import { log } from "./logging.js";
 import { ASN1ModuleName, ASN1Reference } from "./types.js";
 
+// TODO: Move to @wildboar/asn1-parser
 /**
  * Tokens that _could_ be an ASN.1 module name.
  */
@@ -33,6 +34,7 @@ function positionFallsWithin(
 // TODO: Use getDefinedThingAtPosition instead of this. (This will fix some failures with go-to-definition.)
 export
 function drillIntoDefinedInCST(
+    cancel: vscode.CancellationToken,
     document: vscode.TextDocument,
     position: vscode.Position,
     cstnode: Production,
@@ -64,8 +66,12 @@ function drillIntoDefinedInCST(
         return definedOnly ? undefined : cstnode;
     }
     for (const child of cstnode.children) {
+        if (cancel.isCancellationRequested) {
+            break;
+        }
         if (positionFallsWithin(document, position, child)) {
             return drillIntoDefinedInCST(
+                cancel,
                 document,
                 position,
                 child,
@@ -79,6 +85,7 @@ function drillIntoDefinedInCST(
 
 export
 function getDefinedThingAtPosition(
+    cancel: vscode.CancellationToken,
     document: vscode.TextDocument,
     position: vscode.Position,
     cstnode: Production,
@@ -86,6 +93,7 @@ function getDefinedThingAtPosition(
     definedOnly: boolean = false,
 ): [ ASN1ModuleName | undefined, ASN1Reference, Production ] | undefined {
     const defined = drillIntoDefinedInCST(
+        cancel,
         document,
         position,
         cstnode,
@@ -128,6 +136,7 @@ export function getRangeFromLocation(
     return new vscode.Range(start, end);
 }
 
+// TODO: Move to @wildboar/asn1-parser
 export
 function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | null {
 	if (!(mid.slice(1).every((m) => "number" in m))) {
@@ -150,6 +159,7 @@ function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | nul
 }
 
 // TODO: Test this.
+// TODO: Move to @wildboar/asn1-parser
 export
 function asn1ModuleMatch(
     modoid: number[],

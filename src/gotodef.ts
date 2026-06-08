@@ -1,9 +1,15 @@
 import * as vscode from "vscode";
 import { getParserOutputs } from "./parsing.js";
-import { asn1ModuleMatch, drillIntoDefinedInCST, getOidNodesFromModuleIdentifier, getRangeFromLocation, positionFallsWithin } from "./utils.js";
+import {
+    asn1ModuleMatch,
+    drillIntoDefinedInCST,
+    getOidNodesFromModuleIdentifier,
+    getRangeFromLocation,
+    positionFallsWithin,
+} from "./utils.js";
 import { log } from "./logging.js";
 import { resolveAssignedIdentifier, resolveDefined } from "./resolve.js";
-import type { SymbolsFromModule, Module, NameAndOrNumber } from "@wildboar/asn1-parser";
+import type { SymbolsFromModule, Module } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
 
 async function provideModuleDefinition(
@@ -21,6 +27,7 @@ async function provideModuleDefinition(
     const assid = sfm.assignedIdentifier;
     if (assid) {
         const sfmoid = await resolveAssignedIdentifier(
+            cancel,
             assid,
             sfmmod,
             document.uri,
@@ -157,7 +164,7 @@ async function provideDefinition(
     const cst = p.parserEndState.ok.cst;
     const wordRange = document.getWordRangeAtPosition(position);
     const word = wordRange ? document.getText(wordRange) : "<bad range or position>";
-    const defined = drillIntoDefinedInCST(document, position, cst);
+    const defined = drillIntoDefinedInCST(cancel, document, position, cst);
     if (!defined) {
         log.appendLine(`word ${word} was not thought to be a "defined" production`);
         return Promise.reject(null);
@@ -173,7 +180,7 @@ async function provideDefinition(
         return Promise.reject(null); // Malformed identifier.
     }
 
-    const res = await resolveDefined(moduleref, identifier, currentModule, document.uri);
+    const res = await resolveDefined(cancel, moduleref, identifier, currentModule, document.uri);
     if (!res) {
         log.appendLine(`failed to resolve ${word}`);
         return Promise.reject(null);

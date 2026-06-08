@@ -208,14 +208,14 @@ const FAIL_MD = new vscode.MarkdownString("Symbol could not be resolved");
 
 async function provideDefinedHover(
     document: vscode.TextDocument,
-    position: vscode.Position,
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
     currentModule: Module,
     modref: string | undefined,
     ident: string,
     definedRange: vscode.Range,
 ): Promise<vscode.Hover> {
     const res = await resolveDefined(
+        cancel,
         modref,
         ident,
         currentModule,
@@ -310,8 +310,7 @@ function constructOidHover(
 
 async function provideOidHover(
     document: vscode.TextDocument,
-    position: vscode.Position,
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
     currentModule: Module,
     assn: Assignment,
 ): Promise<vscode.Hover> {
@@ -324,6 +323,7 @@ async function provideOidHover(
     if (value.valueType === ValueType.DefinedValue) {
         const def = value.value;
         oid = await resolveOID(
+            cancel,
             def.computedModule ?? def.module,
             def.reference,
             currentModule,
@@ -347,6 +347,7 @@ async function provideOidHover(
                 oid = [{ name: prefix.reference, number: num }];
             } else {
                 oid = await resolveOID(
+                    cancel,
                     prefix.module,
                     prefix.reference,
                     currentModule,
@@ -358,6 +359,7 @@ async function provideOidHover(
             }
         }
         const resolvedComponents = await resolveOIDComponents(
+            cancel,
             val.components,
             currentModule,
             document.uri,
@@ -385,9 +387,9 @@ const ECN_MD = new vscode.MarkdownString(
 async function provideHover(
     document: vscode.TextDocument,
     position: vscode.Position,
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
 ): Promise<vscode.Hover> {
-    const p = await getParserOutputs(document.uri);
+    const p = await getParserOutputs(document.uri, undefined, cancel);
     if (
         !p.parserEndState
         || ("err" in p.parserEndState)
@@ -403,7 +405,6 @@ async function provideHover(
             return Promise.reject(null);
         }
     }
-    // const tokens = p.lexicalTokens.ok;
     const modules = p.parsedModules.ok;
     const cst = p.parserEndState.ok.cst;
     const currentModule = modules
@@ -419,6 +420,7 @@ async function provideHover(
     const wordRange = document.getWordRangeAtPosition(position);
     const wordText = wordRange && document.getText(wordRange);
 
+    // TODO: This might be useful for other language features. Consider refactoring it out.
     const ecnprod = currentModule.production!.children
         .find((child) => child.type === 'EncodingControlSections');
     if (
@@ -495,6 +497,7 @@ async function provideHover(
             ) {
                 const typdef = currentAssignment.type.type;
                 const def = await resolveDefined(
+                    cancel,
                     typdef.computedModule ?? typdef.module,
                     typdef.reference,
                     currentModule,
@@ -513,8 +516,7 @@ async function provideHover(
             if (looksLikeOID || (currentAssignment.type.typeType === TypeType.ObjectIdentifierType)) {
                 return provideOidHover(
                     document,
-                    position,
-                    token,
+                    cancel,
                     currentModule,
                     currentAssignment,
                 );
@@ -531,13 +533,12 @@ async function provideHover(
         return Promise.reject(null);
     }
 
-    const defined = getDefinedThingAtPosition(document, position, cst, undefined, true);
+    const defined = getDefinedThingAtPosition(cancel, document, position, cst, undefined, true);
     if (defined) {
         const [ modref, ident, defprod ] = defined;
         return provideDefinedHover(
             document,
-            position,
-            token,
+            cancel,
             currentModule,
             modref,
             ident,

@@ -99,7 +99,7 @@ async function provideDocumentHighlights(
     const modules = p.parsedModules.ok;
     const cst = p.parserEndState.ok.cst;
 
-    const defined = getDefinedThingAtPosition(document, position, cst);
+    const defined = getDefinedThingAtPosition(cancel, document, position, cst);
     if (!defined) {
         log.appendLine("no highlight available: thing at cursor position is not a reference");
         return [];
@@ -158,6 +158,7 @@ async function provideDocumentHighlights(
         modref = impsfm.identifier;
         if (impsfm.assignedIdentifier) {
             modoid = await resolveAssignedIdentifier(
+                cancel,
                 impsfm.assignedIdentifier,
                 currentModule,
                 document.uri,

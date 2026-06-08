@@ -193,6 +193,7 @@ async function getSymbolReferencesWithinFile(
             }
             if (modoidarcs && sfm.assignedIdentifier) {
                 const impoid = await resolveAssignedIdentifier(
+                    cancel,
                     sfm.assignedIdentifier,
                     mod,
                     docuri,
@@ -305,6 +306,7 @@ async function getModuleReferencesWithinFile(
             if (sfmModName) {
                 if (sfm.assignedIdentifier) {
                     const impoid = await resolveAssignedIdentifier(
+                        cancel,
                         sfm.assignedIdentifier,
                         mod,
                         docuri,
@@ -464,7 +466,7 @@ async function provideReferencesForSymbol(
     }
     const cst = p.parserEndState.ok.cst;
     const modules = p.parsedModules.ok;
-    const defined = getDefinedThingAtPosition(document, position, cst);
+    const defined = getDefinedThingAtPosition(cancel, document, position, cst);
     if (!defined) {
         log.appendLine(`defined thing not found at position ${position.line}:${position.character}`);
         return Promise.reject(null);
@@ -510,6 +512,7 @@ async function provideReferencesForSymbol(
         modref = sfm?.identifier;
         if (sfm?.assignedIdentifier) {
             modoid = await resolveAssignedIdentifier(
+                cancel,
                 sfm.assignedIdentifier,
                 currentModule,
                 document.uri,
@@ -697,13 +700,13 @@ async function isModuleReference(
             let modoid: NameAndOrNumber[] | undefined;
             if (sfm.assignedIdentifier) {
                 modoid = await resolveAssignedIdentifier(
-                    sfm.assignedIdentifier, mod, document.uri);
+                    cancel, sfm.assignedIdentifier, mod, document.uri);
             }
             return [mod, modoid, sfm.selectionOption];
         }
     }
 
-    const defined = getDefinedThingAtPosition(document, position, cst);
+    const defined = getDefinedThingAtPosition(cancel, document, position, cst);
     if (!defined) {
         return null;
     }
@@ -717,7 +720,7 @@ async function isModuleReference(
         let modoid: NameAndOrNumber[] | undefined;
         if (sfm?.assignedIdentifier) {
             modoid = await resolveAssignedIdentifier(
-                sfm.assignedIdentifier, mod, document.uri);
+                cancel, sfm.assignedIdentifier, mod, document.uri);
         }
         return [mod, modoid, sfm?.selectionOption];
     }
