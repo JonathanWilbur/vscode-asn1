@@ -7,9 +7,8 @@ import type { SymbolsFromModule, Module, NameAndOrNumber } from "@wildboar/asn1-
 import { getFilesContainingModule } from "./indexing.js";
 
 async function provideModuleDefinition(
+    cancel: vscode.CancellationToken,
     document: vscode.TextDocument,
-    position: vscode.Position,
-    token: vscode.CancellationToken,
     sfmmod: Module,
     sfm: SymbolsFromModule,
 ): Promise<vscode.Location> {
@@ -39,6 +38,9 @@ async function provideModuleDefinition(
     }
 
     for (const urlstr of urlstrs) {
+        if (cancel.isCancellationRequested) {
+            break;
+        }
         // Decode the URI
         let docuri;
         try {
@@ -48,7 +50,7 @@ async function provideModuleDefinition(
             continue;
         }
         
-        const p = await getParserOutputs(docuri);
+        const p = await getParserOutputs(docuri, undefined, cancel);
         if (
             !p.parserEndState
             || ("err" in p.parserEndState)
@@ -62,6 +64,9 @@ async function provideModuleDefinition(
         }
         const modules = p.parsedModules.ok;
         for (const mod of modules) {
+            if (cancel.isCancellationRequested) {
+                break;
+            }
             if (!mod.production) {
                 continue;
             }
@@ -93,9 +98,9 @@ async function provideModuleDefinition(
 async function provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
 ): Promise<vscode.Location> {
-    const p = await getParserOutputs(document);
+    const p = await getParserOutputs(document, undefined, cancel);
     if (
         !p.parserEndState
         || ("err" in p.parserEndState)
@@ -145,7 +150,7 @@ async function provideDefinition(
             && positionFallsWithin(document, position, modulereference)
         ) {
             // The user clicked on the module name in an import statement.
-            return provideModuleDefinition(document, position, token, currentModule, farsfm);
+            return provideModuleDefinition(cancel, document, currentModule, farsfm);
         }
     }
 

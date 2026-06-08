@@ -28,6 +28,7 @@ export async function resolveAssignedIdentifier(
     currentModule: Module,
     currentDocUri: vscode.Uri,
     recursionTTL: number = 10,
+    cancel?: vscode.CancellationToken,
 ): Promise<NameAndOrNumber[] | undefined> {
     let oid: NameAndOrNumber[] | undefined;
     if ("components" in assid) {

@@ -29,21 +29,21 @@ import { type LexedTokens } from "./types.js";
  * if they differ by module object identifier.
  * 
  * @param document 
- * @param token 
+ * @param cancel 
  * @param ident 
  * @param lexicalTokens 
  * @returns 
  */
 async function provideModuleNameHighlights(
     document: vscode.TextDocument,
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
     ident: string,
     lexicalTokens: LexedTokens,
 ): Promise<vscode.DocumentHighlight[]> {
     const text = document.getText();
     const ret: vscode.DocumentHighlight[] = [];
     for (const lextok of lexicalTokens) {
-        if (token.isCancellationRequested) {
+        if (cancel.isCancellationRequested) {
             break;
         }
         if (moduleReferenceTokens.has(lextok.type)) {
@@ -66,7 +66,7 @@ async function provideModuleNameHighlights(
 async function provideDocumentHighlights(
     document: vscode.TextDocument,
     position: vscode.Position,
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
 ): Promise<vscode.DocumentHighlight[]> {
     log.appendLine(`getting highlights for symbol at ${position}`);
     const p = await getParserOutputs(document.uri);
@@ -121,7 +121,7 @@ async function provideDocumentHighlights(
     // modname is the modulereference in ModuleIdentifier
     const modname = currentModule.production.children[0].children[0];
     if (positionFallsWithin(document, position, modname)) {
-        return provideModuleNameHighlights(document, token, ident, tokens);
+        return provideModuleNameHighlights(document, cancel, ident, tokens);
     }
 
     const impsfm = Object.values(currentModule.imports.modules)
@@ -133,7 +133,7 @@ async function provideDocumentHighlights(
         if (sfmModName && positionFallsWithin(document, position, sfmModName)) {
             // The user is postioned over the module name that comes after
             // FROM in an import.
-            return provideModuleNameHighlights(document, token, ident, tokens);
+            return provideModuleNameHighlights(document, cancel, ident, tokens);
         }
     }
 
@@ -167,6 +167,7 @@ async function provideDocumentHighlights(
 
     // Gets the unqualified references just within the current module.
     const [locs] = await getReferencesWithinModule(
+        cancel,
         document,
         undefined,
         ident,
@@ -176,7 +177,7 @@ async function provideDocumentHighlights(
     );
 
     // Gets references within other modules within this file.
-    const morelocs = await getSymbolReferencesWithinFile(document.uri, ident, modref, modoid);
+    const morelocs = await getSymbolReferencesWithinFile(cancel, document.uri, ident, modref, modoid);
     const ret = [...locs, ...morelocs].map((loc) => new vscode.DocumentHighlight(
         loc.range,
         vscode.DocumentHighlightKind.Text,

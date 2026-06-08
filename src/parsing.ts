@@ -5,13 +5,6 @@ import {
 	grok,
 	correct,
 	type Module,
-	TaggingMode,
-	Production,
-	Assignment,
-	type Location,
-	AssignmentType,
-	type NameAndOrNumber,
-    // type TerminalProductionType,
     type ParseContext,
 } from '@wildboar/asn1-parser';
 import type { YieldType, Result, VersionNumbered } from "./types.js";
@@ -30,7 +23,11 @@ export interface ParserOutputs {
 
 const cache = new Map<string, VersionNumbered<ParserOutputs>>();
 
-export async function getParserOutputs(docOrUri: vscode.Uri | vscode.TextDocument, stopAt?: ParserStopAt): Promise<ParserOutputs> {
+export async function getParserOutputs(
+    docOrUri: vscode.Uri | vscode.TextDocument,
+    stopAt?: ParserStopAt,
+    cancel?: vscode.CancellationToken,
+): Promise<ParserOutputs> {
     /* I confirmed: openTextDocument does not open a tab or something in the
     user interface--it just opens a file for use by the extension. It also
     clearly says in the JSDoc for it that it immediately returns if the file
@@ -56,7 +53,7 @@ export async function getParserOutputs(docOrUri: vscode.Uri | vscode.TextDocumen
         return outputs;
     }
 
-    if (stopAt === ParserStopAt.lexing) {
+    if (stopAt === ParserStopAt.lexing || cancel?.isCancellationRequested) {
         // TODO: Cache this work.
         return outputs;
     }
@@ -67,6 +64,11 @@ export async function getParserOutputs(docOrUri: vscode.Uri | vscode.TextDocumen
     } catch (e) {
         outputs.parserEndState = { err: e };
         cache.set(key, { version: document.version, item: outputs });
+        return outputs;
+    }
+
+    if (stopAt === ParserStopAt.parsing || cancel?.isCancellationRequested) {
+        // TODO: Cache this work.
         return outputs;
     }
 

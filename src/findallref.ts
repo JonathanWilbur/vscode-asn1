@@ -33,6 +33,7 @@ from another module. If an imported identifier is duplicated with one defined
 locally, it is simply a defect. */
 export
 async function getReferencesWithinModule(
+    cancel: vscode.CancellationToken,
     document: vscode.TextDocument,
     modref: string | undefined,
     ident: string,
@@ -66,6 +67,9 @@ async function getReferencesWithinModule(
     const locations: vscode.Location[] = [];
     let endIndex: number | undefined;
     for (let i = z; i < tokens.length; i++) {
+        if (cancel.isCancellationRequested) {
+            break;
+        }
         const token = tokens[i];
         if (ignoredTokenTypes.has(token.type)) {
             continue;
@@ -149,6 +153,7 @@ async function getReferencesWithinModule(
 
 export
 async function getSymbolReferencesWithinFile(
+    cancel: vscode.CancellationToken,
     docuri: vscode.Uri,
     ident: string,
     modref?: string, // If absent, search the assignments.
@@ -175,6 +180,9 @@ async function getSymbolReferencesWithinFile(
 
     // All modules in this file could contain the module
     for (let i = 0; i < len; i++) {
+        if (cancel.isCancellationRequested) {
+            break;
+        }
         const mod = modules[i];
         if (modref) {
             const sfm = mod.imports.modules[modref];
@@ -210,6 +218,7 @@ async function getSymbolReferencesWithinFile(
 
         const moduleTokens = tokens.slice(j);
         const [ locs, tokensRead ] = await getReferencesWithinModule(
+            cancel,
             doc,
             modref,
             ident,
@@ -228,13 +237,14 @@ This differs from getSymbolReferencesWithinFile() by using the modoid to
 filter out 
 */
 async function getModuleReferencesWithinFile(
+    cancel: vscode.CancellationToken,
     docuri: vscode.Uri,
     ident: string,
     seloid?: NameAndOrNumber[],
     selopt?: SelectionOption,
 ): Promise<vscode.Location[]> {
     const doc = await vscode.workspace.openTextDocument(docuri);
-    const p = await getParserOutputs(docuri);
+    const p = await getParserOutputs(docuri, undefined, cancel);
     if (
         !p.parsedModules
         || ("err" in p.parsedModules)
@@ -254,6 +264,9 @@ async function getModuleReferencesWithinFile(
     const len = modules.length;
     let j = 0;
     for (let i = 0; i < len; i++) {
+        if (cancel?.isCancellationRequested) {
+            break;
+        }
         const mod = modules[i];
         const modid = mod.production?.children[0]?.children[0];
         if (!modid) {
@@ -316,6 +329,7 @@ async function getModuleReferencesWithinFile(
         // Check for references elsewhere.
         const moduleTokens = tokens.slice(j);
         const [ locs, tokensRead ] = await getReferencesWithinModule(
+            cancel,
             doc,
             undefined,
             ident,
@@ -350,6 +364,7 @@ async function getModuleReferencesWithinFile(
  * @function
  */
 async function getReferencesFromAssigningModules(
+    cancel: vscode.CancellationToken,
     modref: ASN1ModuleName,
     modoid: NameAndOrNumber[] | undefined,
     ident: ASN1Reference,
@@ -358,6 +373,9 @@ async function getReferencesFromAssigningModules(
     const ret: vscode.Location[] = [];
     // ... iterate over all possible files that might have a matching module.
     for (const definingDocUriStr of getFilesContainingModule(modref)) {
+        if (cancel.isCancellationRequested) {
+            break;
+        }
         // Decode the URI
         let docuri;
         try {
@@ -388,7 +406,7 @@ async function getReferencesFromAssigningModules(
             }
             // At this point the module is a match: return references from the
             // assignments.
-            const locs = await getSymbolReferencesWithinFile(docuri, ident);
+            const locs = await getSymbolReferencesWithinFile(cancel, docuri, ident);
             ret.push(...locs);
         }
     }
@@ -418,10 +436,10 @@ async function provideReferencesForSymbol(
     document: vscode.TextDocument,
     position: vscode.Position,
     options: { includeDeclaration: boolean },
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
 ): Promise<vscode.Location[]> {
     // If the document is invalid ASN.1, all bets are off.
-    const p = await getParserOutputs(document.uri);
+    const p = await getParserOutputs(document.uri, undefined, cancel);
     if (
         !p.parserEndState
         || ("err" in p.parserEndState)
@@ -508,7 +526,7 @@ async function provideReferencesForSymbol(
         then query their `assignments`. */
         if (modref) { // If the symbol was imported...
             const refs = await getReferencesFromAssigningModules(
-                modref, modoid, ident, sfm?.selectionOption);
+                cancel, modref, modoid, ident, sfm?.selectionOption);
             ret.push(...refs);
         }
     }
@@ -528,7 +546,7 @@ async function provideReferencesForSymbol(
             continue;
         }
         try {
-            const locs = await getSymbolReferencesWithinFile(docuri, ident, modref, modoid);
+            const locs = await getSymbolReferencesWithinFile(cancel, docuri, ident, modref, modoid);
             ret.push(...locs);
         } catch (e) {
             log.appendLine(`failed to get references within file ${refuri}: ${e}`);
@@ -561,7 +579,7 @@ async function provideReferencesForModuleName(
     document: vscode.TextDocument,
     position: vscode.Position,
     options: { includeDeclaration: boolean },
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
     modoid?: NameAndOrNumber[], // Module must match in the ID or in imports to count
     selopt?: SelectionOption, // How the module must match.
 ): Promise<vscode.Location[]> {
@@ -576,6 +594,9 @@ async function provideReferencesForModuleName(
     }
     const ret: vscode.Location[] = [];
     for (const modurlstr of fileUriStrings.values()) {
+        if (cancel.isCancellationRequested) {
+            break;
+        }
         // Decode the URI
         let docuri;
         try {
@@ -585,7 +606,7 @@ async function provideReferencesForModuleName(
             continue;
         }
         try {
-            const locs = await getModuleReferencesWithinFile(docuri, wordText, modoid, selopt);
+            const locs = await getModuleReferencesWithinFile(cancel, docuri, wordText, modoid, selopt);
             ret.push(...locs);
         } catch (e) {
             log.appendLine(`failed to get references within file ${docuri}: ${e}`);
@@ -614,7 +635,7 @@ async function isModuleReference(
     document: vscode.TextDocument,
     position: vscode.Position,
     options: { includeDeclaration: boolean },
-    token: vscode.CancellationToken,
+    cancel: vscode.CancellationToken,
 ): Promise<[Module, NameAndOrNumber[]?, SelectionOption?] | null> {
     const wordRange = document.getWordRangeAtPosition(position);
     const wordText = wordRange && document.getText(wordRange);
@@ -649,6 +670,9 @@ async function isModuleReference(
     const modules = p.parsedModules.ok;
 
     for (const mod of modules) {
+        if (cancel.isCancellationRequested) {
+            break;
+        }
         if (mod.production) {
             // modname is the modulereference in ModuleIdentifier
             const modname = mod.production.children[0].children[0];

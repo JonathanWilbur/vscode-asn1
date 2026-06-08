@@ -92,9 +92,9 @@ function getDocumentSymbolFromAssignment(
 
 async function provideDocumentSymbols(
     document: vscode.TextDocument,
-    token: vscode.CancellationToken, // TODO: Use token.
+    token: vscode.CancellationToken,
 ): Promise<vscode.DocumentSymbol[]> {
-    const p = await getParserOutputs(document.uri);
+    const p = await getParserOutputs(document.uri, undefined, token);
     if (
         !p.parserEndState
         || ("err" in p.parserEndState)
@@ -116,6 +116,9 @@ async function provideDocumentSymbols(
     }
     const symbols: vscode.DocumentSymbol[] = [];
     for (const [i, module] of modules.entries()) {
+		if (token.isCancellationRequested) {
+			break;
+		}
         const moduleProduction = parseModules[i];
         const start = document.positionAt(moduleProduction.location.startIndex);
         const end = document.positionAt(moduleProduction.location.endIndex);
