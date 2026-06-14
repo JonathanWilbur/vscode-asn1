@@ -16,9 +16,9 @@ export enum ParserStopAt {
 
 export interface ParserOutputs {
     // TODO: Change this to a different type signature when you fix the missing export
-    lexicalTokens?: Result<YieldType<ReturnType<typeof lex>>[]>,
-    parserEndState?: Result<ParseContext>,
-    parsedModules?: Result<Module[]>,
+    lexicalTokens?: Result<YieldType<ReturnType<typeof lex>>[], Error>,
+    parserEndState?: Result<ParseContext, Error>,
+    parsedModules?: Result<Module[], Error>,
 }
 
 const cache = new Map<string, VersionNumbered<ParserOutputs>>();
@@ -48,7 +48,8 @@ export async function getParserOutputs(
     try {
         outputs.lexicalTokens = { ok: Array.from(lex(text)) };
     } catch (e) {
-        outputs.lexicalTokens = { err: e };
+        // TODO: If e isn't an error, try to make it into one.
+        outputs.lexicalTokens = { err: e as Error };
         cache.set(key, { version: document.version, item: outputs });
         return outputs;
     }
@@ -62,7 +63,8 @@ export async function getParserOutputs(
     try {
         outputs.parserEndState = { ok: parse(text, outputs.lexicalTokens.ok) };
     } catch (e) {
-        outputs.parserEndState = { err: e };
+        // TODO: If e isn't an error, try to make it into one.
+        outputs.parserEndState = { err: e as Error };
         cache.set(key, { version: document.version, item: outputs });
         return outputs;
     }
@@ -78,7 +80,7 @@ export async function getParserOutputs(
         correct(modules);
         outputs.parsedModules = { ok: modules };
     } catch (e) {
-        outputs.parsedModules = { err: e };
+        outputs.parsedModules = { err: e as Error };
         cache.set(key, { version: document.version, item: outputs });
         return outputs;
     }

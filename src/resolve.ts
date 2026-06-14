@@ -8,6 +8,7 @@ import {
     type ObjIdComponents,
     type IntegerValue,
     builtinRootArcNamesToNumber,
+    Defined,
     // AssignedIdentifier, // FIXME: Not exported. @wildboar/asn1-parser
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
@@ -440,4 +441,23 @@ export async function resolveOID(
     }
     log.appendLine(`recursion limit reached when trying to resolve object identifier ${identifier}`);
     return undefined;
+}
+
+export
+function resolveDefinedInstantly(
+    currentModule: Module,
+    defined: Defined,
+    recursionTTL: number = 10,
+): Assignment | undefined {
+    if (recursionTTL <= 0) {
+        return undefined;
+    }
+    if (defined.module) {
+        return undefined;
+    }
+    if (defined.computedModule !== currentModule.name) {
+        return undefined;
+    }
+    // TODO: Recurse.
+    return currentModule.assignments[defined.reference];
 }

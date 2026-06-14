@@ -7,6 +7,7 @@ import { Asn1RenameProvider } from "./rename.js";
 import { Asn1HighlightProvider } from "./highlight.js";
 import { indexAsn1Files, indexAsn1File, reindexAsn1File } from "./indexing.js";
 import { log } from "./logging.js";
+import { updateDiagnostics } from "./diagnostics.js";
 
 const LANGUAGE: string = "asn1";
 
@@ -16,6 +17,15 @@ vscode.languages.setLanguageConfiguration(LANGUAGE, {
 });
 
 const ASN1_MODE: vscode.DocumentFilter = { language: LANGUAGE, scheme: 'file' };
+
+function isAsn1File(doc: vscode.TextDocument) {
+	return (
+		doc.languageId === LANGUAGE
+		&& doc.uri.scheme === "file"
+	);
+}
+
+let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -52,6 +62,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerRenameProvider(ASN1_MODE, new Asn1RenameProvider()));
 	context.subscriptions.push(
         vscode.languages.registerDocumentHighlightProvider(ASN1_MODE, new Asn1HighlightProvider()));
+	diagnosticCollection = vscode.languages.createDiagnosticCollection(LANGUAGE);
+	context.subscriptions.push(diagnosticCollection);
 
 	/* We have to do the most minimal indexing so we know what files have what
 	modules and what modules are in what files. This might not even really be
@@ -63,6 +75,18 @@ export function activate(context: vscode.ExtensionContext) {
 	// watcher.onDidDelete((uri) => {
 	// 	symbolIndex.delete(uri.toString());
 	// });
+	// vscode.workspace.onDidOpenTextDocument((e) => {
+	// 	if (!isAsn1File(e)) {
+	// 		return;
+	// 	}
+	// 	updateDiagnostics(e, diagnosticCollection);
+	// });
+	vscode.workspace.onDidChangeTextDocument((e) => {
+		if (!isAsn1File(e.document)) {
+			return;
+		}
+		updateDiagnostics(e.document, diagnosticCollection);
+	});
 	context.subscriptions.push(watcher);
 	log.appendLine(`${new Date()}: asn.1 providers initialized / starting indexing of files`);
 	indexAsn1Files()

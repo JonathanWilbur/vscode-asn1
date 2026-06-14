@@ -92,6 +92,6 @@
   },
   "dependencies": {
     "@wildboar/asn1": "npm:@jsr/wildboar__asn1@^11.1.0",
-    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.1.1"
+    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.3.0"
   }
 }

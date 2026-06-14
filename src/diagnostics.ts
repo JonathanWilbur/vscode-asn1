@@ -1,0 +1,904 @@
+import * as vscode from "vscode";
+import { getParserOutputs } from "./parsing.js";
+import { getRangeFromLocation } from "./utils.js";
+import {
+    lex,
+    parserFor,
+    grokerFor,
+    Assignment,
+    AssignmentType,
+    ComponentType,
+    Defined,
+    Module,
+    NamedNumber,
+    NamedType,
+    Production,
+    TypeAssignment,
+    TypeType,
+    Value,
+    ValueAssignment,
+    ValueType,
+    type Location as Asn1ParserLocation,
+    Parser,
+    GrokContext,
+    createGrokContext,
+    BitStringValue,
+    CharacterStringValue,
+    ChoiceValue,
+    EmbeddedPDVValue,
+    ExternalValue,
+    SetOrSequenceOfValue,
+    SetOrSequenceValue,
+    IntegerValue,
+    ObjectIdentifierValue,
+    OctetStringValue,
+    RealValue,
+    RelativeOIDValue,
+    PrefixedValue,
+    ValueFromObject,
+    OpenTypeFieldVal,
+    FixedTypeFieldVal,
+    builtinRootArcNamesToNumber,
+    ObjIdComponents,
+    ProductionType,
+    LogLevel,
+    // EnumeratedValue
+} from "@wildboar/asn1-parser";
+import { resolveDefinedInstantly } from "./resolve.js";
+import log from "./logging.js";
+
+const AT_INDEX = "at index ";
+
+function getRangeForWholeDocument(document: vscode.TextDocument): [vscode.Position, vscode.Position] {
+    let start = new vscode.Position(0, 0);
+    const lastLine = document.lineAt(document.lineCount - 1);
+    const end = lastLine.range.end;
+    return [start, end];
+}
+
+// TODO: Handle duplicate imported modules too
+function provideDuplicateImportDiagnostics(
+    document: vscode.TextDocument,
+    mod: Module,
+    diags: vscode.Diagnostic[],
+): void {
+    for (const sfm of Object.values(mod.imports.modules)) {
+        for (const dup of sfm.duplicateSymbols) {
+            const range = getRangeFromLocation(document, dup.location);
+            const diag = new vscode.Diagnostic(
+                range,
+                "symbol already imported before this",
+                vscode.DiagnosticSeverity.Warning,
+            );
+            diag.tags = [vscode.DiagnosticTag.Unnecessary];
+            diags.push(diag);
+        }
+    }
+}
+
+function provideDuplicateAssignmentDiagnostics(
+    document: vscode.TextDocument,
+    mod: Module,
+    diags: vscode.Diagnostic[],
+): void {
+    for (const dup of mod.duplicateAssignments) {
+        const range = getRangeFromLocation(document, dup.location);
+        const diag = new vscode.Diagnostic(
+            range,
+            "identifier already assigned before this",
+            vscode.DiagnosticSeverity.Error,
+        );
+
+        // Try to link to the first assignment of this identifier.
+        const wordRange = document.getWordRangeAtPosition(range.start);
+        if (wordRange) {
+            const identifier = document.getText(wordRange);
+            const firstDef = mod.assignments[identifier];
+            if (firstDef?.production) {
+                const firstloc = firstDef.production.location;
+                const firstrange = getRangeFromLocation(document, firstloc);
+                diag.relatedInformation = [
+                    new vscode.DiagnosticRelatedInformation(
+                        new vscode.Location(document.uri, firstrange),
+                        "originally defined here",
+                    ),
+                ];
+            }
+        }
+        diags.push(diag);
+    }
+}
+
+function returnNamedNumberError(
+    document: vscode.TextDocument,
+    assn: Assignment,
+    loc?: Asn1ParserLocation,
+    firstloc?: Asn1ParserLocation,
+): vscode.Diagnostic | null {
+    if (!loc) {
+        // If we don't have a location of the named identifier,
+        // try to make the whole assignment an error.
+        const assnloc = assn.production?.location;
+        if (assnloc) {
+            const assnrange = getRangeFromLocation(document, assnloc);
+            const diag = new vscode.Diagnostic(
+                assnrange,
+                "duplicate identifier",
+                vscode.DiagnosticSeverity.Error,
+            );
+            return diag;
+        } else {
+            // There is an error, but we absolutely cannot construct it.
+            return null;
+        }
+    }
+    const range = getRangeFromLocation(document, loc);
+    const diag = new vscode.Diagnostic(
+        range,
+        "identifier already assigned before this",
+        vscode.DiagnosticSeverity.Error,
+    );
+    if (firstloc) {
+        const firstrange = getRangeFromLocation(document, firstloc);
+        diag.relatedInformation = [
+            new vscode.DiagnosticRelatedInformation(
+                new vscode.Location(document.uri, firstrange),
+                "duplicated identifier originally defined here",
+            ),
+        ];
+    }
+    return diag;
+}
+
+function provideNamedNumbersDiagnostics(
+    document: vscode.TextDocument,
+    assn: Assignment,
+    namednums: NamedNumber[],
+    diags: vscode.Diagnostic[],
+    typeType: TypeType,
+    startOfAdditionals: number = -1,
+): void {
+    const forbidNegative = (
+        (typeType === TypeType.BitStringType)
+        || (typeType === TypeType.EnumeratedType)
+    );
+    const encounteredIdentifiers: Map<string, Production | null> = new Map();
+    const encounteredNumbers: Map<number, Production | null> = new Map();
+    let largestPrevious: number = 0;
+    for (const [i, nn] of namednums.entries()) {
+        const loc = nn.production?.location;
+        if (
+            forbidNegative
+            && typeof nn.number === "number"
+            && (nn.number < 0)
+            && loc
+        ) {
+            const range = getRangeFromLocation(document, loc);
+            const diag = new vscode.Diagnostic(
+                range,
+                "negative values not allowed",
+                vscode.DiagnosticSeverity.Error,
+            );
+            diags.push(diag);
+        }
+
+        // Check for duplicate identifiers
+        const firstIdent = encounteredIdentifiers.get(nn.identifier);
+        if (typeof firstIdent !== "undefined") { // Already defined
+            const diag = returnNamedNumberError(document, assn, loc, firstIdent?.location);
+            if (diag) {
+                diags.push(diag);
+            }
+        } else {
+            encounteredIdentifiers.set(nn.identifier, nn.production ?? null);
+        }
+
+        // Check for duplicate numbers
+        if (typeof nn.number === "number") {
+            const firstNum = encounteredNumbers.get(nn.number);
+            if (typeof firstNum !== "undefined") { // Already defined
+                const diag = returnNamedNumberError(document, assn, loc, firstNum?.location);
+                if (diag) {
+                    diags.push(diag);
+                }
+            } else {
+                encounteredNumbers.set(nn.number, nn.production ?? null);
+            }
+        }
+
+        if (
+            (typeType === TypeType.EnumeratedType)
+            && (startOfAdditionals > -1)
+            && (i >= startOfAdditionals)
+            && (typeof nn.number === "number")
+            && (nn.number <= largestPrevious)
+            && nn.production
+        ) {
+            const range = getRangeFromLocation(document, nn.production.location);
+            const diag = new vscode.Diagnostic(
+                range,
+                "number already assigned before this (violation of ITU-T Recommendation X.680, Section 20.4)",
+                vscode.DiagnosticSeverity.Error,
+            );
+            diags.push(diag);
+        }
+
+        if (typeof nn.number === "number") {
+            largestPrevious = nn.number;
+        }
+    }
+}
+
+const typeTypeToString: Map<TypeType, string> = new Map([
+    [TypeType.SequenceType, "SEQUENCE"],
+    [TypeType.SetType, "SET"],
+    [TypeType.ChoiceType, "CHOICE"],
+]);
+
+const typeTypesThatCouldBeAnything: Set<TypeType> = new Set([
+    TypeType.AnyType,
+    TypeType.DefinedType,
+    TypeType.ObjectClassFieldType,
+    TypeType.TypeFromObject,
+    TypeType.SelectionType,
+]);
+
+function resolveComponentsOf(
+    document: vscode.TextDocument,
+    mod: Module,
+    def: Defined,
+    diags: vscode.Diagnostic[],
+    expectedType: TypeType,
+    recursionTTL: number = 5,
+): ComponentType[] | null {
+    if (recursionTTL <= 0) {
+        return null;
+    }
+    recursionTTL--;
+    if (
+        !def.module
+        || !def.production?.location
+        || !typeTypeToString.has(expectedType)
+    ) {
+        return null;
+    }
+    const range = getRangeFromLocation(document, def.production.location);
+    const assn = mod.assignments[def.reference];
+    if (assn.assignmentType !== AssignmentType.TypeAssignment) {
+        const diag = new vscode.Diagnostic(
+            range,
+            "reference does not point to a type assignment",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+        return null;
+    }
+    if (
+        (assn.type.typeType !== expectedType)
+        && !typeTypesThatCouldBeAnything.has(assn.type.typeType)
+    ) {
+        const diag = new vscode.Diagnostic(
+            range,
+            "reference does not refer to a " + typeTypeToString.get(expectedType)! + " type",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+        return null;
+    }
+    const ret: ComponentType[] = [];
+    if (
+        assn.type.typeType === TypeType.SequenceType
+        || assn.type.typeType === TypeType.SetType
+    ) {
+        const t = assn.type.type;
+        const components: ComponentType[] = [
+            ...t.rootComponentTypeList1 ?? [],
+            ...t.rootComponentTypeList2 ?? [],
+            ...(t.extensionAdditionList ?? [])
+                .flatMap((eal) => ("componentTypeList" in eal)
+                    ? eal.componentTypeList
+                    : eal),
+        ];
+        for (const component of components) {
+            if ("componentsOf" in component) {
+                if (component.componentsOf.typeType === TypeType.DefinedType) {
+                    const def = component.componentsOf.type;
+                    const resolved = resolveComponentsOf(
+                        document,
+                        mod,
+                        def,
+                        diags,
+                        expectedType,
+                        recursionTTL,
+                    );
+                    resolved && ret.push(...resolved);
+                }
+            } else {
+                ret.push(component);
+            }
+        }
+    }
+    return ret;
+}
+
+function provideSetOrSeqTypeAssnDiagnostics(
+    document: vscode.TextDocument,
+    mod: Module,
+    assn: TypeAssignment,
+    diags: vscode.Diagnostic[],
+): void {
+    if (
+        (assn.type.typeType !== TypeType.SequenceType)
+        && (assn.type.typeType !== TypeType.SetType)
+    ) {
+        return;
+    }
+    const t = assn.type.type;
+    const components: ComponentType[] = [
+        ...t.rootComponentTypeList1 ?? [],
+        ...t.rootComponentTypeList2 ?? [],
+        ...(t.extensionAdditionList ?? [])
+            .flatMap((eal) => ("componentTypeList" in eal)
+                ? eal.componentTypeList
+                : eal),
+    ];
+    const encounteredNames: Map<string, Production | null> = new Map();
+    // First pass: replicate and validate all COMPONENTS OF
+    for (const component of components) {
+        if ("componentsOf" in component) {
+            if (component.componentsOf.typeType === TypeType.DefinedType) {
+                const def = component.componentsOf.type;
+                const resolved = resolveComponentsOf(
+                    document, mod, def, diags, assn.type.typeType);
+                for (const rc of resolved ?? []) {
+                    if ("namedType" in rc) {
+                        encounteredNames.set(
+                            rc.namedType.identifier,
+                            rc.namedType.production ?? null,
+                        );
+                    }
+                }
+            }
+        }
+    }
+    // Second pass: check for no duplicate component names.
+    for (const component of components) {
+        if (!("namedType" in component)) {
+            continue;
+        }
+        const nt = component.namedType;
+        const firstComp = encounteredNames.get(nt.identifier);
+        if (typeof firstComp !== "undefined") { // Already defined
+            const loc = nt.production?.location ?? assn.production?.location;
+            if (loc) {
+                const range = getRangeFromLocation(document, loc);
+                const diag = new vscode.Diagnostic(
+                    range,
+                    "duplicate component",
+                    vscode.DiagnosticSeverity.Error,
+                );
+                if (nt.production?.location && firstComp?.location) {
+                    const range = getRangeFromLocation(document, firstComp.location);
+                    diag.relatedInformation = [
+                        new vscode.DiagnosticRelatedInformation(
+                            new vscode.Location(document.uri, range),
+                            "duplicated component first defined here",
+                        ),
+                    ];
+                }
+                diags.push(diag);
+            }
+        } else {
+            encounteredNames.set(nt.identifier, nt.production ?? null);
+        }
+    }
+}
+
+function provideTypeAssignmentDiagnostics(
+    document: vscode.TextDocument,
+    mod: Module,
+    assn: TypeAssignment,
+    diags: vscode.Diagnostic[],
+): void {
+    if (
+        (assn.type.typeType === TypeType.BitStringType)
+        && assn.type.type.namedBitList
+    ) {
+        const namedBitList = assn.type.type.namedBitList;
+        provideNamedNumbersDiagnostics(
+            document,
+            assn,
+            namedBitList,
+            diags,
+            assn.type.typeType,
+        );
+    }
+
+    if (
+        (assn.type.typeType === TypeType.IntegerType)
+        && assn.type.type.namedNumberList
+    ) {
+        const namedNums = assn.type.type.namedNumberList;
+        provideNamedNumbersDiagnostics(
+            document,
+            assn,
+            namedNums,
+            diags,
+            assn.type.typeType,
+        );
+    }
+
+    if (
+        (assn.type.typeType === TypeType.EnumeratedType)
+        && assn.type.type.items
+    ) {
+        let unassigneds: number = 0;
+        const items = assn.type.type.items;
+        const namedNums: NamedNumber[] = items
+            .map((item): NamedNumber => ({
+                identifier: item.identifier,
+                number: item.number ?? unassigneds++,
+                production: item.production,
+            }));
+        const firstaddl = items.findIndex((item) => item.additional);
+        const addls = (
+            firstaddl > -1
+            && items.slice(firstaddl).every((item) => item.additional)
+        )
+            ? firstaddl
+            : -1;
+        provideNamedNumbersDiagnostics(
+            document,
+            assn,
+            namedNums,
+            diags,
+            assn.type.typeType,
+            addls,
+        );
+    }
+
+    if (
+        (assn.type.typeType === TypeType.SequenceType)
+        || (assn.type.typeType === TypeType.SetType)
+    ) {
+        provideSetOrSeqTypeAssnDiagnostics(
+            document,
+            mod,
+            assn,
+            diags,
+        );
+    }
+
+    if (assn.type.typeType === TypeType.ChoiceType) {
+        const t = assn.type.type;
+        const namedTypes: NamedType[] = [
+            ...t.rootAlternativeTypeList,
+            ...(t.extensionAdditionAlternatives ?? [])
+                .flatMap((eal) => ("alternativeTypeList" in eal)
+                    ? eal.alternativeTypeList
+                    : eal),
+        ];
+
+        const encounteredIdentifiers: Map<string, Production | null> = new Map();
+        for (const nt of namedTypes) {
+            const firstAlt = encounteredIdentifiers.get(nt.identifier);
+            if (typeof firstAlt !== "undefined") { // Already defined
+                const loc = nt.production?.location ?? assn.production?.location;
+                if (loc) {
+                    const range = getRangeFromLocation(document, loc);
+                    const diag = new vscode.Diagnostic(
+                        range,
+                        "duplicate alternative identifier",
+                        vscode.DiagnosticSeverity.Error,
+                    );
+                    if (nt.production?.location && firstAlt?.location) {
+                        const range = getRangeFromLocation(document, firstAlt.location);
+                        diag.relatedInformation = [
+                            new vscode.DiagnosticRelatedInformation(
+                                new vscode.Location(document.uri, range),
+                                "duplicated alternative identifier first defined here",
+                            ),
+                        ];
+                    }
+                    diags.push(diag);
+                }
+            } else {
+                encounteredIdentifiers.set(nt.identifier, nt.production ?? null);
+            }
+        }
+    }
+    // TODO: Provide hints around SET OF / SEQUENCE OF with size constraints
+    // TODO: check that field exists in ObjectClassFieldType
+}
+
+type ValueFor<T extends ValueType> = Extract<Value, { valueType: T }>;
+
+type ContentFor<T extends ValueType> = ValueFor<T>["value"];
+
+type ValueTypeToValueValueTypeMap = {
+    [ValueType.BitStringValue]: ContentFor<ValueType.BitStringValue>;
+    [ValueType.BooleanValue]: ContentFor<ValueType.BooleanValue>;
+    [ValueType.CharacterStringValue]: ContentFor<ValueType.CharacterStringValue>;
+    [ValueType.ChoiceValue]: ContentFor<ValueType.ChoiceValue>;
+    [ValueType.EmbeddedPDVValue]: ContentFor<ValueType.EmbeddedPDVValue>;
+    [ValueType.ExternalValue]: ContentFor<ValueType.ExternalValue>;
+    [ValueType.InstanceOfValue]: ContentFor<ValueType.InstanceOfValue>;
+    [ValueType.IntegerValue]: ContentFor<ValueType.IntegerValue>;
+    // [ValueType.IRIValue]: ContentFor<ValueType.IRIValue>;
+    [ValueType.NullValue]: ContentFor<ValueType.NullValue>;
+    [ValueType.ObjectIdentifierValue]: ContentFor<ValueType.ObjectIdentifierValue>;
+    [ValueType.OctetStringValue]: ContentFor<ValueType.OctetStringValue>;
+    [ValueType.RealValue]: ContentFor<ValueType.RealValue>;
+    // [ValueType.RelativeIRIValue]: ContentFor<ValueType.RelativeIRIValue>;
+    [ValueType.RelativeOIDValue]: ContentFor<ValueType.RelativeOIDValue>;
+    [ValueType.SequenceValue]: ContentFor<ValueType.SequenceValue>;
+    [ValueType.SequenceOfValue]: ContentFor<ValueType.SequenceOfValue>;
+    [ValueType.SetValue]: ContentFor<ValueType.SetValue>;
+    [ValueType.SetOfValue]: ContentFor<ValueType.SetOfValue>;
+    [ValueType.PrefixedValue]: ContentFor<ValueType.PrefixedValue>;
+    // [ValueType.TimeValue]: ContentFor<ValueType.TimeValue>;
+    [ValueType.DefinedValue]: ContentFor<ValueType.DefinedValue>;
+    [ValueType.ValueFromObject]: ContentFor<ValueType.ValueFromObject>;
+    [ValueType.OpenTypeFieldVal]: ContentFor<ValueType.OpenTypeFieldVal>;
+    [ValueType.FixedTypeFieldVal]: ContentFor<ValueType.FixedTypeFieldVal>;
+};
+
+function maybeReparse<T>(
+    value: Value,
+    parser: Parser,
+    groker: (cst: Production, ctx: GrokContext) => T,
+): T | null {
+    log.appendLine(`reparsing value of type ${value.valueType}`);
+    if (!value.production?.location) {
+        return null;
+    }
+    const startoffset = value.production.location.startIndex;
+    const startline = value.production.location.lineNumber;
+    const text = value.text;
+    try {
+        // TODO: in @wildboar/asn1-parser, make lex() take a startloc?: Location parameter.
+        const lexicalTokens = Array.from(lex(text));
+        // Update the locations to accurately reflect where they are in the doc.
+        // TODO: Remove this once lex() supports startloc
+        for (const tok of lexicalTokens) {
+            // Don't tell me I can't write to this value, asshole.
+            (tok.location.startIndex as number) += startoffset;
+            (tok.location.endIndex as number) += startoffset;
+            (tok.location.lineNumber as number) += (startline - 1);
+            // I am just going to accept the columnNumber being wrong.
+        }
+        // const pr = parser.start(lexicalTokens, text);
+        const pr = parser.executor({
+            log: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, level: LogLevel.silent },
+            tokens: lexicalTokens,
+            index: 0,
+            // FIXME: I don't know what is going on with the type here.
+            cst: new Production("empty" as ProductionType, [], {
+                startIndex: startoffset,
+                endIndex: startoffset,
+                lineNumber: startline,
+                columnNumber: 1, // I am just going to accept the columnNumber being wrong.
+            }),
+            syntaxErrors: {},
+            discoveredIdentifiers: new Map([]),
+            callbackMap: new Map(),
+            text,
+            definedSyntaxTokens: new Set([]),
+            definedEnumItems: new Set([]),
+        });
+        if (pr.error || Object.keys(pr.syntaxErrors).length > 0) {
+            return null;
+        }
+        const ctx = createGrokContext(text);
+        const v = groker(pr.cst, ctx);
+        return v;
+    } catch {
+        return null;
+    }
+}
+
+function provideOIDValueDiagnostics(
+    document: vscode.TextDocument,
+    value: ObjectIdentifierValue,
+    diags: vscode.Diagnostic[],
+): void {
+    if (!value.production?.location) {
+        return;
+    }
+    const oidrange = getRangeFromLocation(document, value.production.location);
+    if (
+        value.prefix
+        && !value.prefix.module
+        && !builtinRootArcNamesToNumber.has(value.prefix.reference)
+    ) {
+        // There is a prefix and it wasn't just a root arc name mistaken for a prefix.
+        return;
+    }
+    const prefixIsBuiltIn = value.prefix && builtinRootArcNamesToNumber.has(value.prefix.reference);
+    const needRemainingArcs =prefixIsBuiltIn ? 1 : 2;
+    if (value.components.length < needRemainingArcs) {
+        const diag = new vscode.Diagnostic(
+            oidrange,
+            "an object identifier cannot be shorter than two arcs",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+        return;
+    }
+    const arcs = value.components;
+    const first: ObjIdComponents = prefixIsBuiltIn
+        ? {
+            name: value.prefix?.reference!,
+            production: value.prefix?.production,
+        }
+        : arcs[0];
+    const second = prefixIsBuiltIn ? arcs[0] : arcs[1];
+    let firstnum = ("number" in first && typeof first.number === "number")
+        ? first.number
+        : undefined;
+    const firstloc = first.production?.location ?? value.production.location;
+    const firstrange = getRangeFromLocation(document, firstloc);
+    if ((typeof firstnum === "number") && (firstnum < 0 || firstnum > 2)) {
+        const diag = new vscode.Diagnostic(
+            firstrange,
+            "invalid root arc number. must be 0, 1, or 2.",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+    }
+    if ("name" in first && typeof first.name === "string") {
+        const name = first.name;
+        if (!builtinRootArcNamesToNumber.has(name)) {
+            const diag = new vscode.Diagnostic(
+                firstrange,
+                "unrecognized root arc identifier. must be one of: "
+                + Array.from(builtinRootArcNamesToNumber.values()).join(", "),
+                vscode.DiagnosticSeverity.Error,
+            );
+            diags.push(diag);
+        }
+        if (
+            (typeof firstnum === "number")
+            && (builtinRootArcNamesToNumber.get(name) !== firstnum)
+        ) {
+            const diag = new vscode.Diagnostic(
+                firstrange,
+                "mismatching root arc name and number. the correct number is "
+                + builtinRootArcNamesToNumber.get(name) + ".",
+                vscode.DiagnosticSeverity.Error,
+            );
+            diags.push(diag);
+        }
+        firstnum = builtinRootArcNamesToNumber.get(name)!;
+    }
+    if (typeof firstnum !== "number" || (firstnum === 2)) {
+        return;
+    }
+    const secondloc = second.production?.location ?? value.production.location;
+    const secondrange = getRangeFromLocation(document, secondloc);
+    if (
+        "number" in second
+        && typeof second.number === "number"
+        && second.number > 39
+    ) {
+        const diag = new vscode.Diagnostic(
+            secondrange,
+            "the second arc cannot be > 39 if the first arc is 0 or 1",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+    }
+}
+
+function provideValueAssignmentDiagnostics(
+    document: vscode.TextDocument,
+    mod: Module,
+    assn: ValueAssignment,
+    diags: vscode.Diagnostic[],
+): void {
+    let dereftype: TypeType = assn.type.typeType;
+    if (assn.type.typeType === TypeType.DefinedType) {
+        const def = assn.type.type;
+        const derefassn = resolveDefinedInstantly(mod, def);
+        if (!derefassn) {
+            // If we can't figure out what type it really is,
+            // we cannot validate the value with confidence.
+            return;
+        }
+        const expectedAssignType = ((def.parameters?.length ?? 0) > 0)
+            ? AssignmentType.ParameterizedTypeAssignment
+            : AssignmentType.TypeAssignment;
+        if (derefassn.assignmentType !== expectedAssignType) {
+            if (assn.production?.location) {
+                const range = getRangeFromLocation(document, assn.production.location);
+                const diag = new vscode.Diagnostic(
+                    range,
+                    "defined type " + def.reference + " does not refer to a type assignment",
+                    vscode.DiagnosticSeverity.Error,
+                );
+                diags.push(diag);
+            }
+            return;
+        }
+        dereftype = derefassn.type.typeType;
+    }
+    if (dereftype === TypeType.DefinedType) {
+        // Again, cannot determine the type, so cannot validate the value.
+        return;
+    }
+
+    const vt = assn.value.valueType;
+    switch (dereftype) {
+        case (TypeType.ObjectIdentifierType): {
+            const reparsed: ObjectIdentifierValue | null =
+                (vt === ValueType.ObjectIdentifierValue)
+                    ? assn.value.value
+                    : maybeReparse(
+                        assn.value,
+                        parserFor.ObjectIdentifierValue,
+                        grokerFor.ObjectIdentifierValue,
+                    );
+            if (!reparsed) {
+                // This value might be malformed. Not sure.
+                return;
+            }
+            provideOIDValueDiagnostics(document, reparsed, diags);
+            return;
+        }
+        case (TypeType.OctetStringType):
+        case (TypeType.DateType):
+        case (TypeType.TimeOfDayType):
+        case (TypeType.DateTimeType):
+        case (TypeType.DurationType):
+        case (TypeType.UTCTime):
+        case (TypeType.GeneralizedTime):
+        case (TypeType.RelativeOIDType):
+        case (TypeType.IRIType):
+        case (TypeType.RelativeIRIType):
+        case (TypeType.PrintableString):
+        case (TypeType.NumericString):
+        case (TypeType.ISO646String):
+        case (TypeType.IA5String):
+        case (TypeType.ChoiceType):
+        case (TypeType.SequenceType):
+        case (TypeType.SetType):
+        case (TypeType.SequenceOfType):
+        case (TypeType.SetOfType):
+        case (TypeType.BooleanType):
+        case (TypeType.IntegerType):
+    }
+
+    // TODO: Check that an OCTET STRING is an integral number of octets if using bstring syntax
+    // TODO: Diagnostics for time values
+    // TODO: Check if prefix is defined in OID values, if present
+    // TODO: Validate restricted string values (e.g. PrintableString)
+}
+
+function provideAssignmentDiagnostics(
+    document: vscode.TextDocument,
+    mod: Module,
+    assn: Assignment,
+    diags: vscode.Diagnostic[],
+): void {
+    if (assn.assignmentType === AssignmentType.TypeAssignment) {
+        provideTypeAssignmentDiagnostics(document, mod, assn, diags);
+    }
+    if (assn.assignmentType === AssignmentType.ValueAssignment) {
+        provideValueAssignmentDiagnostics(document, mod, assn, diags);
+    }
+}
+
+function provideAssignmentListDiagnostics(
+    document: vscode.TextDocument,
+    mod: Module,
+    diags: vscode.Diagnostic[],
+): void {
+    for (const assn of Object.values(mod.assignments)) {
+        provideAssignmentDiagnostics(document, mod, assn, diags);
+    }
+}
+
+export
+async function updateDiagnostics(
+    document: vscode.TextDocument,
+    diagnosticCollection: vscode.DiagnosticCollection,
+): Promise<void> {
+    log.appendLine(`updating diagnostics for file ${document.uri}`);
+    const p = await getParserOutputs(document);
+    if (!p.lexicalTokens) {
+        return; // Should not happen.
+    }
+    let [start, end] = getRangeForWholeDocument(document);
+    if ("err" in p.lexicalTokens) {
+        const e = p.lexicalTokens.err;
+        const indexInMessage = e.message.indexOf(AT_INDEX);
+        if (indexInMessage > -1) {
+            /* I checked: this will return after encountering non-digits, so
+            I do not have to trim the string to only digits. */
+            const index = Number.parseInt(
+                e.message.slice(indexInMessage + AT_INDEX.length),
+                10,
+            );
+            if (Number.isSafeInteger(index)) {
+                start = document.positionAt(index);
+            }
+        }
+        const range = new vscode.Range(start, end);
+        const diag = new vscode.Diagnostic(
+            range,
+            "malformed asn.1 lexical token stream: " + e.message,
+            vscode.DiagnosticSeverity.Error,
+        );
+        diagnosticCollection.set(document.uri, [diag]);
+        return;
+    }
+    // TODO: If the lexical tokens do not have an END, assume the user is not done writing and make only the first line error or something.
+    if (!p.parserEndState) {
+        return; // Should not happen.
+    }
+    if ("err" in p.parserEndState) {
+        const e = p.parserEndState.err;
+        const range = new vscode.Range(start, end);
+        const diag = new vscode.Diagnostic(
+            range,
+            "malformed asn.1 syntax: " + e.message,
+            vscode.DiagnosticSeverity.Error,
+        );
+        diagnosticCollection.set(document.uri, [diag]);
+        return;
+    }
+    const parsing = p.parserEndState.ok;
+    if (parsing.error) {
+        const range = new vscode.Range(start, end);
+        const diag = new vscode.Diagnostic(
+            range,
+            "malformed asn.1 syntax: unknown error",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diagnosticCollection.set(document.uri, [diag]);
+        return;
+    }
+    if (Object.keys(parsing.syntaxErrors).length > 0) {
+        const diags: vscode.Diagnostic[] = [];
+        for (const [indexstr, e] of Object.entries(parsing.syntaxErrors)) {
+            const index = Number.parseInt(indexstr, 10);
+            if (!Number.isSafeInteger(index)) {
+                continue;
+            }
+            const range = getRangeFromLocation(document, e.production.location);
+            const diag = new vscode.Diagnostic(
+                range,
+                `malformed asn.1 syntax for ${e.production.type}: ` + e.message,
+                vscode.DiagnosticSeverity.Error,
+            );
+            diags.push(diag);
+        }
+        diagnosticCollection.set(document.uri, diags);
+        return;
+    }
+    if (!p.parsedModules) {
+        return; // Should not happen
+    }
+    // TODO: Make this still return the modules that succeeded.
+    if ("err" in p.parsedModules) {
+        const e = p.parsedModules.err;
+        const range = new vscode.Range(start, end);
+        const diag = new vscode.Diagnostic(
+            range,
+            "malformed asn.1 module: " + e.message,
+            vscode.DiagnosticSeverity.Error,
+        );
+        diagnosticCollection.set(document.uri, [diag]);
+        return;
+    }
+    const modules = p.parsedModules.ok;
+    const diags: vscode.Diagnostic[] = [];
+    for (const module of modules) {
+        // The specification technically does not forbid duplicate imports, but it does explicitly forbid duplicate assignments.
+        provideDuplicateImportDiagnostics(document, module, diags);
+        provideDuplicateAssignmentDiagnostics(document, module, diags);
+        provideAssignmentListDiagnostics(document, module, diags);
+        // TODO: Check for imports or assignments of all Defined things
+    }
+    diagnosticCollection.set(document.uri, diags);
+}

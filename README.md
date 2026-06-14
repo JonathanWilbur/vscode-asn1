@@ -4,6 +4,7 @@ Current in progress.
 
 ## To Do
 
+- [ ] Avoid re-parsing the file before where changes were made
 - [ ] Use different symbol kinds for X.500 object classes?
 - [ ] Auto indentation
 - [ ] Folding (by markers)
@@ -19,12 +20,14 @@ Current in progress.
 - [ ] Hover: display `RELATIVE-OID` with X.690 encoding
 - [ ] Hover: display `hstring` as `bstring` equivalent and vice versa
 - [ ] Commands for generating encodings from values
-- [ ] Code Action: remove duplicate import (blocked on new `@wildboar/asn1-parser` version)
-- [ ] Code Action: remove duplicate assignment (blocked on new `@wildboar/asn1-parser` version)
+- [x] Code Action: remove duplicate import (blocked on new `@wildboar/asn1-parser` version)
+- [x] Code Action: remove duplicate assignment (blocked on new `@wildboar/asn1-parser` version)
+- [x] Code Action: remove duplicate enum, integer, and bit string identifiers
 - [ ] Detect missing imports (drill into the CST and identify any `Defined*` that has no local assignment or import)
 - [ ] ~~Code Action: include missing import? (this would be kind of computationally expensive)~~
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
+- [ ] Fix `getting highlights for symbol at [object Object]`
 - [ ] Format Document / Format Range
   - [ ] Format imports
   - [ ] One newline between all assignments that themselves are more than one line.
@@ -34,8 +37,18 @@ Current in progress.
   - [ ] `OBJECT IDENTIFIER` single space between arcs, wrapping to 80 characters if multi-line
   - [ ] Single space between assignment token `::=`
   - [ ] No spaces between parameters and brackets
-  - [ ] Inline completions
-- Diagnostics: validate `DATE`
+- [x] Diagnostics: validate `DATE`
+- [ ] Intellisense
+  - `IDENTIFIER` after `OBJECT` (inline)
+  - `STRING` after `BIT` and `OCTET` (inline)
+  - etc.
+  - Prefix of object identifiers (dropdown)
+  - `SET` or `SEQUENCE` type suggestions after `COMPONENTS OF` (dropdown)
+  - Type assignments after `SEQUENCE OF` / `SET OF` (dropdown)
+  - `(1..MAX)` after `SIZE` (inline)
+  - `&id` or `&Type` after `TYPE-IDENTIFIER` and `ABSTRACT-SYNTAX` (dropdown)
+  - Second-level OID arc completions (dropdown)
+- [ ] Snippets
 
 ## Features Requiring Indexing the Workspace 
 
@@ -122,6 +135,7 @@ each module comple
   - [ ] EXTENSIBILITY IMPLIED, so trailing ... is not necessary*
   - [ ] Consider adding an exception marker
   - [ ] Consider shortening this OBJECT IDENTIFIER line by joining OBJECT IDENTIFIERs
+  - [ ] Consider adding explicit numbers to `ENUMERATED`
 - [ ] Warnings
   - [ ] (MIN..MAX) unnecessary
   - [ ] GeneralString use is discouraged (Page 182 Dubuisson)
@@ -149,7 +163,6 @@ each module comple
       - [ ] Named values
     - [ ] OBJECT IDENTIFIER
       - [ ] Leading OID node greater than 2
-      - [ ] Second OID node greater than 175
       - [ ] OID node cannot be negative
       - [ ] OID mismatch between node descriptor and node number (e.g. iso(2))
     - [ ] Invalid UTCTime
@@ -214,10 +227,8 @@ each module comple
   - [ ] Make all tags context specific
   - [ ] Show BER Encoding
   - [ ] Show DER Encoding
-- [ ] Code completion
 - [ ] Possible actions on errors or warnings
 - [ ] Try to make diagnostics span lines (Look into document.positionAt)
-- [ ] Rename Symbol
 - [ ] Code Lens?
 - [ ] Create enum for tagging mode
 - [ ] Create the newer data types
