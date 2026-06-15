@@ -46,6 +46,8 @@ import {
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
 import log from "./logging.js";
+import { DATE_REGEX, TIME_REGEX } from "./time.js";
+import { ASN1Construction, ASN1TagClass, ASN1UniversalType, BERElement } from "@wildboar/asn1";
 
 const AT_INDEX = "at index ";
 
@@ -690,6 +692,222 @@ function provideOIDValueDiagnostics(
     }
 }
 
+const daysInMonth: Map<string, number> = new Map([
+    ["01", 31],
+    ["02", 29],
+    ["03", 31],
+    ["04", 30],
+    ["05", 31],
+    ["06", 30],
+    ["07", 31],
+    ["08", 31],
+    ["09", 30],
+    ["10", 31],
+    ["11", 30],
+    ["12", 31],
+]);
+
+function provideDateDiagnostics(
+    s: string,
+    range: vscode.Range,
+    diags: vscode.Diagnostic[],
+): void {
+    const match = DATE_REGEX.exec(s);
+    if (!match) {
+        const diag = new vscode.Diagnostic(
+            range,
+            "invalid date. must be in yyyy-mm-dd format.",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+        return;
+    }
+    const [, y, m, d] = match;
+    const year = Number(y);
+    const day = Number(d);
+    let maxDays = daysInMonth.get(m) ?? 31;
+    if (((year % 4) === 0) && maxDays === 29) {
+        maxDays--;
+    }
+    if (day > maxDays) {
+        const diag = new vscode.Diagnostic(
+            range,
+            "invalid date: day not valid, given the month or leap-year status",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+    }
+}
+
+function provideTimeOfDayDiagnostics(
+    s: string,
+    range: vscode.Range,
+    diags: vscode.Diagnostic[],
+): void {
+    const match = TIME_REGEX.exec(s);
+    if (!match) {
+        const diag = new vscode.Diagnostic(
+            range,
+            "invalid time of day. must be in hh:mm:ss format.",
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+    }
+    // No further validation needed. The regex is sufficient.
+}
+
+function useDecodingToProvideDiagnostics(
+    s: string,
+    range: vscode.Range,
+    tagnum: ASN1UniversalType,
+    test: (el: BERElement) => unknown,
+    diags: vscode.Diagnostic[],
+): void {
+    let el: BERElement;
+    try {
+        el = new BERElement(
+            ASN1TagClass.universal,
+            ASN1Construction.primitive,
+            tagnum,
+            s,
+        );
+    } catch {
+        return; // Not sure what went wrong here.
+    }
+    try {
+        test(el);
+    } catch (e) {
+        const diag = new vscode.Diagnostic(
+            range,
+            `malformed utctime: ${e}`,
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+    }
+}
+
+function provideStringDiagnostics(
+    document: vscode.TextDocument,
+    s: string,
+    value: Value,
+    typeType: TypeType,
+    diags: vscode.Diagnostic[],
+): void {
+    if (!value.production) {
+        return;
+    }
+    const loc = value.production.location;
+    const range = getRangeFromLocation(document, loc);
+    switch (typeType) {
+        case (TypeType.DateType): {
+            return provideDateDiagnostics(s, range, diags);
+        }
+        case (TypeType.TimeOfDayType): {
+            return provideTimeOfDayDiagnostics(s, range, diags);
+        }
+        case (TypeType.DateTimeType): {
+            if (s[10] !== "T") {
+                const diag = new vscode.Diagnostic(
+                    range,
+                    "malformed datetime. must be in yyyy-mm-ddThh:mm:ss format.",
+                    vscode.DiagnosticSeverity.Error,
+                );
+                diags.push(diag);
+                return;
+            }
+            const d = s.slice(0, 10);
+            const t = s.slice(11);
+            provideDateDiagnostics(d, range, diags);
+            provideTimeOfDayDiagnostics(t, range, diags);
+            return;
+        }
+        case (TypeType.DurationType): {
+            if (!s.startsWith("P")) {
+                const diag = new vscode.Diagnostic(
+                    range,
+                    "malformed duration. must start with a capital 'P'.",
+                    vscode.DiagnosticSeverity.Error,
+                );
+                diags.push(diag);
+                return;  
+            }
+            return useDecodingToProvideDiagnostics(
+                s.slice(1),
+                range,
+                ASN1UniversalType.duration,
+                (el) => el.duration,
+                diags,
+            );
+        }
+        case (TypeType.UTCTime): {
+            return useDecodingToProvideDiagnostics(
+                s,
+                range,
+                ASN1UniversalType.utcTime,
+                (el) => el.utcTime,
+                diags,
+            );
+        }
+        case (TypeType.GeneralizedTime): {
+            return useDecodingToProvideDiagnostics(
+                s,
+                range,
+                ASN1UniversalType.generalizedTime,
+                (el) => el.generalizedTime,
+                diags,
+            );
+        }
+        case (TypeType.IRIType): {
+            return useDecodingToProvideDiagnostics(
+                s,
+                range,
+                ASN1UniversalType.oidIRI,
+                (el) => el.oidIRI,
+                diags,
+            );
+        }
+        case (TypeType.RelativeIRIType): {
+            return useDecodingToProvideDiagnostics(
+                s,
+                range,
+                ASN1UniversalType.roidIRI,
+                (el) => el.relativeOIDIRI,
+                diags,
+            );
+        }
+        case (TypeType.PrintableString): {
+            return useDecodingToProvideDiagnostics(
+                s,
+                range,
+                ASN1UniversalType.printableString,
+                (el) => el.printableString,
+                diags,
+            );
+        }
+        case (TypeType.NumericString): {
+            return useDecodingToProvideDiagnostics(
+                s,
+                range,
+                ASN1UniversalType.numericString,
+                (el) => el.numericString,
+                diags,
+            );
+        }
+        // These are the same. I don't know why I have duplicates
+        case (TypeType.ISO646String):
+        case (TypeType.IA5String): {
+            return useDecodingToProvideDiagnostics(
+                s,
+                range,
+                ASN1UniversalType.ia5String,
+                (el) => el.ia5String,
+                diags,
+            );
+        }
+        default: return;
+    }
+}
+
 function provideValueAssignmentDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -728,6 +946,7 @@ function provideValueAssignmentDiagnostics(
     }
 
     const vt = assn.value.valueType;
+    const vtext = assn.value.text;
     switch (dereftype) {
         case (TypeType.ObjectIdentifierType): {
             const reparsed: ObjectIdentifierValue | null =
@@ -745,33 +964,39 @@ function provideValueAssignmentDiagnostics(
             provideOIDValueDiagnostics(document, reparsed, diags);
             return;
         }
-        case (TypeType.OctetStringType):
         case (TypeType.DateType):
         case (TypeType.TimeOfDayType):
         case (TypeType.DateTimeType):
         case (TypeType.DurationType):
         case (TypeType.UTCTime):
         case (TypeType.GeneralizedTime):
-        case (TypeType.RelativeOIDType):
         case (TypeType.IRIType):
         case (TypeType.RelativeIRIType):
         case (TypeType.PrintableString):
         case (TypeType.NumericString):
         case (TypeType.ISO646String):
         case (TypeType.IA5String):
+        {
+            let s: string = vtext;
+            if (s === undefined) {
+                // This value might be malformed. Not sure.
+                return;
+            }
+            if (!s.startsWith('"')) {
+                return;
+            }
+            s = s.slice(1, -1);
+            provideStringDiagnostics(document, s, assn.value, dereftype, diags);
+            return;
+        }
         case (TypeType.ChoiceType):
         case (TypeType.SequenceType):
         case (TypeType.SetType):
         case (TypeType.SequenceOfType):
         case (TypeType.SetOfType):
-        case (TypeType.BooleanType):
         case (TypeType.IntegerType):
     }
 
-    // TODO: Check that an OCTET STRING is an integral number of octets if using bstring syntax
-    // TODO: Diagnostics for time values
-    // TODO: Check if prefix is defined in OID values, if present
-    // TODO: Validate restricted string values (e.g. PrintableString)
 }
 
 function provideAssignmentDiagnostics(
