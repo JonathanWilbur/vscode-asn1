@@ -59,10 +59,12 @@ function getRangeForWholeDocument(document: vscode.TextDocument): [vscode.Positi
 }
 
 // TODO: Handle duplicate imported modules too
-function provideDuplicateImportDiagnostics(
+// Checks for duplicate or unnecessary imported symbols
+function provideImportDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
     diags: vscode.Diagnostic[],
+    usedSymbols: Set<string>,
 ): void {
     for (const sfm of Object.values(mod.imports.modules)) {
         for (const dup of sfm.duplicateSymbols) {
@@ -74,6 +76,21 @@ function provideDuplicateImportDiagnostics(
             );
             diag.tags = [vscode.DiagnosticTag.Unnecessary];
             diags.push(diag);
+        }
+        for (const [symbol, prod] of Object.entries(sfm.symbolList)) {
+            if (!prod) {
+                continue;
+            }
+            if (!usedSymbols.has(symbol)) {
+                const range = getRangeFromLocation(document, prod.location);
+                const diag = new vscode.Diagnostic(
+                    range,
+                    "symbol not used in this asn.1 module",
+                    vscode.DiagnosticSeverity.Warning,
+                );
+                diag.tags = [vscode.DiagnosticTag.Unnecessary];
+                diags.push(diag);
+            }
         }
     }
 }
@@ -1118,6 +1135,7 @@ function drillForUndefinedSymbols(
     mod: Module,
     diags: vscode.Diagnostic[],
     cstnode: Production,
+    usedSymbols: Set<string>,
     recursionTTL: number = 100,
 ): void {
     if (recursionTTL <= 0) {
@@ -1145,6 +1163,7 @@ function drillForUndefinedSymbols(
             if (builtinRootArcNamesToNumber.has(def.reference)) {
                 return;
             }
+            usedSymbols.add(def.reference);
 
             // If there are any parameters, check if they are parameterized.
             const params = child
@@ -1159,7 +1178,7 @@ function drillForUndefinedSymbols(
                 ?.children
                 .filter((c) => c.type === "ActualParameter");
             for (const param of params ?? []) {
-                drillForUndefinedSymbols(document, mod, diags, param, recursionTTL);
+                drillForUndefinedSymbols(document, mod, diags, param, usedSymbols, recursionTTL);
             }
             if (isDefinedOrImported(mod, def.reference)) {
                 return;
@@ -1172,7 +1191,7 @@ function drillForUndefinedSymbols(
             );
             diags.push(diag);
         } else {
-            drillForUndefinedSymbols(document, mod, diags, child, recursionTTL);
+            drillForUndefinedSymbols(document, mod, diags, child, usedSymbols, recursionTTL);
         }
     }
 }
@@ -1181,6 +1200,7 @@ function provideMissingSymbolDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
     diags: vscode.Diagnostic[],
+    usedSymbols: Set<string>,
 ): void {
     if (!mod.production) {
         return;
@@ -1220,7 +1240,7 @@ function provideMissingSymbolDiagnostics(
         if (!assid) {
             continue;
         }
-        drillForUndefinedSymbols(document, mod, diags, assid, 10);
+        drillForUndefinedSymbols(document, mod, diags, assid, usedSymbols, 10);
     }
 
     // Check that all `Defined*` used in assignments are defined
@@ -1229,7 +1249,7 @@ function provideMissingSymbolDiagnostics(
     if (!assnlist) {
         return;
     }
-    drillForUndefinedSymbols(document, mod, diags, assnlist);
+    drillForUndefinedSymbols(document, mod, diags, assnlist, usedSymbols);
 }
 
 export
@@ -1328,11 +1348,15 @@ async function updateDiagnostics(
     const modules = p.parsedModules.ok;
     const diags: vscode.Diagnostic[] = [];
     for (const module of modules) {
+        const usedSymbols: Set<string> = new Set();
         // The specification technically does not forbid duplicate imports, but it does explicitly forbid duplicate assignments.
-        provideDuplicateImportDiagnostics(document, module, diags);
         provideDuplicateAssignmentDiagnostics(document, module, diags);
         provideAssignmentListDiagnostics(document, module, diags);
-        provideMissingSymbolDiagnostics(document, module, diags);
+
+        // Ordering is important here: provideMissingSymbolDiagnostics populates
+        // usedSymbols, which is used by provideImportDiagnostics.
+        provideMissingSymbolDiagnostics(document, module, diags, usedSymbols);
+        provideImportDiagnostics(document, module, diags, usedSymbols);
     }
     diagnosticCollection.set(document.uri, diags);
 }
