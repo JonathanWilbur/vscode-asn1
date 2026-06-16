@@ -989,14 +989,8 @@ function provideValueAssignmentDiagnostics(
             provideStringDiagnostics(document, s, assn.value, dereftype, diags);
             return;
         }
-        case (TypeType.ChoiceType):
-        case (TypeType.SequenceType):
-        case (TypeType.SetType):
-        case (TypeType.SequenceOfType):
-        case (TypeType.SetOfType):
-        case (TypeType.IntegerType):
+        default: return;
     }
-
 }
 
 function provideAssignmentDiagnostics(
@@ -1021,6 +1015,221 @@ function provideAssignmentListDiagnostics(
     for (const assn of Object.values(mod.assignments)) {
         provideAssignmentDiagnostics(document, mod, assn, diags);
     }
+}
+
+// TODO: Move to utils
+function isDefinedOrImported(mod: Module, ident: string): boolean {
+    return (
+        (ident in mod.assignments)
+        || Object.values(mod.imports.modules)
+            .some((sfm) => ident in sfm.symbolList)
+    );
+}
+
+/**
+ * Grammatical productions of these types cannot have `Defined*` productions
+ * within them. We can skip over these, and therefore lop off entire useless
+ * subtrees of the concrete syntax tree (CST), to make scanning for unassigned
+ * references faster.
+ */
+const selfContainedProductions: Set<string> = new Set([
+    "ArcIdentifier",
+    "AtNotation",
+    "BooleanType",
+    "BooleanValue",
+    "Class",
+    "comment",
+    "DateTimeType",
+    "DateType",
+    "DummyReference",
+    "DurationType",
+    "EmbeddedPDVType",
+    "EmptyElementReal",
+    "EncodingControlSection",
+    "EncodingControlSections",
+    "EncodingReference",
+    "EnumeratedValue",
+    "ExternalType",
+    "FirstArcIdentifier",
+    "FirstRelativeArcIdentifier",
+    "IdentifierList",
+    "IntegerValue",
+    "IRIType",
+    "IRIValue",
+    "Level",
+    "Literal",
+    "NameForm",
+    "NullType",
+    "NullValue",
+    "ObjectIdentifierType",
+    "OctetStringType",
+    "PresenceConstraint",
+    "PropertySettings",
+    "Quadruple",
+    "RealType",
+    "RelativeIRIType",
+    "RelativeIRIValue",
+    "RelativeOIDType",
+    "RestrictedCharacterStringType",
+    "SelectionOption",
+    "SignedNumber",
+    "SpecialRealValue",
+    "SubsequentArcIdentifier",
+    "SyntaxList",
+    "TableColumn",
+    "TableRow",
+    "TextReal",
+    "TimeOfDayType",
+    "TimeType",
+    "TimeValue",
+    "Tuple",
+    "UnrestrictedCharacterStringType",
+    "UsefulObjectClassReference",
+    "UsefulType",
+    "VersionNumber",
+    "whitespace",
+    "WithSyntaxSpec",
+    "XMLBooleanValue",
+    "XMLEnumeratedValue",
+    "XMLIdentifierList",
+    "XMLIntegerValue",
+    "XMLIRIValue",
+    "XMLNullValue",
+    "XMLNumericRealValue",
+    "XMLObjectIdentifierValue",
+    "XMLRealValue",
+    "XMLRelativeIRIValue",
+    "XMLRelativeOIDValue",
+    "XMLRestrictedCharacterStringValue",
+    "XMLTimeValue",
+]);
+
+const SYMBOL_NOT_DEFINED: string = "symbol not assigned in this module, nor imported";
+
+/*
+NOTE: You do not have to check that the import includes the "{}" if it is
+parameterized. That is optional, per ITU-T Recommendation X.683 (2021), Section 9.1.
+
+A non-parameterized import is NOT allowed to use the "{}", but we are not going to
+check this scenario, because it would be rare and computationally expensive.
+*/
+function drillForUndefinedSymbols(
+    document: vscode.TextDocument,
+    mod: Module,
+    diags: vscode.Diagnostic[],
+    cstnode: Production,
+    recursionTTL: number = 100,
+): void {
+    if (recursionTTL <= 0) {
+        return;
+    }
+    recursionTTL--;
+    for (const child of cstnode.children) {
+        if (selfContainedProductions.has(child.type)) {
+            continue;
+        }
+        if (child.type.startsWith('Defined')) {
+            const text = document.getText();
+            const ctx = createGrokContext(text);
+            let def: Defined;
+            try {
+                def = grokerFor.Defined(child, ctx);
+            } catch {
+                return;
+            }
+            if (def.module) {
+                // Explicit module reference.
+                // We cannot say that it wasn't imported or defined.
+                return;
+            }
+            if (builtinRootArcNamesToNumber.has(def.reference)) {
+                return;
+            }
+
+            // If there are any parameters, check if they are parameterized.
+            const params = child
+                .children
+                .find((c) => c.type.startsWith("Parameterized"))
+                ?.children
+                .find((c) => c.type === "ActualParameterList")
+                // Yes, ActualParameterList is within itself in my parser
+                // implementation. Sorry for being a bad programmer.
+                ?.children
+                .find((c) => c.type === "ActualParameterList")
+                ?.children
+                .filter((c) => c.type === "ActualParameter");
+            for (const param of params ?? []) {
+                drillForUndefinedSymbols(document, mod, diags, param, recursionTTL);
+            }
+            if (isDefinedOrImported(mod, def.reference)) {
+                return;
+            }
+            const range = getRangeFromLocation(document, child.location);
+            const diag = new vscode.Diagnostic(
+                range,
+                SYMBOL_NOT_DEFINED,
+                vscode.DiagnosticSeverity.Error,
+            );
+            diags.push(diag);
+        } else {
+            drillForUndefinedSymbols(document, mod, diags, child, recursionTTL);
+        }
+    }
+}
+
+function provideMissingSymbolDiagnostics(
+    document: vscode.TextDocument,
+    mod: Module,
+    diags: vscode.Diagnostic[],
+): void {
+    if (!mod.production) {
+        return;
+    }
+    const body = mod.production.children
+        .find((c) => c.type === "ModuleBody");
+    if (!body) {
+        return;
+    }
+
+    // Check that all exported symbols are defined
+    const exps = Object.entries(mod.exports?.exportedSymbols ?? {});
+    for (const [exp, prod] of exps) {
+        // Yes, you can re-export imports.
+        if (isDefinedOrImported(mod, exp)) {
+            continue;
+        }
+        const range = getRangeFromLocation(document, prod.location);
+        const diag = new vscode.Diagnostic(
+            range,
+            SYMBOL_NOT_DEFINED,
+            vscode.DiagnosticSeverity.Error,
+        );
+        diags.push(diag);
+    }
+
+    // Check that all `DefinedValue`s in imported module OIDs are defined
+    for (const sfm of Object.values(mod.imports.modules)) {
+        if (!sfm.assignedIdentifier || !sfm.production) {
+            continue;
+        }
+        const assid = sfm.production
+            .children
+            .find((c) => (c.type === "GlobalModuleReference"))
+            ?.children
+            .find((c) => c.type === "AssignedIdentifier");
+        if (!assid) {
+            continue;
+        }
+        drillForUndefinedSymbols(document, mod, diags, assid, 10);
+    }
+
+    // Check that all `Defined*` used in assignments are defined
+    const assnlist = body.children
+        .find((c) => c.type === "AssignmentList");
+    if (!assnlist) {
+        return;
+    }
+    drillForUndefinedSymbols(document, mod, diags, assnlist);
 }
 
 export
@@ -1123,7 +1332,7 @@ async function updateDiagnostics(
         provideDuplicateImportDiagnostics(document, module, diags);
         provideDuplicateAssignmentDiagnostics(document, module, diags);
         provideAssignmentListDiagnostics(document, module, diags);
-        // TODO: Check for imports or assignments of all Defined things
+        provideMissingSymbolDiagnostics(document, module, diags);
     }
     diagnosticCollection.set(document.uri, diags);
 }

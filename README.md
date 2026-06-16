@@ -20,14 +20,16 @@ Current in progress.
 - [ ] Hover: display `RELATIVE-OID` with X.690 encoding
 - [ ] Hover: display `hstring` as `bstring` equivalent and vice versa
 - [ ] Commands for generating encodings from values
+- [ ] Check for unused imports
 - [x] Code Action: remove duplicate import (blocked on new `@wildboar/asn1-parser` version)
 - [x] Code Action: remove duplicate assignment (blocked on new `@wildboar/asn1-parser` version)
 - [x] Code Action: remove duplicate enum, integer, and bit string identifiers
-- [ ] Detect missing imports (drill into the CST and identify any `Defined*` that has no local assignment or import)
+- [x] Detect missing imports (drill into the CST and identify any `Defined*` that has no local assignment or import)
 - [ ] ~~Code Action: include missing import? (this would be kind of computationally expensive)~~
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
 - [ ] Fix `getting highlights for symbol at [object Object]`
+- [ ] Display deprecation warning over `ANY` and other legacy ASN.1
 - [ ] Format Document / Format Range
   - [ ] Format imports
   - [ ] One newline between all assignments that themselves are more than one line.
