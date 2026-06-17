@@ -13,6 +13,7 @@ import {
     builtinRootArcNamesToNumber,
     Module,
     NameAndOrNumber,
+    ObjIdComponents,
     Production,
     TypeType,
     ValueType,
@@ -353,6 +354,7 @@ function constructOidHover(
         const numstr = numbers.join(".");
         mds += ("Numeric-Only Form: `" + numstr + "`\n\n");
         mds += ("XML Value Form: `<OBJECT_IDENTIFIER>" + numstr + "</OBJECT_IDENTIFIER>`\n\n");
+        mds += ("XML IRI Value Form: `<OID_IRI>" + iri + "</OID_IRI>`\n\n");
         const oid = ObjectIdentifier.fromParts(numbers);
         const oidhexes = Array.from(oid.toBytes())
             .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
@@ -366,11 +368,54 @@ function constructOidHover(
     return new vscode.Hover(md, range);
 }
 
+function constructRelativeOidHover(
+    document: vscode.TextDocument,
+    arcs: NameAndOrNumber[],
+    cstnode?: Production,
+): vscode.Hover {
+    const range = cstnode?.location
+        ? getRangeFromLocation(document, cstnode.location)
+        : undefined;
+    const asn1str = "{ "
+        + arcs.map(nameAndOrNumberToString).join(" ")
+        + " }";
+    const iri = arcs.map(nameAndOrNumberToIriString).join("/");
+    const numbers = getOidNodesFromModuleIdentifier(arcs);
+    let mds = "Relative Object Identifier Value\n\n";
+    mds += ("ASN.1 Syntax: `" + asn1str + "`\n\n");
+    mds += ("IRI Form: `" + iri + "`\n\n");
+    if (numbers) {
+        const numstr = numbers.join(".");
+        mds += ("Numeric-Only Form: `" + numstr + "`\n\n");
+        mds += ("XML Value Form: `<RELATIVE_OID>" + numstr + "</RELATIVE_OID>`\n\n");
+        mds += ("XML IRI Value Form: `<RELATIVE_OID_IRI>" + iri + "</RELATIVE_OID_IRI>`\n\n");
+        const oid = ObjectIdentifier.fromParts([ 2, 5, ...numbers ]);
+        const oidhexes = Array.from(oid.toBytes().subarray(1))
+            .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
+            .join(" ");
+        mds += ("BER / CER / DER content octets (as hex): `" + oidhexes + "`\n\n");
+    }
+    const md = new vscode.MarkdownString(mds);
+    return new vscode.Hover(md, range);
+}
+
+/**
+ * @description
+ *
+ * NOTE: This handles both absolute and relative OIDs.
+ *
+ * @param document
+ * @param cancel
+ * @param currentModule
+ * @param assn
+ * @returns
+ */
 async function provideOidHover(
     document: vscode.TextDocument,
     cancel: vscode.CancellationToken,
     currentModule: Module,
     assn: Assignment,
+    typeType: TypeType,
 ): Promise<vscode.Hover> {
     // TODO: Support XMLValueAssignment as well
     if (assn.assignmentType !== AssignmentType.ValueAssignment) {
@@ -391,6 +436,34 @@ async function provideOidHover(
             return Promise.reject(null);
         }
         return constructOidHover(document, oid, value.production);
+    }
+    if (typeType === TypeType.RelativeOIDType) {
+        let components: ObjIdComponents[];
+        if (value.valueType === ValueType.RelativeOIDValue) {
+            components = value.value;
+        } else if (value.valueType === ValueType.ObjectIdentifierValue) {
+            components = value.value.components;
+            if (value.value.prefix) {
+                components.unshift(value.value.prefix);
+            }
+        } else {
+            return Promise.reject(null);
+        }
+        const resolvedComponents = await resolveOIDComponents(
+            cancel,
+            components,
+            currentModule,
+            document.uri,
+        );
+        if (!resolvedComponents) {
+            return Promise.reject(null);
+        }
+        if (oid) {
+            oid.push(...resolvedComponents);
+        } else {
+            oid = resolvedComponents;
+        }
+        return constructRelativeOidHover(document, oid, value.production);
     }
     if (value.valueType === ValueType.ObjectIdentifierValue) {
         const val = value.value;
@@ -456,7 +529,7 @@ function provideDateTimeHover(
         + dt.toISOString()
         + "`\n\n"
         ;
-    
+
     let cos: string | undefined;
     if (typeName === "UTCTime") {
         cos = s;
@@ -832,15 +905,23 @@ async function provideHover(
                 const [ defassn, defmod, defuri ] = def;
                 looksLikeOID = (
                     (defassn.assignmentType === AssignmentType.TypeAssignment)
-                    && (defassn.type.typeType === TypeType.ObjectIdentifierType)
+                    && (
+                        (defassn.type.typeType === TypeType.ObjectIdentifierType)
+                        || (defassn.type.typeType === TypeType.RelativeOIDType)
+                    )
                 );
             }
-            if (looksLikeOID || (currentAssignment.type.typeType === TypeType.ObjectIdentifierType)) {
+            if (
+                looksLikeOID
+                || (currentAssignment.type.typeType === TypeType.ObjectIdentifierType)
+                || (currentAssignment.type.typeType === TypeType.RelativeOIDType)
+            ) {
                 return provideOidHover(
                     document,
                     cancel,
                     currentModule,
                     currentAssignment,
+                    currentAssignment.type.typeType,
                 );
             }
             if (

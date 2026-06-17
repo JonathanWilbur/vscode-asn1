@@ -7,7 +7,7 @@ Current in progress.
 - [ ] Avoid re-parsing the file before where changes were made
 - [ ] Auto indentation
 - [ ] Folding (by markers)
-- [ ] Hover: display `RELATIVE-OID` with X.690 encoding
+- [x] Hover: display `RELATIVE-OID` with X.690 encoding
 - [x] Hover: display `hstring` as `bstring` equivalent and vice versa
 - [ ] Commands for generating encodings from values
 - [ ] Code Action: include missing import
