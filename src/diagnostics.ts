@@ -796,7 +796,7 @@ function useDecodingToProvideDiagnostics(
     } catch (e) {
         const diag = new vscode.Diagnostic(
             range,
-            `malformed utctime: ${e}`,
+            `${e}`,
             vscode.DiagnosticSeverity.Error,
         );
         diags.push(diag);

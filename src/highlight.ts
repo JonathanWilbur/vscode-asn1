@@ -68,7 +68,7 @@ async function provideDocumentHighlights(
     position: vscode.Position,
     cancel: vscode.CancellationToken,
 ): Promise<vscode.DocumentHighlight[]> {
-    log.appendLine(`getting highlights for symbol at ${position}`);
+    log.appendLine(`getting highlights for symbol at ${position.line}:${position.character}`);
     const p = await getParserOutputs(document.uri);
     if (
         !p.lexicalTokens

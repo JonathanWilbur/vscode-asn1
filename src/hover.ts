@@ -17,8 +17,55 @@ import {
     TypeType,
     ValueType,
 } from "@wildboar/asn1-parser";
-import { resolveDefined, resolveOID, resolveOIDComponents } from "./resolve.js";
-import { ObjectIdentifier } from "@wildboar/asn1";
+import {
+    resolveDefined,
+    resolveOID,
+    resolveOIDComponents,
+} from "./resolve.js";
+import {
+    ASN1Construction,
+    ASN1TagClass,
+    ASN1UniversalType,
+    BERElement,
+    ObjectIdentifier,
+    utcTimeRegex,
+    generalizedTimeRegex,
+    DURATION_EQUIVALENT,
+} from "@wildboar/asn1";
+
+/**
+ * Defined because utcTimeRegex uses the `^` and `$` operators, which does not
+ * work with VS Code's `getWordRangeAtPosition`. To get the regular expression
+ * without these operators, we simply trim the first and last two characters.
+ * The outermost characters are forward slashes, and the second outermost ones
+ * are the `^` and `$`.
+ */
+const wordUTCTimeRegex = new RegExp('"' + utcTimeRegex.toString().slice(2, -2) + '"');
+
+/**
+ * Defined because generalizedTimeRegex uses the `^` and `$` operators, which does not
+ * work with VS Code's `getWordRangeAtPosition`. To get the regular expression
+ * without these operators, we simply trim the first and last two characters.
+ * The outermost characters are forward slashes, and the second outermost ones
+ * are the `^` and `$`.
+ */
+const wordGeneralizedTimeRegex = new RegExp('"' + generalizedTimeRegex.toString().slice(2, -2) + '"');
+
+/**
+ * This doesn't cover all ISO 8601 timestamps, but it _does_ completely cover the
+ * `DATE-TIME` data type, which is what we really want.
+ */
+const wordDateTimeRegex = /"(\d{4})-([0-1]\d)-([0-3]\d)T([0-2]\d)\:([0-5]\d)\:([0-5]\d)"/;
+
+/**
+ * Regular expression for `DATE` values.
+ */
+const wordDateRegex = /"(\d{4})-([0-1]\d)-([0-3]\d)"/;
+
+/**
+ * ISO 8601 Duration regex
+ */
+const wordDurationRegex = /"P[0-9\.,TYWHMS]+"/;
 
 // TODO: Use this
 const keywordsThatMustNotAppearAsLiterals: Set<string> = new Set([
@@ -299,7 +346,7 @@ function constructOidHover(
         const oidhexes = Array.from(oid.toBytes())
             .map((byte) => byte.toString(16).padStart(2, "0"))
             .join(" ");
-        mds += ("BER / CER / DER encoding (as hex): `" + oidhexes + "`\n\n");
+        mds += ("BER / CER / DER content octets (as hex): `" + oidhexes + "`\n\n");
         mds += ("[oid-base.com](https://oid-base.com/get/" + numstr + ")");
         mds += " \u{2022} ";
         mds += ("[alvestrand.no](https://www.alvestrand.no/objectid/" + numstr + ".html)");
@@ -384,11 +431,229 @@ const ECN_MD = new vscode.MarkdownString(
     + "to an assignment or just a literal.",
 );
 
+function provideDateTimeHover(
+    typeName: string,
+    range: vscode.Range,
+    dt: Date,
+    s: string,
+): vscode.Hover {
+    let mds: string = "`" + typeName + "`"
+        + " Value\n\n"
+        + "Local Time: `"
+        + dt.toString()
+        + "`\n\nISO 8601 Time: `"
+        + dt.toISOString()
+        + "`\n\n"
+        ;
+    
+    let cos: string | undefined;
+    if (typeName === "UTCTime") {
+        cos = s;
+    } else if (typeName === "GeneralizedTime") {
+        cos = s;
+    } else if (typeName === "DATE-TIME") {
+        cos = s
+            .replaceAll("-", "")
+            .replaceAll(":", "")
+            .replaceAll("T", "")
+            ;
+    }
+    if (typeof cos === "string") {
+        mds += (
+            "BER / CER / DER content octets (as hex): `"
+            + Array.from(Buffer.from(cos, "ascii"))
+                .map((byte) => byte.toString(16).padStart(2, "0"))
+                .join(" ")
+            + "`"
+        );
+    }
+    const md = new vscode.MarkdownString(mds);
+    return new vscode.Hover(md, range);
+}
+
+function provideDateHover(
+    range: vscode.Range,
+    dt: Date,
+): vscode.Hover {
+    const contentString = dt.getFullYear().toString().padStart(4, "0")
+        + (dt.getMonth() - 1).toString().padStart(2, "0")
+        + dt.getDate().toString().padStart(2, "0")
+        ;
+    const contentOctets = Buffer.from(contentString, "ascii");
+    const str = new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC',
+    }).format(dt);
+    const mds: string = "`DATE` Value for "
+        + str
+        + "\n\n"
+        + "BER / CER / DER content octets (as hex): `"
+        + Array.from(contentOctets)
+            .map((byte) => byte.toString(16).padStart(2, "0"))
+            .join(" ")
+        + "`"
+        ;
+    const md = new vscode.MarkdownString(mds);
+    return new vscode.Hover(md, range);
+}
+
+function provideDurationHover(
+    range: vscode.Range,
+    d: DURATION_EQUIVALENT,
+    s: string,
+): vscode.Hover {
+    let years: string = `${d.years ?? 0}`;
+    let months: string = `${d.months ?? 0}`;
+    let weeks: string = `${d.weeks ?? 0}`;
+    let days: string = `${d.days ?? 0}`;
+    let hours: string = `${d.hours ?? 0}`;
+    let minutes: string = `${d.minutes ?? 0}`;
+    let seconds: string = `${d.seconds ?? 0}`;
+    if (
+        d.fractional_part
+        && (typeof d.fractional_part.fractional_value === "number")
+        && (typeof d.fractional_part.number_of_digits === "number")
+        && (d.fractional_part.number_of_digits > 0)
+        && (d.fractional_part.fractional_value > 0)
+    ) {
+        const fracstr = "." + d
+            .fractional_part
+            .fractional_value
+            .toString()
+            .padStart(d.fractional_part.number_of_digits, "0");
+        if (typeof d.seconds !== "undefined") {
+            seconds += fracstr;
+        } else if (typeof d.minutes !== "undefined") {
+            minutes += fracstr;
+        } else if (typeof d.hours !== "undefined") {
+            hours += fracstr;
+        } else if (typeof d.days !== "undefined") {
+            days += fracstr;
+        } else if (typeof d.weeks !== "undefined") {
+            weeks += fracstr;
+        } else if (typeof d.months !== "undefined") {
+            months += fracstr;
+        } else if (typeof d.years !== "undefined") {
+            years += fracstr;
+        }
+    }
+    const mds: string = "`DURATION` Value\n\n"
+        + `- Years: ${years}\n`
+        + `- Months: ${months}\n`
+        + `- Weeks: ${weeks}\n`
+        + `- Days: ${days}\n`
+        + `- Hours: ${hours}\n`
+        + `- Minutes: ${minutes}\n`
+        + `- Seconds: ${seconds}\n`
+        + "\n"
+        + "BER / CER / DER content octets (as hex): `"
+        + Array.from(Buffer.from(s, "ascii"))
+            .map((byte) => byte.toString(16).padStart(2, "0"))
+            .join(" ")
+        + "`"
+        ;
+    const md = new vscode.MarkdownString(mds);
+    return new vscode.Hover(md, range);
+}
+
 async function provideHover(
     document: vscode.TextDocument,
     position: vscode.Position,
     cancel: vscode.CancellationToken,
 ): Promise<vscode.Hover> {
+
+    // Provide hovers for UTCTime-like strings, even if the module is malformed.
+    const utcTimeRange = document.getWordRangeAtPosition(
+        position,
+        wordUTCTimeRegex,
+    );
+    if (utcTimeRange) {
+        const s = document.getText(utcTimeRange);
+        const sNoQuotes = s.slice(1, -1);
+        const el = new BERElement(
+            ASN1TagClass.universal,
+            ASN1Construction.primitive,
+            ASN1UniversalType.utcTime,
+            sNoQuotes,
+        );
+        try {
+            const t = el.utcTime;
+            return provideDateTimeHover("UTCTime", utcTimeRange, t, sNoQuotes);
+        } catch {}
+    }
+
+    // Provide hovers for GeneralizedTime-like strings, even if the module is malformed.
+    const generalizedTimeRange = document.getWordRangeAtPosition(
+        position,
+        wordGeneralizedTimeRegex,
+    );
+    if (generalizedTimeRange) {
+        const s = document.getText(generalizedTimeRange);
+        const sNoQuotes = s.slice(1, -1);
+        const el = new BERElement(
+            ASN1TagClass.universal,
+            ASN1Construction.primitive,
+            ASN1UniversalType.generalizedTime,
+            sNoQuotes,
+        );
+        try {
+            const t = el.generalizedTime;
+            return provideDateTimeHover("GeneralizedTime", generalizedTimeRange, t, sNoQuotes);
+        } catch {}
+    }
+
+    // Provide hovers for DATE-TIME-like strings, even if the module is malformed.
+    const dateTimeRange = document.getWordRangeAtPosition(
+        position,
+        wordDateTimeRegex,
+    );
+    if (dateTimeRange) {
+        const s = document.getText(dateTimeRange);
+        const sNoQuotes = s.slice(1, -1);
+        try {
+            const t = new Date(sNoQuotes); // Yes, this makes it local time.
+            return provideDateTimeHover("DATE-TIME", dateTimeRange, t, sNoQuotes);
+        } catch {}
+    }
+
+    // Provide hovers for DATE-like strings, even if the module is malformed.
+    // Note that this MUST appear after the DATE-TIME hover.
+    const dateRange = document.getWordRangeAtPosition(
+        position,
+        wordDateRegex,
+    );
+    if (dateRange) {
+        const s = document.getText(dateRange);
+        const sNoQuotes = s.slice(1, -1);
+        try {
+            const t = new Date(sNoQuotes);
+            return provideDateHover(dateRange, t);
+        } catch {}
+    }
+
+    // Provide hovers for DURATION-like strings, even if the module is malformed.
+    const durationRange = document.getWordRangeAtPosition(
+        position,
+        wordDurationRegex,
+    );
+    if (durationRange) {
+        const s = document.getText(durationRange);
+        const sNoQuotes = s.slice(1, -1);
+        const el = new BERElement(
+            ASN1TagClass.universal,
+            ASN1Construction.primitive,
+            ASN1UniversalType.duration,
+            sNoQuotes.slice(1), // Not encoded with the leading P
+        );
+        try {
+            const d = el.duration;
+            return provideDurationHover(durationRange, d, sNoQuotes.slice(1));
+        } catch {}
+    }
+
     const p = await getParserOutputs(document.uri, undefined, cancel);
     if (
         !p.parserEndState
@@ -521,10 +786,31 @@ async function provideHover(
                     currentAssignment,
                 );
             }
-            if (currentAssignment.type.typeType === TypeType.IntegerType) {
-                // TODO: Resolve `INTEGER` values and show their encoding
+            if (
+                currentAssignment.type.typeType === TypeType.IntegerType
+                && currentAssignment.value.valueType === ValueType.IntegerValue
+                && (typeof currentAssignment.value.value === "number")
+            ) {
+                const int = currentAssignment.value.value;
+                const el = new BERElement(
+                    ASN1TagClass.universal,
+                    ASN1Construction.primitive,
+                    ASN1UniversalType.integer,
+                    int,
+                );
+                const range = getRangeFromLocation(
+                    document,
+                    currentAssignment.value.production.location,
+                );
+                const mds = new vscode.MarkdownString(
+                    "`INTEGER` value\n\nBER / CER / DER content octets (as hex): `"
+                    + Array.from(el.value)
+                        .map((byte) => byte.toString(16).padStart(2, "0"))
+                        .join(" ")
+                    + "`"
+                );
+                return new vscode.Hover(mds, range);
             }
-            // TODO: Resolve TIME types and show their encodings
         }
     }
 
