@@ -32,7 +32,6 @@ import {
     utcTimeRegex,
     generalizedTimeRegex,
     DURATION_EQUIVALENT,
-    packBits,
 } from "@wildboar/asn1";
 
 /**

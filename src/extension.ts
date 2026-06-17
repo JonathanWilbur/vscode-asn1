@@ -60,6 +60,32 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerReferenceProvider(ASN1_MODE, new Asn1ReferenceProvider()));
 	context.subscriptions.push(
 		vscode.languages.registerRenameProvider(ASN1_MODE, new Asn1RenameProvider()));
+
+	// TODO: context.subscriptions.push(vscode.languages.registerFoldingRangeProvider(ASN1_MODE, ));
+	// TODO: context.subscriptions.push(vscode.languages.registerCodeActionsProvider(ASN1_MODE, ));
+	// TODO: context.subscriptions.push(vscode.languages.registerCompletionItemProvider(ASN1_MODE, ));
+	// TODO: context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(ASN1_MODE, ));
+	// TODO: context.subscriptions.push(vscode.languages.registerInlineCompletionItemProvider(ASN1_MODE, ));
+	// TODO: context.subscriptions.push(vscode.languages.registerSelectionRangeProvider(ASN1_MODE, ));
+	// TODO: context.subscriptions.push(vscode.languages.registerSignatureHelpProvider(ASN1_MODE, ));
+	// TODO: context.subscriptions.push(vscode.languages.registerTypeDefinitionProvider(ASN1_MODE, ));
+	// TODO: context.subscriptions.push(vscode.languages.registerWorkspaceSymbolProvider(ASN1_MODE, ));
+
+	// APIs evaluated, but decided against:
+	// vscode.languages.registerCodeLensProvider: no use case
+	// vscode.languages.registerColorProvider: no use case
+	// vscode.languages.registerDeclarationProvider: no use case
+	// vscode.languages.registerDocumentDropEditProvider: no use case
+	// vscode.languages.registerDocumentLinkProvider: not really sure what this is and probably not useful anyway
+	// vscode.languages.registerDocumentPasteEditProvider: no use case
+	// vscode.languages.registerDocumentRangeFormattingEditProvider: maybe one day, but pretty low value and high difficulty
+	// vscode.languages.registerDocumentRangeSemanticTokensProvider: computationally expensive but low value
+	// vscode.languages.registerInlayHintsProvider: one of VS Code's most annoying features, computationally expensive, low value, no use case
+	// vscode.languages.registerDocumentSemanticTokensProvider: computationally expensive but low value
+	// vscode.languages.registerLinkedEditingRangeProvider: I'll consider this one later. It seems like it could be an annoying source of unexpected behavior.
+	// vscode.languages.registerOnTypeFormattingEditProvider: computationally expensive, annoying, overly opinionated, etc.
+	// vscode.languages.registerTypeHierarchyProvider: could be useful for X.500 object classes, but otherwise narrow use case
+
 	context.subscriptions.push(
         vscode.languages.registerDocumentHighlightProvider(ASN1_MODE, new Asn1HighlightProvider()));
 	diagnosticCollection = vscode.languages.createDiagnosticCollection(LANGUAGE);
