@@ -44,7 +44,6 @@ function getModuleNameRangeFromModuleProduction(
 }
 
 function getSymbolKindFromAssignment(ass: AssignmentType): vscode.SymbolKind {
-	// TODO: Convert this to a Map for performance.
 	switch (ass) {
 		case (AssignmentType.ValueAssignment):
 		case (AssignmentType.ParameterizedValueAssignment):
@@ -70,6 +69,18 @@ function getSymbolKindFromAssignment(ass: AssignmentType): vscode.SymbolKind {
 	}
 }
 
+function getSymbolInfoFromAssignment(ass: Assignment): string {
+	switch (ass.assignmentType) {
+		case (AssignmentType.ObjectAssignment):
+		case (AssignmentType.ParameterizedObjectAssignment):
+			return ass.definedObjectClass.reference;
+		case (AssignmentType.ObjectSetAssignment):
+		case (AssignmentType.ParameterizedObjectSetAssignment):
+			return ass.definedObjectClass.reference;
+		default: return "";
+	}
+}
+
 function getDocumentSymbolFromAssignment(
 	document: vscode.TextDocument,
 	name: string,
@@ -83,7 +94,7 @@ function getDocumentSymbolFromAssignment(
 	const nameRange = assrange; // FIXME: Actually find the identifier.
 	return new vscode.DocumentSymbol(
 		name,
-		"", // TODO: Populate with properties
+		getSymbolInfoFromAssignment(ass),
 		getSymbolKindFromAssignment(ass.assignmentType),
 		assrange, // full symbol range
 		nameRange ?? assrange, // name/selection range

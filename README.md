@@ -5,21 +5,15 @@ Current in progress.
 ## To Do
 
 - [ ] Avoid re-parsing the file before where changes were made
-- [ ] Use different symbol kinds for X.500 object classes?
+- [x] Use different symbol kinds for X.500 object classes?
 - [ ] Auto indentation
 - [ ] Folding (by markers)
-- [x] Hover: display `UTCTime` and `GeneralizedTime` values in human-friendly format
-- [x] Hover: display `OBJECT IDENTIFIER` values with encodings / OID info URLs, etc.
-- [x] Hover: display `INTEGER` as X.690 encoding
-- [x] Hover: display `DURATION` in human-friendly format
-- [x] Hover: display `DATE`, `DATE-TIME`, `TIME` in human friendly format
 - [ ] Hover: display `RELATIVE-OID` with X.690 encoding
 - [ ] Hover: display `hstring` as `bstring` equivalent and vice versa
 - [ ] Commands for generating encodings from values
 - [ ] Code Action: include missing import
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
-- [x] Fix `getting highlights for symbol at [object Object]`
 - [ ] Display deprecation warning over `ANY` and other legacy ASN.1
 - [ ] Format Document / Format Range
   - [ ] Format imports
