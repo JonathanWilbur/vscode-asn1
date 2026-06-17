@@ -31,6 +31,7 @@ import {
     utcTimeRegex,
     generalizedTimeRegex,
     DURATION_EQUIVALENT,
+    packBits,
 } from "@wildboar/asn1";
 
 /**
@@ -49,7 +50,7 @@ const wordUTCTimeRegex = new RegExp('"' + utcTimeRegex.toString().slice(2, -2) +
  * The outermost characters are forward slashes, and the second outermost ones
  * are the `^` and `$`.
  */
-const wordGeneralizedTimeRegex = new RegExp('"' + generalizedTimeRegex.toString().slice(2, -2) + '"');
+const wordGenTimeRegex = new RegExp('"' + generalizedTimeRegex.toString().slice(2, -2) + '"');
 
 /**
  * This doesn't cover all ISO 8601 timestamps, but it _does_ completely cover the
@@ -66,6 +67,16 @@ const wordDateRegex = /"(\d{4})-([0-1]\d)-([0-3]\d)"/;
  * ISO 8601 Duration regex
  */
 const wordDurationRegex = /"P[0-9\.,TYWHMS]+"/;
+
+/**
+ * Bitstring regex
+ */
+const wordBitStringRegex = /'[01\s]*'B/;
+
+/**
+ * Octet string regex
+ */
+const wordOctetStringRegex = /'[0-9A-F\s]*'H/;
 
 // TODO: Use this
 const keywordsThatMustNotAppearAsLiterals: Set<string> = new Set([
@@ -344,7 +355,7 @@ function constructOidHover(
         mds += ("XML Value Form: `<OBJECT_IDENTIFIER>" + numstr + "</OBJECT_IDENTIFIER>`\n\n");
         const oid = ObjectIdentifier.fromParts(numbers);
         const oidhexes = Array.from(oid.toBytes())
-            .map((byte) => byte.toString(16).padStart(2, "0"))
+            .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
             .join(" ");
         mds += ("BER / CER / DER content octets (as hex): `" + oidhexes + "`\n\n");
         mds += ("[oid-base.com](https://oid-base.com/get/" + numstr + ")");
@@ -462,7 +473,7 @@ function provideDateTimeHover(
         mds += (
             "BER / CER / DER content octets (as hex): `"
             + Array.from(Buffer.from(cos, "ascii"))
-                .map((byte) => byte.toString(16).padStart(2, "0"))
+                .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
                 .join(" ")
             + "`"
         );
@@ -492,7 +503,7 @@ function provideDateHover(
         + "\n\n"
         + "BER / CER / DER content octets (as hex): `"
         + Array.from(contentOctets)
-            .map((byte) => byte.toString(16).padStart(2, "0"))
+            .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
             .join(" ")
         + "`"
         ;
@@ -551,7 +562,55 @@ function provideDurationHover(
         + "\n"
         + "BER / CER / DER content octets (as hex): `"
         + Array.from(Buffer.from(s, "ascii"))
-            .map((byte) => byte.toString(16).padStart(2, "0"))
+            .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
+            .join(" ")
+        + "`"
+        ;
+    const md = new vscode.MarkdownString(mds);
+    return new vscode.Hover(md, range);
+}
+
+function provideBitStringHover(
+    range: vscode.Range,
+    s: string,
+): vscode.Hover {
+    const sOnlyBits = s
+        .slice(1, -2)
+        .replaceAll(/\s+/g, "")
+        ;
+    const sbits = Array.from(sOnlyBits).map((c) => (c.charCodeAt(0) - 0x30));
+    const sbuf = new Uint8ClampedArray(sbits);
+    const el = new BERElement(
+        ASN1TagClass.universal,
+        ASN1Construction.primitive,
+        ASN1UniversalType.duration,
+        sbuf,
+    );
+    const contentOctets = el.value;
+    const mds: string = "`BIT STRING` Value:\n\n"
+        + "BER / DER content octets (as hex): `"
+        + Array.from(contentOctets)
+            .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
+            .join(" ")
+        + "`"
+        ;
+    const md = new vscode.MarkdownString(mds);
+    return new vscode.Hover(md, range);
+}
+
+function provideOctetStringHover(
+    range: vscode.Range,
+    s: string,
+): vscode.Hover {
+    const sOnlyNybbles = s
+        .slice(1, -2)
+        .replaceAll(/\s+/g, "")
+        ;
+    const bytes = Buffer.from(sOnlyNybbles, "hex");
+    const mds: string = "`OCTET STRING` Value:\n\n"
+        + "BER / DER content octets (as hex): `"
+        + Array.from(bytes)
+            .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
             .join(" ")
         + "`"
         ;
@@ -566,10 +625,7 @@ async function provideHover(
 ): Promise<vscode.Hover> {
 
     // Provide hovers for UTCTime-like strings, even if the module is malformed.
-    const utcTimeRange = document.getWordRangeAtPosition(
-        position,
-        wordUTCTimeRegex,
-    );
+    const utcTimeRange = document.getWordRangeAtPosition(position, wordUTCTimeRegex);
     if (utcTimeRange) {
         const s = document.getText(utcTimeRange);
         const sNoQuotes = s.slice(1, -1);
@@ -586,12 +642,9 @@ async function provideHover(
     }
 
     // Provide hovers for GeneralizedTime-like strings, even if the module is malformed.
-    const generalizedTimeRange = document.getWordRangeAtPosition(
-        position,
-        wordGeneralizedTimeRegex,
-    );
-    if (generalizedTimeRange) {
-        const s = document.getText(generalizedTimeRange);
+    const genTimeRange = document.getWordRangeAtPosition(position, wordGenTimeRegex);
+    if (genTimeRange) {
+        const s = document.getText(genTimeRange);
         const sNoQuotes = s.slice(1, -1);
         const el = new BERElement(
             ASN1TagClass.universal,
@@ -601,15 +654,12 @@ async function provideHover(
         );
         try {
             const t = el.generalizedTime;
-            return provideDateTimeHover("GeneralizedTime", generalizedTimeRange, t, sNoQuotes);
+            return provideDateTimeHover("GeneralizedTime", genTimeRange, t, sNoQuotes);
         } catch {}
     }
 
     // Provide hovers for DATE-TIME-like strings, even if the module is malformed.
-    const dateTimeRange = document.getWordRangeAtPosition(
-        position,
-        wordDateTimeRegex,
-    );
+    const dateTimeRange = document.getWordRangeAtPosition(position, wordDateTimeRegex);
     if (dateTimeRange) {
         const s = document.getText(dateTimeRange);
         const sNoQuotes = s.slice(1, -1);
@@ -621,10 +671,7 @@ async function provideHover(
 
     // Provide hovers for DATE-like strings, even if the module is malformed.
     // Note that this MUST appear after the DATE-TIME hover.
-    const dateRange = document.getWordRangeAtPosition(
-        position,
-        wordDateRegex,
-    );
+    const dateRange = document.getWordRangeAtPosition(position, wordDateRegex);
     if (dateRange) {
         const s = document.getText(dateRange);
         const sNoQuotes = s.slice(1, -1);
@@ -635,10 +682,7 @@ async function provideHover(
     }
 
     // Provide hovers for DURATION-like strings, even if the module is malformed.
-    const durationRange = document.getWordRangeAtPosition(
-        position,
-        wordDurationRegex,
-    );
+    const durationRange = document.getWordRangeAtPosition(position, wordDurationRegex);
     if (durationRange) {
         const s = document.getText(durationRange);
         const sNoQuotes = s.slice(1, -1);
@@ -652,6 +696,19 @@ async function provideHover(
             const d = el.duration;
             return provideDurationHover(durationRange, d, sNoQuotes.slice(1));
         } catch {}
+    }
+
+    // Provide hovers for Bit string-like strings, even if the module is malformed.
+    const bitStringRange = document.getWordRangeAtPosition(position, wordBitStringRegex);
+    if (bitStringRange) {
+        const s = document.getText(bitStringRange);
+        return provideBitStringHover(bitStringRange, s);
+    }
+
+    const octetStringRange = document.getWordRangeAtPosition(position, wordOctetStringRegex);
+    if (octetStringRange) {
+        const s = document.getText(octetStringRange);
+        return provideOctetStringHover(octetStringRange, s);
     }
 
     const p = await getParserOutputs(document.uri, undefined, cancel);
@@ -805,7 +862,7 @@ async function provideHover(
                 const mds = new vscode.MarkdownString(
                     "`INTEGER` value\n\nBER / CER / DER content octets (as hex): `"
                     + Array.from(el.value)
-                        .map((byte) => byte.toString(16).padStart(2, "0"))
+                        .map((byte) => byte.toString(16).toUpperCase().padStart(2, "0"))
                         .join(" ")
                     + "`"
                 );
