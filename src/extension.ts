@@ -5,9 +5,18 @@ import { Asn1SymbolProvider } from "./symbols.js";
 import { Asn1ReferenceProvider } from "./findallref.js";
 import { Asn1RenameProvider } from "./rename.js";
 import { Asn1HighlightProvider } from "./highlight.js";
+import { Asn1FoldingRangeProvider } from "./folding.js";
+// import { Asn1CodeActionProvider } from "./codeact.js";
+// import { Asn1CompletionItemProvider } from "./completion.js";
 import { indexAsn1Files, indexAsn1File, reindexAsn1File } from "./indexing.js";
 import { log } from "./logging.js";
 import { updateDiagnostics } from "./diagnostics.js";
+// import { Asn1DocumentFormattingEditProvider } from './format.js';
+// import { Asn1InlineCompletionItemProvider } from './inccomp.js';
+// import { Asn1SelectionRangeProvider } from './selectrange.js';
+// import { Asn1SignatureHelpProvider } from './sighelp.js';
+// import { Asn1TypeDefinitionProvider } from './typedef.js';
+// import { Asn1WorkspaceSymbolProvider } from './wssymbols.js';
 
 const LANGUAGE: string = "asn1";
 
@@ -60,16 +69,24 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerReferenceProvider(ASN1_MODE, new Asn1ReferenceProvider()));
 	context.subscriptions.push(
 		vscode.languages.registerRenameProvider(ASN1_MODE, new Asn1RenameProvider()));
-
-	// TODO: context.subscriptions.push(vscode.languages.registerFoldingRangeProvider(ASN1_MODE, ));
-	// TODO: context.subscriptions.push(vscode.languages.registerCodeActionsProvider(ASN1_MODE, ));
-	// TODO: context.subscriptions.push(vscode.languages.registerCompletionItemProvider(ASN1_MODE, ));
-	// TODO: context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(ASN1_MODE, ));
-	// TODO: context.subscriptions.push(vscode.languages.registerInlineCompletionItemProvider(ASN1_MODE, ));
-	// TODO: context.subscriptions.push(vscode.languages.registerSelectionRangeProvider(ASN1_MODE, ));
-	// TODO: context.subscriptions.push(vscode.languages.registerSignatureHelpProvider(ASN1_MODE, ));
-	// TODO: context.subscriptions.push(vscode.languages.registerTypeDefinitionProvider(ASN1_MODE, ));
-	// TODO: context.subscriptions.push(vscode.languages.registerWorkspaceSymbolProvider(ASN1_MODE, ));
+	context.subscriptions.push(
+		vscode.languages.registerFoldingRangeProvider(ASN1_MODE, new Asn1FoldingRangeProvider()));
+	// context.subscriptions.push(
+	// 	vscode.languages.registerCodeActionsProvider(ASN1_MODE, new Asn1CodeActionProvider()));
+	// context.subscriptions.push(
+	// 	vscode.languages.registerCompletionItemProvider(ASN1_MODE, new Asn1CompletionItemProvider()));
+	// context.subscriptions.push(
+	// 	vscode.languages.registerDocumentFormattingEditProvider(ASN1_MODE, new Asn1DocumentFormattingEditProvider()));
+	// context.subscriptions.push(
+	// 	vscode.languages.registerInlineCompletionItemProvider(ASN1_MODE, new Asn1InlineCompletionItemProvider()));
+	// context.subscriptions.push(
+	// 	vscode.languages.registerSelectionRangeProvider(ASN1_MODE, new Asn1SelectionRangeProvider()));
+	// context.subscriptions.push(
+	// 	vscode.languages.registerSignatureHelpProvider(ASN1_MODE, new Asn1SignatureHelpProvider()));
+	// context.subscriptions.push(
+	// 	vscode.languages.registerTypeDefinitionProvider(ASN1_MODE, new Asn1TypeDefinitionProvider()));
+	// context.subscriptions.push(
+	// 	vscode.languages.registerWorkspaceSymbolProvider(new Asn1WorkspaceSymbolProvider()));
 
 	// APIs evaluated, but decided against:
 	// vscode.languages.registerCodeLensProvider: no use case
