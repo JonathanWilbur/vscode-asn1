@@ -6,11 +6,12 @@ Currently in progress.
 
 - [ ] Avoid re-parsing the file before where changes were made
 - [ ] Auto indentation
-- [ ] Folding (by markers)
+- [x] Folding (by markers)
 - [ ] Code Action: include missing import
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
 - [ ] Display deprecation warning over `ANY` and other legacy ASN.1
+- [ ] Hovers for `TYPE-IDENTIFIER` and `ABSTRACT-SYNTAX`
 - [ ] Format Document / Format Range
   - [ ] Format imports
   - [ ] One newline between all assignments that themselves are more than one line.
@@ -21,9 +22,6 @@ Currently in progress.
   - [ ] Single space between assignment token `::=`
   - [ ] No spaces between parameters and brackets
 - [ ] Intellisense
-  - `IDENTIFIER` after `OBJECT` (inline)
-  - `STRING` after `BIT` and `OCTET` (inline)
-  - etc.
   - Prefix of object identifiers (dropdown)
   - `SET` or `SEQUENCE` type suggestions after `COMPONENTS OF` (dropdown)
   - Type assignments after `SEQUENCE OF` / `SET OF` (dropdown)

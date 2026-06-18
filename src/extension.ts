@@ -12,7 +12,7 @@ import { indexAsn1Files, indexAsn1File, reindexAsn1File } from "./indexing.js";
 import { log } from "./logging.js";
 import { updateDiagnostics } from "./diagnostics.js";
 // import { Asn1DocumentFormattingEditProvider } from './format.js';
-// import { Asn1InlineCompletionItemProvider } from './inccomp.js';
+import { Asn1InlineCompletionItemProvider } from './inccomp.js';
 // import { Asn1SelectionRangeProvider } from './selectrange.js';
 // import { Asn1SignatureHelpProvider } from './sighelp.js';
 // import { Asn1TypeDefinitionProvider } from './typedef.js';
@@ -77,8 +77,8 @@ export function activate(context: vscode.ExtensionContext) {
 	// 	vscode.languages.registerCompletionItemProvider(ASN1_MODE, new Asn1CompletionItemProvider()));
 	// context.subscriptions.push(
 	// 	vscode.languages.registerDocumentFormattingEditProvider(ASN1_MODE, new Asn1DocumentFormattingEditProvider()));
-	// context.subscriptions.push(
-	// 	vscode.languages.registerInlineCompletionItemProvider(ASN1_MODE, new Asn1InlineCompletionItemProvider()));
+	context.subscriptions.push(
+		vscode.languages.registerInlineCompletionItemProvider(ASN1_MODE, new Asn1InlineCompletionItemProvider()));
 	// context.subscriptions.push(
 	// 	vscode.languages.registerSelectionRangeProvider(ASN1_MODE, new Asn1SelectionRangeProvider()));
 	// context.subscriptions.push(

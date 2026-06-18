@@ -1,0 +1,110 @@
+import * as vscode from "vscode";
+
+/**
+ * When the user finishes typing one of these keywords, suggest the
+ * corresponding follow-up text as an inline completion.
+ */
+const keywordFollowupCompletions: ReadonlyMap<string, string> = new Map([
+    ["OBJECT", "IDENTIFIER"],
+    ["OCTET", "STRING"],
+    ["BIT", "STRING"],
+    ["CHARACTER", "STRING"],
+    ["AUTOMATIC", "TAGS"],
+    ["DEFINITIONS", "::= BEGIN"],
+    ["EMBEDDED", "PDV"],
+    ["EXTENSIBILITY", "IMPLIED"],
+    ["CONSTRAINED", "BY"],
+    ["EXPORTS", "ALL;"],
+    ["ENCODED", "BY"],
+]);
+
+async function provideInlineCompletionItems(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    _context: vscode.InlineCompletionContext,
+    token: vscode.CancellationToken,
+): Promise<vscode.InlineCompletionItem[] | vscode.InlineCompletionList> {
+    const line = document.lineAt(position.line);
+    const lineBeforeCursor = line.text.slice(0, position.character);
+    const lineCommentIndex = lineBeforeCursor.indexOf("--");
+    if (lineCommentIndex > -1 || token.isCancellationRequested) {
+        return []; // Assume that we are in a comment.
+    }
+    const blockCommentIndex = lineBeforeCursor.indexOf("/*");
+    if (blockCommentIndex > -1 || token.isCancellationRequested) {
+        return []; // Assume that we are in a comment.
+    }
+    const doubleQuoteIndex = lineBeforeCursor.indexOf('"');
+    if (doubleQuoteIndex > -1 || token.isCancellationRequested) {
+        return []; // Assume that we are in a string.
+    }
+    const singleQuoteIndex = lineBeforeCursor.indexOf("'");
+    if (singleQuoteIndex > -1 || token.isCancellationRequested) {
+        return []; // Assume that we are in a string.
+    }
+    // TODO: Check for block comment start
+    const openingPointyBracket = lineBeforeCursor.indexOf("<");
+    if (openingPointyBracket > -1 || token.isCancellationRequested) {
+        // Assume that we are in an XML value.
+        // Completions would be fine here, but not supported currently.
+        return [];
+    }
+    // TODO: Modify keyword completions if in an object assignment or in ECN?
+
+    const lineBeforeCursorEndTrimmed = lineBeforeCursor.trimEnd();
+    const whitespacesBeforeCursor = lineBeforeCursor.length - lineBeforeCursorEndTrimmed.length;
+    const positionBeforeLastWhitespace = new vscode.Position(
+        position.line,
+        // Minus one extra char so we are definitely within the word before.
+        position.character - (whitespacesBeforeCursor + 1),
+    );
+    const prevWordRange = document.getWordRangeAtPosition(positionBeforeLastWhitespace);
+    const prevWordText = prevWordRange && document.getText(prevWordRange);
+    if (!prevWordText || token.isCancellationRequested) {
+        return []; // If there is no previous word, we cannot suggest anything.
+    }
+
+    const zeroRange = new vscode.Range(position, position);
+
+    if (whitespacesBeforeCursor > 0) {
+        // 1. The previous would must match lookup exactly.
+        // 2. We have to trim the start of the completion suggestion.
+        const followup = keywordFollowupCompletions.get(prevWordText);
+        if (followup) {
+            return [
+                new vscode.InlineCompletionItem(followup, zeroRange),
+            ];
+        }
+    } else if (prevWordText.length >= 3) {
+        // whitespacesBeforeCursor === 0: the previous word might not be done yet.
+        // 1. So we have to do prefix matching.
+        // 2. We do NOT have to trim the start of the completion suggestion.
+        for (const [key, value] of keywordFollowupCompletions.entries()) {
+            if (token.isCancellationRequested) {
+                return [];
+            }
+            if (key.startsWith(prevWordText)) {
+                const remainingPhrase = `${key} ${value}`.slice(prevWordText.length);
+                return [
+                    new vscode.InlineCompletionItem(remainingPhrase, zeroRange),
+                ];
+            }
+        }
+    }
+
+    // TODO: If in a component type of type BOOLEAN, suggest DEFAULT FALSE
+    // TODO: Support the WITH SYNTAX completion, without confusion with other cases WITH is used in
+    // TODO: MATCHING RULE, IDENTIFIED BY
+    return [];
+}
+
+export class Asn1InlineCompletionItemProvider implements vscode.InlineCompletionItemProvider {
+    provideInlineCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        context: vscode.InlineCompletionContext,
+        token: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.InlineCompletionItem[] | vscode.InlineCompletionList> {
+        return provideInlineCompletionItems(document, position, context, token);
+    }
+}
