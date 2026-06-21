@@ -145,6 +145,9 @@ ExternalTypeReference ::=
 ExternalValueReference ::=
     modulereference "." valuereference
 
+; This is not actually used in ASN.1 itself. It is defined in ITU-T Rec. X.680
+; (2021), Section 15, for the purposes of refering to ASN.1 "things" outside of
+; an ASN.1 module.
 AbsoluteReference ::=
     "@" ModuleIdentifier "." ItemSpec
 

@@ -23,6 +23,8 @@ export interface ParserOutputs {
 
 const cache = new Map<string, VersionNumbered<ParserOutputs>>();
 
+const lastValidCache = new Map<string, ParserOutputs>();
+
 export async function getParserOutputs(
     docOrUri: vscode.Uri | vscode.TextDocument,
     stopAt?: ParserStopAt,
@@ -86,5 +88,21 @@ export async function getParserOutputs(
     }
 
     cache.set(key, { version: document.version, item: outputs });
+    if (
+        !outputs.parserEndState.ok.error
+        && (Object.keys(outputs.parserEndState.ok.syntaxErrors).length === 0)
+    ) {
+        lastValidCache.set(key, outputs);
+    }
     return outputs;
+}
+
+export function getLastValidParserOutputs(
+    docOrUri: vscode.Uri | vscode.TextDocument,
+): ParserOutputs | undefined {
+    const uri = docOrUri instanceof vscode.Uri
+        ? docOrUri
+        : docOrUri.uri;
+    const key = uri.toString();
+    return lastValidCache.get(key);
 }

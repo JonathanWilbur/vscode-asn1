@@ -5,6 +5,7 @@ import {
     type Location,
     type NameAndOrNumber,
     builtinRootArcNamesToNumber,
+    TypeType,
 } from "@wildboar/asn1-parser";
 import { log } from "./logging.js";
 import { ASN1ModuleName, ASN1Reference } from "./types.js";
@@ -17,6 +18,14 @@ export const moduleReferenceTokens: Set<string> = new Set([
     "objectclassreference",
     "modulereference",
     "typereference",
+]);
+
+export const typeTypesThatCouldBeAnything: Set<TypeType> = new Set([
+    TypeType.AnyType,
+    TypeType.DefinedType,
+    TypeType.ObjectClassFieldType,
+    TypeType.TypeFromObject,
+    TypeType.SelectionType,
 ]);
 
 export

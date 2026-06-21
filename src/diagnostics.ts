@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 import { getParserOutputs } from "./parsing.js";
-import { getRangeFromLocation } from "./utils.js";
+import {
+    getRangeFromLocation,
+    typeTypesThatCouldBeAnything,
+} from "./utils.js";
 import {
     lex,
     parserFor,
@@ -252,14 +255,6 @@ const typeTypeToString: Map<TypeType, string> = new Map([
     [TypeType.SequenceType, "SEQUENCE"],
     [TypeType.SetType, "SET"],
     [TypeType.ChoiceType, "CHOICE"],
-]);
-
-const typeTypesThatCouldBeAnything: Set<TypeType> = new Set([
-    TypeType.AnyType,
-    TypeType.DefinedType,
-    TypeType.ObjectClassFieldType,
-    TypeType.TypeFromObject,
-    TypeType.SelectionType,
 ]);
 
 function resolveComponentsOf(
@@ -1038,8 +1033,9 @@ function provideAssignmentListDiagnostics(
 function isDefinedOrImported(mod: Module, ident: string): boolean {
     return (
         (ident in mod.assignments)
-        || Object.values(mod.imports.modules)
-            .some((sfm) => ident in sfm.symbolList)
+        || Object.values(mod.imports.modules).some((sfm) => ident in sfm.symbolList)
+        || (ident === "TYPE-IDENTIFIER")
+        || (ident === "ABSTRACT-SYNTAX")
     );
 }
 

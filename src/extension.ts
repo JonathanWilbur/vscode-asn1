@@ -7,7 +7,7 @@ import { Asn1RenameProvider } from "./rename.js";
 import { Asn1HighlightProvider } from "./highlight.js";
 import { Asn1FoldingRangeProvider } from "./folding.js";
 // import { Asn1CodeActionProvider } from "./codeact.js";
-// import { Asn1CompletionItemProvider } from "./completion.js";
+import { Asn1CompletionItemProvider } from "./completion.js";
 import { indexAsn1Files, indexAsn1File, reindexAsn1File } from "./indexing.js";
 import { log } from "./logging.js";
 import { updateDiagnostics } from "./diagnostics.js";
@@ -73,8 +73,20 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerFoldingRangeProvider(ASN1_MODE, new Asn1FoldingRangeProvider()));
 	// context.subscriptions.push(
 	// 	vscode.languages.registerCodeActionsProvider(ASN1_MODE, new Asn1CodeActionProvider()));
-	// context.subscriptions.push(
-	// 	vscode.languages.registerCompletionItemProvider(ASN1_MODE, new Asn1CompletionItemProvider()));
+	context.subscriptions.push(
+		vscode.languages.registerCompletionItemProvider(
+			ASN1_MODE,
+			new Asn1CompletionItemProvider(),
+			".",
+			"&",
+			"{",
+			" ",
+			"\t",
+			"|",
+			",",
+			"[",
+		),
+	);
 	// context.subscriptions.push(
 	// 	vscode.languages.registerDocumentFormattingEditProvider(ASN1_MODE, new Asn1DocumentFormattingEditProvider()));
 	context.subscriptions.push(
@@ -124,11 +136,11 @@ export function activate(context: vscode.ExtensionContext) {
 	// 	}
 	// 	updateDiagnostics(e, diagnosticCollection);
 	// });
-	vscode.workspace.onDidChangeTextDocument((e) => {
-		if (!isAsn1File(e.document)) {
+	vscode.workspace.onDidSaveTextDocument((document) => {
+		if (!isAsn1File(document)) {
 			return;
 		}
-		updateDiagnostics(e.document, diagnosticCollection);
+		updateDiagnostics(document, diagnosticCollection);
 	});
 	context.subscriptions.push(watcher);
 	log.appendLine(`${new Date()}: asn.1 providers initialized / starting indexing of files`);

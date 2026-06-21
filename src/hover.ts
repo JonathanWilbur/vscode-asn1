@@ -114,6 +114,7 @@ const keywordsThatMustNotAppearAsLiterals: Set<string> = new Set([
     "TYPE-IDENTIFIER",
 ]);
 
+// TODO: Make this just return the strings and let the caller populate the range parameter.
 /*
 ITU-T Rec. X.681, Section 10.6, says that these words MUST NOT appear as word literals in objects:
 
@@ -251,6 +252,10 @@ const keywordHovers: Map<string, vscode.Hover> = new Map([
     [ "PLUS-INFINITY", new vscode.Hover(definitions.PLUS_INFINITY_DEFINITION) ],
     [ "MINUS-INFINITY", new vscode.Hover(definitions.MINUS_INFINITY_DEFINITION) ],
     [ "NOT-A-NUMBER", new vscode.Hover(definitions.NOT_A_NUMBER_DEFINITION) ],
+
+    // Built-in Information Object Classes
+    [ "TYPE-IDENTIFIER", new vscode.Hover(definitions.TYPE_IDENTIFIER_DEFINITION) ],
+    [ "ABSTRACT-SYNTAX", new vscode.Hover(definitions.ABSTRACT_SYNTAX_DEFINITION) ],
 ]);
 
 function provideDumbHover(
@@ -696,6 +701,8 @@ async function provideHover(
     cancel: vscode.CancellationToken,
 ): Promise<vscode.Hover> {
 
+    // TODO: Check if we are in a comment or string first.
+
     // Provide hovers for UTCTime-like strings, even if the module is malformed.
     const utcTimeRange = document.getWordRangeAtPosition(position, wordUTCTimeRegex);
     if (utcTimeRange) {
@@ -783,6 +790,12 @@ async function provideHover(
         return provideOctetStringHover(octetStringRange, s);
     }
 
+
+    const dumbHover2 = provideDumbHover(document, position);
+    if (dumbHover2) {
+        return Promise.resolve(dumbHover2);
+    }
+
     const p = await getParserOutputs(document.uri, undefined, cancel);
     if (
         !p.parserEndState
@@ -808,6 +821,10 @@ async function provideHover(
         ));
     if (!currentModule) {
         // User selected a position that does not fall within a module
+        const dumbHover = provideDumbHover(document, position);
+        if (dumbHover) {
+            return Promise.resolve(dumbHover);
+        }
         return Promise.reject(null);
     }
 
@@ -840,6 +857,10 @@ async function provideHover(
             && positionFallsWithin(document, position, assn.production)
         ));
     if (!currentAssignment) {
+        const dumbHover = provideDumbHover(document, position);
+        if (dumbHover) {
+            return Promise.resolve(dumbHover);
+        }
         return Promise.reject(null);
     }
 

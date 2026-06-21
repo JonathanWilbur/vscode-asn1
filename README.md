@@ -4,6 +4,7 @@ Currently in progress.
 
 ## To Do
 
+- [ ] Strict null checks and other Typescript checks
 - [ ] Avoid re-parsing the file before where changes were made
 - [ ] Auto indentation
 - [x] Folding (by markers)
@@ -11,7 +12,14 @@ Currently in progress.
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
 - [ ] Display deprecation warning over `ANY` and other legacy ASN.1
-- [ ] Hovers for `TYPE-IDENTIFIER` and `ABSTRACT-SYNTAX`
+- [x] Hovers for `TYPE-IDENTIFIER` and `ABSTRACT-SYNTAX`
+- [ ] Hovers for `TYPE-IDENTIFIER.&Type` et. al.
+- [x] Fix `TYPE-IDENTIFIER` and friends from being "undefined" in diagnostics
+- [ ] Inline Completions
+  - [ ] `CLASS`
+  - [ ] `WITH SYNTAX`
+  - [ ] `(1..MAX)` and other ranges
+- [ ] Only run diagnostics on save
 - [ ] Format Document / Format Range
   - [ ] Format imports
   - [ ] One newline between all assignments that themselves are more than one line.
@@ -21,14 +29,8 @@ Currently in progress.
   - [ ] `OBJECT IDENTIFIER` single space between arcs, wrapping to 80 characters if multi-line
   - [ ] Single space between assignment token `::=`
   - [ ] No spaces between parameters and brackets
-- [ ] Intellisense
-  - Prefix of object identifiers (dropdown)
-  - `SET` or `SEQUENCE` type suggestions after `COMPONENTS OF` (dropdown)
-  - Type assignments after `SEQUENCE OF` / `SET OF` (dropdown)
-  - `(1..MAX)` after `SIZE` (inline)
-  - `&id` or `&Type` after `TYPE-IDENTIFIER` and `ABSTRACT-SYNTAX` (dropdown)
-  - Second-level OID arc completions (dropdown)
 - [ ] Snippets
+- [ ] If you encounter a syntax error (due to `RealValue`s using the structured alternative), the diagnostic never goes away.
 
 ## Features Requiring Indexing the Workspace 
 

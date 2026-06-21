@@ -421,3 +421,62 @@ export const SET_OF_DEFINITION : MarkdownString = new MarkdownString(
 whose ordering in the list _does not matter_, in contrast to a `SEQUENCE`, \
 and where the exact number of elements are not known in advance."
 );
+
+export const TYPE_IDENTIFIER_DEFINITION_STR: string =
+`A simple information object class that is "built-in" in ASN.1: you do not have
+to import it from somewhere. This information object class simply relates an
+object identifier to an ASN.1 data type. It was defined due to the widespread
+usage of information object of this particular format.
+
+Objects of this information object class are suitable for use in
+\`INSTANCE OF\` types.
+
+### ASN.1 Definition
+
+\`\`\`asn1
+TYPE-IDENTIFIER ::= CLASS
+{
+    &id OBJECT IDENTIFIER UNIQUE,
+    &Type
+}
+WITH SYNTAX {
+    &Type
+    IDENTIFIED BY &id
+}
+\`\`\`
+
+`;
+
+export const TYPE_IDENTIFIER_DEFINITION = new MarkdownString(TYPE_IDENTIFIER_DEFINITION_STR);
+
+export const ABSTRACT_SYNTAX_DEFINITION_STR: string =
+`A simple information object class that is "built-in" in ASN.1: you do not have
+to import it from somewhere. This information object class simply relates an
+object identifier to an ASN.1 data type that represents the protocol data units
+of that abstract syntax. It differs from \`TYPE-IDENTIFIER\` essentially in
+_what_ it defines: \`TYPE-IDENTIFIER\` is used for relating any ASN.1 data type
+to an object identifier; \`ABSTRACT-SYNTAX\` is used for relating an abstract
+syntax's data type to an object identifier.
+
+Objects of this information object class are suitable for use in
+\`INSTANCE OF\` types.
+
+### ASN.1 Definition
+
+\`\`\`asn1
+ABSTRACT-SYNTAX ::= CLASS
+{
+    &id         OBJECT IDENTIFIER UNIQUE,
+    &Type,
+    &property   BIT STRING {handles-invalid-encodings(0)} DEFAULT {}
+}
+WITH SYNTAX {
+    &Type
+    IDENTIFIED BY &id
+    [HAS PROPERTY &property]
+}
+\`\`\`
+
+`;
+
+export const ABSTRACT_SYNTAX_DEFINITION = new MarkdownString(ABSTRACT_SYNTAX_DEFINITION_STR);
