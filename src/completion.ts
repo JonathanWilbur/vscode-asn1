@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { getLastValidParserOutputs } from "./parsing.js";
-import { positionFallsWithin } from "./utils.js";
+import { inOpenSyntaxRegion, positionFallsWithin } from "./utils.js";
 import { AssignmentType, ComponentType, FieldSpecType, lex, ObjectClassAssignment, TokenOrGroupSpec, TypeType, type Module } from "@wildboar/asn1-parser";
 import {
     TYPE_IDENTIFIER_DEFINITION,
@@ -803,15 +803,28 @@ function lookupObjectClassNameBeforePeriod(
     return null;
 }
 
+/* Unfortunately, this implementation does not detect if the user is in a block
+comment very well. I haven't found an algorithm for checking this that is
+acceptably fast enough. */
 async function provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken,
     context: vscode.CompletionContext,
 ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
-    // TODO: Don't suggest if in strings, comments, etc.
     const line = document.lineAt(position.line);
     const lineTextBeforeCursor = line.text.slice(0, position.character);
+    if (inOpenSyntaxRegion(lineTextBeforeCursor)) {
+        // Don't provide completions, because we are in a comment
+        // or string or something.
+        return Promise.reject(null);
+    }
+    // Try to avoid suggestions if the user is typing out a block comment.
+    if (context.triggerCharacter && line.text.trimEnd().endsWith("*/")) {
+        // Avoid providing 
+        return Promise.reject(null);
+    }
+
     const trimmed = lineTextBeforeCursor.trimEnd();
     const lastSigChar = trimmed[trimmed.length - 1];
 

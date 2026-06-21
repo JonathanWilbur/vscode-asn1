@@ -5,6 +5,7 @@ import {
     getDefinedThingAtPosition,
     getOidNodesFromModuleIdentifier,
     getRangeFromLocation,
+    inOpenSyntaxRegion,
     positionFallsWithin,
 } from "./utils.js";
 import {
@@ -700,8 +701,13 @@ async function provideHover(
     position: vscode.Position,
     cancel: vscode.CancellationToken,
 ): Promise<vscode.Hover> {
-
-    // TODO: Check if we are in a comment or string first.
+    const line = document.lineAt(position.line);
+    const lineBeforeCursor = line.text.slice(0, position.character);
+    if (inOpenSyntaxRegion(lineBeforeCursor)) {
+        // Don't provide hovers, because we are in a comment
+        // or string or something.
+        return Promise.reject(null);
+    }
 
     // Provide hovers for UTCTime-like strings, even if the module is malformed.
     const utcTimeRange = document.getWordRangeAtPosition(position, wordUTCTimeRegex);

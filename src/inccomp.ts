@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { inOpenSyntaxRegion } from "./utils.js";
 
 /**
  * When the user finishes typing one of these keywords, suggest the
@@ -26,23 +27,11 @@ async function provideInlineCompletionItems(
 ): Promise<vscode.InlineCompletionItem[] | vscode.InlineCompletionList> {
     const line = document.lineAt(position.line);
     const lineBeforeCursor = line.text.slice(0, position.character);
-    const lineCommentIndex = lineBeforeCursor.indexOf("--");
-    if (lineCommentIndex > -1 || token.isCancellationRequested) {
-        return []; // Assume that we are in a comment.
+    if (inOpenSyntaxRegion(lineBeforeCursor)) {
+        // Don't provide inline completions, because we are in a comment
+        // or string or something.
+        return [];
     }
-    const blockCommentIndex = lineBeforeCursor.indexOf("/*");
-    if (blockCommentIndex > -1 || token.isCancellationRequested) {
-        return []; // Assume that we are in a comment.
-    }
-    const doubleQuoteIndex = lineBeforeCursor.indexOf('"');
-    if (doubleQuoteIndex > -1 || token.isCancellationRequested) {
-        return []; // Assume that we are in a string.
-    }
-    const singleQuoteIndex = lineBeforeCursor.indexOf("'");
-    if (singleQuoteIndex > -1 || token.isCancellationRequested) {
-        return []; // Assume that we are in a string.
-    }
-    // TODO: Check for block comment start
     const openingPointyBracket = lineBeforeCursor.indexOf("<");
     if (openingPointyBracket > -1 || token.isCancellationRequested) {
         // Assume that we are in an XML value.

@@ -201,3 +201,24 @@ export
 function startsWithCapitalLetter(s: string): boolean {
     return (s.slice(0, 1).toUpperCase() === s.slice(0, 1));
 }
+
+export
+function inOpenSyntaxRegion (lineBeforeCursor: string) {
+    return /(--|\/\*|"|')/.test(lineBeforeCursor);
+    // const lineCommentIndex = lineBeforeCursor.indexOf("--");
+    // if (lineCommentIndex > -1 || token.isCancellationRequested) {
+    //     return []; // Assume that we are in a comment.
+    // }
+    // const blockCommentIndex = lineBeforeCursor.indexOf("/*");
+    // if (blockCommentIndex > -1 || token.isCancellationRequested) {
+    //     return []; // Assume that we are in a comment.
+    // }
+    // const doubleQuoteIndex = lineBeforeCursor.indexOf('"');
+    // if (doubleQuoteIndex > -1 || token.isCancellationRequested) {
+    //     return []; // Assume that we are in a string.
+    // }
+    // const singleQuoteIndex = lineBeforeCursor.indexOf("'");
+    // if (singleQuoteIndex > -1 || token.isCancellationRequested) {
+    //     return []; // Assume that we are in a string.
+    // }
+}
