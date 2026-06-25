@@ -14,7 +14,7 @@ import { updateDiagnostics } from "./diagnostics.js";
 // import { Asn1DocumentFormattingEditProvider } from './format.js';
 import { Asn1InlineCompletionItemProvider } from './inccomp.js';
 // import { Asn1SelectionRangeProvider } from './selectrange.js';
-// import { Asn1SignatureHelpProvider } from './sighelp.js';
+import { Asn1SignatureHelpProvider } from './sighelp.js';
 // import { Asn1TypeDefinitionProvider } from './typedef.js';
 // import { Asn1WorkspaceSymbolProvider } from './wssymbols.js';
 
@@ -93,8 +93,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerInlineCompletionItemProvider(ASN1_MODE, new Asn1InlineCompletionItemProvider()));
 	// context.subscriptions.push(
 	// 	vscode.languages.registerSelectionRangeProvider(ASN1_MODE, new Asn1SelectionRangeProvider()));
-	// context.subscriptions.push(
-	// 	vscode.languages.registerSignatureHelpProvider(ASN1_MODE, new Asn1SignatureHelpProvider()));
+	context.subscriptions.push(
+		vscode.languages.registerSignatureHelpProvider(ASN1_MODE, new Asn1SignatureHelpProvider(), "{", ","));
 	// context.subscriptions.push(
 	// 	vscode.languages.registerTypeDefinitionProvider(ASN1_MODE, new Asn1TypeDefinitionProvider()));
 	// context.subscriptions.push(

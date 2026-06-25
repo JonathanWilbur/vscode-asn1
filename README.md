@@ -4,6 +4,8 @@ Currently in progress.
 
 ## To Do
 
+- [ ] Use the new specialized errors to report more precise problems
+- [ ] Better bracket completion
 - [ ] Strict null checks and other Typescript checks
 - [ ] Avoid re-parsing the file before where changes were made
 - [ ] Auto indentation

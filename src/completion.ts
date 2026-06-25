@@ -803,6 +803,22 @@ function lookupObjectClassNameBeforePeriod(
     return null;
 }
 
+/**
+ * @description
+ * 
+ * This function was written just for clarity as to what rejecting with `null`
+ * does. Returning a promise that resolves with `[]` also does the same exact
+ * thing.
+ * 
+ * This function also makes it easy to set a break point at every case where
+ * the default completions are returned.
+ *
+ * @returns The default VS Code completion items
+ */
+function getVSCodeDefaultCompletions(): Promise<vscode.CompletionItem[]> {
+    return Promise.reject(null);
+}
+
 /* Unfortunately, this implementation does not detect if the user is in a block
 comment very well. I haven't found an algorithm for checking this that is
 acceptably fast enough. */
@@ -817,12 +833,12 @@ async function provideCompletionItems(
     if (inOpenSyntaxRegion(lineTextBeforeCursor)) {
         // Don't provide completions, because we are in a comment
         // or string or something.
-        return Promise.reject(null);
+        return getVSCodeDefaultCompletions();
     }
     // Try to avoid suggestions if the user is typing out a block comment.
     if (context.triggerCharacter && line.text.trimEnd().endsWith("*/")) {
         // Avoid providing 
-        return Promise.reject(null);
+        return getVSCodeDefaultCompletions();
     }
 
     const trimmed = lineTextBeforeCursor.trimEnd();
@@ -858,7 +874,7 @@ async function provideCompletionItems(
         || !outputs.parsedModules
         || ("err" in outputs.parsedModules)
     ) {
-        return [];
+        return getVSCodeDefaultCompletions();
     }
     const modules = outputs.parsedModules.ok;
     const currentModule = modules
@@ -867,7 +883,7 @@ async function provideCompletionItems(
             && positionFallsWithin(document, position, mod.production)
         ));
     if (!currentModule) {
-        return []; // User isn't even within an ASN.1 module.
+        return getVSCodeDefaultCompletions(); // User isn't even within an ASN.1 module.
     }
 
     const whitespaceWasTrimmedFromEnd: boolean = trimmed.length !== lineTextBeforeCursor.length;
@@ -915,8 +931,7 @@ async function provideCompletionItems(
         // If preceeded by a number, ":" it is likely for a `VersionNumber` in `ExtensionAdditionGroup`
         // We can't recommend anything in this case, because what comes next is a component identifier.
         if (/\d+\s*:$/.test(trimmed)) {
-            // TODO: Test what this actually does.
-            return Promise.reject(null);
+            return getVSCodeDefaultCompletions();
         }
     
         /* This works for `ChoiceValue`, `ExceptionIdentification`,
@@ -963,7 +978,7 @@ async function provideCompletionItems(
         let depth: number = 0;
         while (i >= 0) {
             if (token.isCancellationRequested) {
-                return [];
+                return getVSCodeDefaultCompletions();
             }
             const chari = trimmed.charAt(i);
             if (chari === "}") {
@@ -977,7 +992,7 @@ async function provideCompletionItems(
             i--;
         }
         if (i === 0) {
-            return Promise.reject(null);
+            return getVSCodeDefaultCompletions();
         }
         // Otherwise, we balanced curly brackets: whatever came before might be an identifier.
         const beforeCurly = trimmed.slice(0, i).trimEnd(); // Remember, upper is EXCLUSIVE.
@@ -986,8 +1001,8 @@ async function provideCompletionItems(
         const wordText = wordRange && document.getText(wordRange);
         if (wordText) {
             const typeassn = currentModule.assignments[wordText];
-            if (!typeassn || !typeassn.assignmentType.startsWith("Parameterized")) {
-                return Promise.reject(null);
+            if (!typeassn?.parameters?.length) {
+                return getVSCodeDefaultCompletions();
             }
             // Looks like a parameterized `Defined*` thing. Suggest other
             // `Defined*` things as parameters.
@@ -998,7 +1013,7 @@ async function provideCompletionItems(
     // Decision: not providing completion for @ identifiers.
     // Too hard, rarely used, and the identifiers are local to the type
     // assignment, which is necessarily in flux as the user types.
-    return Promise.reject(null);
+    return getVSCodeDefaultCompletions();
 }
 
 export class Asn1CompletionItemProvider implements vscode.CompletionItemProvider {
