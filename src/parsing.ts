@@ -25,6 +25,24 @@ const cache = new Map<string, VersionNumbered<ParserOutputs>>();
 
 const lastValidCache = new Map<string, ParserOutputs>();
 
+/**
+ * Iterates over all files that parsed successfully.
+ */
+export function* getParsedModules(): IterableIterator<[vscode.Uri, Module[]]> {
+    for (const [uristr, { item }] of cache.entries()) {
+        if (!item.parsedModules || ("err" in item.parsedModules)) {
+            continue;
+        }
+        const modules = item.parsedModules.ok;
+        try {
+            const uri = vscode.Uri.parse(uristr, true);
+            yield [uri, modules];
+        } catch {
+            continue;
+        }
+    }
+}
+
 export async function getParserOutputs(
     docOrUri: vscode.Uri | vscode.TextDocument,
     stopAt?: ParserStopAt,
