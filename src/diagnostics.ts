@@ -25,27 +25,11 @@ import {
     Parser,
     GrokContext,
     createGrokContext,
-    BitStringValue,
-    CharacterStringValue,
-    ChoiceValue,
-    EmbeddedPDVValue,
-    ExternalValue,
-    SetOrSequenceOfValue,
-    SetOrSequenceValue,
-    IntegerValue,
     ObjectIdentifierValue,
-    OctetStringValue,
-    RealValue,
-    RelativeOIDValue,
-    PrefixedValue,
-    ValueFromObject,
-    OpenTypeFieldVal,
-    FixedTypeFieldVal,
     builtinRootArcNamesToNumber,
     ObjIdComponents,
     ProductionType,
     LogLevel,
-    // EnumeratedValue
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
 import log from "./logging.js";
@@ -55,6 +39,33 @@ import { ASN1Construction, ASN1TagClass, ASN1UniversalType, BERElement } from "@
 const LANGUAGE: string = "asn1";
 
 export let diagnosticCollection = vscode.languages.createDiagnosticCollection(LANGUAGE);
+
+export const DIAG_CODE_IMPORT_SYMBOL_DUP: string = "E0001";
+export const DIAG_CODE_IMPORT_SYMBOL_UNUSED: string = "E0002";
+export const DIAG_CODE_ASSIGNMENT_DUP: string = "E0003";
+export const DIAG_CODE_NAMED_NUM_OR_BIT_DUP: string = "E0004";
+export const DIAG_CODE_NAMED_BIT_OR_ENUM_NEG: string = "E0005";
+export const DIAG_CODE_ENUM_NUM_DUP: string = "E0006";
+export const DIAG_CODE_COMPS_OF_NOT_TYPE: string = "E0007";
+export const DIAG_CODE_COMPS_OF_WRONG_TYPE: string = "E0008";
+export const DIAG_CODE_SET_OR_SEQ_COMP_DUP: string = "E0009";
+export const DIAG_CODE_CHOICE_ALT_DUP: string = "E0010";
+export const DIAG_CODE_SHORT_OID: string = "E0011";
+export const DIAG_CODE_OID_ROOT_ARC_NUM: string = "E0012";
+export const DIAG_CODE_OID_ROOT_ARC_NAME: string = "E0013";
+export const DIAG_CODE_OID_ROOT_ARC_MISMATCH: string = "E0014";
+export const DIAG_CODE_OID_BIG_SECOND_ARC: string = "E0015";
+export const DIAG_CODE_DATE_INVALID: string = "E0016";
+export const DIAG_CODE_DATE_DAY_INVALID: string = "E0017";
+export const DIAG_CODE_TIME_OF_DAY_INVALID: string = "E0018";
+export const DIAG_CODE_DATETIME_INVALID: string = "E0019";
+export const DIAG_CODE_DURATION_NO_P: string = "E0020";
+export const DIAG_CODE_VAL_ASSN_TYPE_NOT_TYPE: string = "E0021"; // Value assignment's type does not refer to a type assignment.
+export const DIAG_CODE_SYMBOL_NOT_DEFINED: string = "E0022";
+export const DIAG_CODE_EXPORT_NOT_DEFINED: string = "E0023";
+export const DIAG_CODE_LEX_ERROR: string = "E0024";
+export const DIAG_CODE_PARSE_ERROR: string = "E0025";
+export const DIAG_CODE_GROK_ERROR: string = "E0026";
 
 const AT_INDEX = "at index ";
 
@@ -82,6 +93,7 @@ function provideImportDiagnostics(
                 vscode.DiagnosticSeverity.Warning,
             );
             diag.tags = [vscode.DiagnosticTag.Unnecessary];
+            diag.code = DIAG_CODE_IMPORT_SYMBOL_DUP;
             diags.push(diag);
         }
         for (const [symbol, prod] of Object.entries(sfm.symbolList)) {
@@ -96,6 +108,7 @@ function provideImportDiagnostics(
                     vscode.DiagnosticSeverity.Warning,
                 );
                 diag.tags = [vscode.DiagnosticTag.Unnecessary];
+                diag.code = DIAG_CODE_IMPORT_SYMBOL_UNUSED;
                 diags.push(diag);
             }
         }
@@ -131,6 +144,7 @@ function provideDuplicateAssignmentDiagnostics(
                 ];
             }
         }
+        diag.code = DIAG_CODE_ASSIGNMENT_DUP;
         diags.push(diag);
     }
 }
@@ -152,6 +166,7 @@ function returnNamedNumberError(
                 "duplicate identifier",
                 vscode.DiagnosticSeverity.Error,
             );
+            diag.code = DIAG_CODE_NAMED_NUM_OR_BIT_DUP;
             return diag;
         } else {
             // There is an error, but we absolutely cannot construct it.
@@ -164,6 +179,7 @@ function returnNamedNumberError(
         "identifier already assigned before this",
         vscode.DiagnosticSeverity.Error,
     );
+    diag.code = DIAG_CODE_NAMED_NUM_OR_BIT_DUP;
     if (firstloc) {
         const firstrange = getRangeFromLocation(document, firstloc);
         diag.relatedInformation = [
@@ -205,6 +221,7 @@ function provideNamedNumbersDiagnostics(
                 "negative values not allowed",
                 vscode.DiagnosticSeverity.Error,
             );
+            diag.code = DIAG_CODE_NAMED_BIT_OR_ENUM_NEG;
             diags.push(diag);
         }
 
@@ -246,6 +263,7 @@ function provideNamedNumbersDiagnostics(
                 "number already assigned before this (violation of ITU-T Recommendation X.680, Section 20.4)",
                 vscode.DiagnosticSeverity.Error,
             );
+            diag.code = DIAG_CODE_ENUM_NUM_DUP;
             diags.push(diag);
         }
 
@@ -292,6 +310,7 @@ function resolveComponentsOf(
             "reference does not point to a type assignment",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_COMPS_OF_NOT_TYPE;
         diags.push(diag);
         return null;
     }
@@ -304,6 +323,7 @@ function resolveComponentsOf(
             "reference does not refer to a " + typeTypeToString.get(expectedType)! + " type",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_COMPS_OF_WRONG_TYPE;
         diags.push(diag);
         return null;
     }
@@ -408,6 +428,7 @@ function provideSetOrSeqTypeAssnDiagnostics(
                         ),
                     ];
                 }
+                diag.code = DIAG_CODE_SET_OR_SEQ_COMP_DUP;
                 diags.push(diag);
             }
         } else {
@@ -522,6 +543,7 @@ function provideTypeAssignmentDiagnostics(
                             ),
                         ];
                     }
+                    diag.code = DIAG_CODE_CHOICE_ALT_DUP;
                     diags.push(diag);
                 }
             } else {
@@ -644,6 +666,7 @@ function provideOIDValueDiagnostics(
             "an object identifier cannot be shorter than two arcs",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_SHORT_OID;
         diags.push(diag);
         return;
     }
@@ -666,6 +689,7 @@ function provideOIDValueDiagnostics(
             "invalid root arc number. must be 0, 1, or 2.",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_OID_ROOT_ARC_NUM;
         diags.push(diag);
     }
     if ("name" in first && typeof first.name === "string") {
@@ -677,6 +701,7 @@ function provideOIDValueDiagnostics(
                 + Array.from(builtinRootArcNamesToNumber.values()).join(", "),
                 vscode.DiagnosticSeverity.Error,
             );
+            diag.code = DIAG_CODE_OID_ROOT_ARC_NAME;
             diags.push(diag);
         }
         if (
@@ -689,6 +714,7 @@ function provideOIDValueDiagnostics(
                 + builtinRootArcNamesToNumber.get(name) + ".",
                 vscode.DiagnosticSeverity.Error,
             );
+            diag.code = DIAG_CODE_OID_ROOT_ARC_MISMATCH;
             diags.push(diag);
         }
         firstnum = builtinRootArcNamesToNumber.get(name)!;
@@ -708,6 +734,7 @@ function provideOIDValueDiagnostics(
             "the second arc cannot be > 39 if the first arc is 0 or 1",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_OID_BIG_SECOND_ARC;
         diags.push(diag);
     }
 }
@@ -739,6 +766,7 @@ function provideDateDiagnostics(
             "invalid date. must be in yyyy-mm-dd format.",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_DATE_INVALID;
         diags.push(diag);
         return;
     }
@@ -755,6 +783,7 @@ function provideDateDiagnostics(
             "invalid date: day not valid, given the month or leap-year status",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_DATE_DAY_INVALID;
         diags.push(diag);
     }
 }
@@ -771,11 +800,13 @@ function provideTimeOfDayDiagnostics(
             "invalid time of day. must be in hh:mm:ss format.",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_TIME_OF_DAY_INVALID;
         diags.push(diag);
     }
     // No further validation needed. The regex is sufficient.
 }
 
+// TODO: Allow caller to supply a diagnostic code.
 function useDecodingToProvideDiagnostics(
     s: string,
     range: vscode.Range,
@@ -832,6 +863,7 @@ function provideStringDiagnostics(
                     "malformed datetime. must be in yyyy-mm-ddThh:mm:ss format.",
                     vscode.DiagnosticSeverity.Error,
                 );
+                diag.code = DIAG_CODE_DATETIME_INVALID;
                 diags.push(diag);
                 return;
             }
@@ -848,6 +880,7 @@ function provideStringDiagnostics(
                     "malformed duration. must start with a capital 'P'.",
                     vscode.DiagnosticSeverity.Error,
                 );
+                diag.code = DIAG_CODE_DURATION_NO_P;
                 diags.push(diag);
                 return;  
             }
@@ -943,6 +976,7 @@ function provideValueAssignmentDiagnostics(
             // we cannot validate the value with confidence.
             return;
         }
+        // TODO: I think assignmentType will never be Parameterized. Double check.
         const expectedAssignType = ((def.parameters?.length ?? 0) > 0)
             ? AssignmentType.ParameterizedTypeAssignment
             : AssignmentType.TypeAssignment;
@@ -954,6 +988,7 @@ function provideValueAssignmentDiagnostics(
                     "defined type " + def.reference + " does not refer to a type assignment",
                     vscode.DiagnosticSeverity.Error,
                 );
+                diag.code = DIAG_CODE_VAL_ASSN_TYPE_NOT_TYPE;
                 diags.push(diag);
             }
             return;
@@ -1197,6 +1232,7 @@ function drillForUndefinedSymbols(
                 SYMBOL_NOT_DEFINED,
                 vscode.DiagnosticSeverity.Error,
             );
+            diag.code = DIAG_CODE_SYMBOL_NOT_DEFINED;
             diags.push(diag);
         } else {
             drillForUndefinedSymbols(document, mod, diags, child, usedSymbols, recursionTTL);
@@ -1232,6 +1268,7 @@ function provideMissingSymbolDiagnostics(
             SYMBOL_NOT_DEFINED,
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_EXPORT_NOT_DEFINED;
         diags.push(diag);
     }
 
@@ -1291,6 +1328,7 @@ async function updateDiagnostics(
             "malformed asn.1 lexical token stream: " + e.message,
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_LEX_ERROR;
         diagnosticCollection.set(document.uri, [diag]);
         return;
     }
@@ -1306,6 +1344,7 @@ async function updateDiagnostics(
             "malformed asn.1 syntax: " + e.message,
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_PARSE_ERROR;
         diagnosticCollection.set(document.uri, [diag]);
         return;
     }
@@ -1317,6 +1356,7 @@ async function updateDiagnostics(
             "malformed asn.1 syntax: unknown error",
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_PARSE_ERROR;
         diagnosticCollection.set(document.uri, [diag]);
         return;
     }
@@ -1333,6 +1373,7 @@ async function updateDiagnostics(
                 `malformed asn.1 syntax for ${e.production.type}: ` + e.message,
                 vscode.DiagnosticSeverity.Error,
             );
+            diag.code = DIAG_CODE_PARSE_ERROR;
             diags.push(diag);
         }
         diagnosticCollection.set(document.uri, diags);
@@ -1350,6 +1391,7 @@ async function updateDiagnostics(
             "malformed asn.1 module: " + e.message,
             vscode.DiagnosticSeverity.Error,
         );
+        diag.code = DIAG_CODE_GROK_ERROR;
         diagnosticCollection.set(document.uri, [diag]);
         return;
     }
