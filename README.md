@@ -10,7 +10,6 @@ Currently in progress.
 - [ ] Avoid re-parsing the file before where changes were made
 - [ ] Auto indentation
 - [x] Folding (by markers)
-- [ ] Code Action: include missing import
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
 - [ ] Display deprecation warning over `ANY` and other legacy ASN.1
@@ -21,7 +20,6 @@ Currently in progress.
   - [ ] `CLASS`
   - [ ] `WITH SYNTAX`
   - [ ] `(1..MAX)` and other ranges
-- [ ] Only run diagnostics on save
 - [ ] Format Document / Format Range
   - [ ] Format imports
   - [ ] One newline between all assignments that themselves are more than one line.
@@ -33,6 +31,8 @@ Currently in progress.
   - [ ] No spaces between parameters and brackets
 - [ ] Snippets
 - [ ] If you encounter a syntax error (due to `RealValue`s using the structured alternative), the diagnostic never goes away.
+- [ ] Export Object Identifiers as CSV
+- [ ] Export ASN.1 Dependency Graph as CSV
 
 ## Features Requiring Indexing the Workspace 
 

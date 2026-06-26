@@ -52,6 +52,10 @@ import log from "./logging.js";
 import { DATE_REGEX, TIME_REGEX } from "./time.js";
 import { ASN1Construction, ASN1TagClass, ASN1UniversalType, BERElement } from "@wildboar/asn1";
 
+const LANGUAGE: string = "asn1";
+
+export let diagnosticCollection = vscode.languages.createDiagnosticCollection(LANGUAGE);
+
 const AT_INDEX = "at index ";
 
 function getRangeForWholeDocument(document: vscode.TextDocument): [vscode.Position, vscode.Position] {
@@ -278,6 +282,10 @@ function resolveComponentsOf(
     }
     const range = getRangeFromLocation(document, def.production.location);
     const assn = mod.assignments[def.reference];
+    if (!assn) {
+        // COMPONENTS OF must have been imported. Looking no further.
+        return null;
+    }
     if (assn.assignmentType !== AssignmentType.TypeAssignment) {
         const diag = new vscode.Diagnostic(
             range,
@@ -1025,7 +1033,11 @@ function provideAssignmentListDiagnostics(
     diags: vscode.Diagnostic[],
 ): void {
     for (const assn of Object.values(mod.assignments)) {
-        provideAssignmentDiagnostics(document, mod, assn, diags);
+        try {
+            provideAssignmentDiagnostics(document, mod, assn, diags);
+        } catch (e) {
+            log.appendLine(`failed to provide diagnostics for assignment ${assn.identifier}: ${e}`);
+        }
     }
 }
 

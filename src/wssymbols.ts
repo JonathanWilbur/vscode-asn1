@@ -1,0 +1,83 @@
+import * as vscode from "vscode";
+import { getParsedModules } from "./parsing.js";
+import { getSymbolKindFromAssignment } from "./symbols.js";
+import { getRangeFromLocation } from "./utils.js";
+
+// This was written by ChatGPT.
+/**
+ * Returns true if every character of `query` appears in `symbol`
+ * in the same order (not necessarily contiguously).
+ *
+ * Assumes both strings have already been lowercased.
+ */
+function fuzzyMatch(query: string, symbol: string) {
+    let q = 0;
+
+    for (let s = 0; s < symbol.length && q < query.length; s++) {
+        if (symbol[s] === query[q]) {
+            q++;
+        }
+    }
+
+    return q === query.length;
+}
+
+// TODO: Test the above.
+// fuzzyMatch("abc", "a_b_c");           // true
+// fuzzyMatch("abc", "alphabetic");      // true
+// fuzzyMatch("cmp", "completionitem");  // true
+// fuzzyMatch("vsc", "visualstudiocode");// true
+// fuzzyMatch("cat", "cart");            // true
+// fuzzyMatch("cta", "cart");            // false
+// fuzzyMatch("xyz", "completion");      // false
+
+async function provideWorkspaceSymbols(
+    query: string,
+    token: vscode.CancellationToken,
+): Promise<vscode.SymbolInformation[]> {
+    const q = query.toLowerCase();
+    const results: vscode.SymbolInformation[] = [];
+    for (const [uri, mods] of getParsedModules()) {
+        let document: vscode.TextDocument | undefined;
+        for (const mod of mods) {
+            for (const assn of Object.values(mod.assignments)) {
+                if (!assn.production) {
+                    continue;
+                }
+                if (!fuzzyMatch(q, assn.identifier.toLowerCase())) {
+                    continue;
+                }
+                try {
+                    document ??= await vscode.workspace.openTextDocument(uri);
+                    const range = getRangeFromLocation(document, assn.production.location);
+                    const result = new vscode.SymbolInformation(
+                        assn.identifier,
+                        getSymbolKindFromAssignment(assn.assignmentType),
+                        mod.name,
+                        new vscode.Location(uri, range),
+                    );
+                    results.push(result);
+                } catch {
+                    continue;
+                }
+            }
+        }
+    }
+    return results;
+}
+
+export class Asn1WorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
+
+    // Not useful for this implementation.
+    // resolveWorkspaceSymbol(
+    //     symbol: vscode.SymbolInformation,
+    //     token: vscode.CancellationToken,
+    // ): vscode.ProviderResult<vscode.SymbolInformation> {}
+
+    provideWorkspaceSymbols(
+        query: string,
+        token: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.SymbolInformation[]> {
+        return provideWorkspaceSymbols(query, token);
+    }
+}

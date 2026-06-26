@@ -6,17 +6,20 @@ import { Asn1ReferenceProvider } from "./findallref.js";
 import { Asn1RenameProvider } from "./rename.js";
 import { Asn1HighlightProvider } from "./highlight.js";
 import { Asn1FoldingRangeProvider } from "./folding.js";
-// import { Asn1CodeActionProvider } from "./codeact.js";
+import { Asn1CodeActionProvider } from "./codeact.js";
 import { Asn1CompletionItemProvider } from "./completion.js";
 import { indexAsn1Files, indexAsn1File, reindexAsn1File } from "./indexing.js";
 import { log } from "./logging.js";
-import { updateDiagnostics } from "./diagnostics.js";
+import {
+	updateDiagnostics,
+	diagnosticCollection,
+} from "./diagnostics.js";
 // import { Asn1DocumentFormattingEditProvider } from './format.js';
 import { Asn1InlineCompletionItemProvider } from './inccomp.js';
-// import { Asn1SelectionRangeProvider } from './selectrange.js';
+import { Asn1SelectionRangeProvider } from './selectrange.js';
 import { Asn1SignatureHelpProvider } from './sighelp.js';
-// import { Asn1TypeDefinitionProvider } from './typedef.js';
-// import { Asn1WorkspaceSymbolProvider } from './wssymbols.js';
+import { Asn1TypeDefinitionProvider } from './typedef.js';
+import { Asn1WorkspaceSymbolProvider } from './wssymbols.js';
 
 const LANGUAGE: string = "asn1";
 
@@ -33,8 +36,6 @@ function isAsn1File(doc: vscode.TextDocument) {
 		&& doc.uri.scheme === "file"
 	);
 }
-
-let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -71,8 +72,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerRenameProvider(ASN1_MODE, new Asn1RenameProvider()));
 	context.subscriptions.push(
 		vscode.languages.registerFoldingRangeProvider(ASN1_MODE, new Asn1FoldingRangeProvider()));
-	// context.subscriptions.push(
-	// 	vscode.languages.registerCodeActionsProvider(ASN1_MODE, new Asn1CodeActionProvider()));
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider(ASN1_MODE, new Asn1CodeActionProvider()));
 	context.subscriptions.push(
 		vscode.languages.registerCompletionItemProvider(
 			ASN1_MODE,
@@ -91,14 +92,14 @@ export function activate(context: vscode.ExtensionContext) {
 	// 	vscode.languages.registerDocumentFormattingEditProvider(ASN1_MODE, new Asn1DocumentFormattingEditProvider()));
 	context.subscriptions.push(
 		vscode.languages.registerInlineCompletionItemProvider(ASN1_MODE, new Asn1InlineCompletionItemProvider()));
-	// context.subscriptions.push(
-	// 	vscode.languages.registerSelectionRangeProvider(ASN1_MODE, new Asn1SelectionRangeProvider()));
+	context.subscriptions.push(
+		vscode.languages.registerSelectionRangeProvider(ASN1_MODE, new Asn1SelectionRangeProvider()));
 	context.subscriptions.push(
 		vscode.languages.registerSignatureHelpProvider(ASN1_MODE, new Asn1SignatureHelpProvider(), "{", ","));
-	// context.subscriptions.push(
-	// 	vscode.languages.registerTypeDefinitionProvider(ASN1_MODE, new Asn1TypeDefinitionProvider()));
-	// context.subscriptions.push(
-	// 	vscode.languages.registerWorkspaceSymbolProvider(new Asn1WorkspaceSymbolProvider()));
+	context.subscriptions.push(
+		vscode.languages.registerTypeDefinitionProvider(ASN1_MODE, new Asn1TypeDefinitionProvider()));
+	context.subscriptions.push(
+		vscode.languages.registerWorkspaceSymbolProvider(new Asn1WorkspaceSymbolProvider()));
 
 	// APIs evaluated, but decided against:
 	// vscode.languages.registerCodeLensProvider: no use case
@@ -117,7 +118,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
         vscode.languages.registerDocumentHighlightProvider(ASN1_MODE, new Asn1HighlightProvider()));
-	diagnosticCollection = vscode.languages.createDiagnosticCollection(LANGUAGE);
 	context.subscriptions.push(diagnosticCollection);
 
 	/* We have to do the most minimal indexing so we know what files have what
@@ -136,6 +136,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// 	}
 	// 	updateDiagnostics(e, diagnosticCollection);
 	// });
+	// TODO: Clear diagnostics on change, but update them on open
 	vscode.workspace.onDidSaveTextDocument((document) => {
 		if (!isAsn1File(document)) {
 			return;

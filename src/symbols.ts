@@ -43,6 +43,7 @@ function getModuleNameRangeFromModuleProduction(
 	return getRangeFromLocation(document, curr.location);
 }
 
+export
 function getSymbolKindFromAssignment(ass: AssignmentType): vscode.SymbolKind {
 	switch (ass) {
 		case (AssignmentType.ValueAssignment):
