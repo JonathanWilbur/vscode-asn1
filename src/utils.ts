@@ -6,6 +6,7 @@ import {
     type NameAndOrNumber,
     builtinRootArcNamesToNumber,
     TypeType,
+    type Module,
 } from "@wildboar/asn1-parser";
 import { log } from "./logging.js";
 import { ASN1ModuleName, ASN1Reference } from "./types.js";
@@ -222,3 +223,14 @@ function inOpenSyntaxRegion (lineBeforeCursor: string) {
     //     return []; // Assume that we are in a string.
     // }
 }
+
+// TODO: Import from `@wildboar/asn1-parser` when next version is published.
+export function isDefinedOrImported(mod: Module, ident: string): boolean {
+    return (
+        (ident in mod.assignments)
+        || Object.values(mod.imports.modules).some((sfm) => ident in sfm.symbolList)
+        || (ident === "TYPE-IDENTIFIER")
+        || (ident === "ABSTRACT-SYNTAX")
+    );
+}
+

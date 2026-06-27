@@ -12,7 +12,6 @@ Currently in progress.
 - [x] Folding (by markers)
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
-- [ ] Display deprecation warning over `ANY` and other legacy ASN.1
 - [x] Hovers for `TYPE-IDENTIFIER` and `ABSTRACT-SYNTAX`
 - [ ] Hovers for `TYPE-IDENTIFIER.&Type` et. al.
 - [x] Fix `TYPE-IDENTIFIER` and friends from being "undefined" in diagnostics

@@ -3,6 +3,7 @@ import { getParserOutputs } from "./parsing.js";
 import {
     getRangeFromLocation,
     typeTypesThatCouldBeAnything,
+    isDefinedOrImported,
 } from "./utils.js";
 import {
     lex,
@@ -1074,16 +1075,6 @@ function provideAssignmentListDiagnostics(
             log.appendLine(`failed to provide diagnostics for assignment ${assn.identifier}: ${e}`);
         }
     }
-}
-
-// TODO: Move to utils
-function isDefinedOrImported(mod: Module, ident: string): boolean {
-    return (
-        (ident in mod.assignments)
-        || Object.values(mod.imports.modules).some((sfm) => ident in sfm.symbolList)
-        || (ident === "TYPE-IDENTIFIER")
-        || (ident === "ABSTRACT-SYNTAX")
-    );
 }
 
 /**
