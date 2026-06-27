@@ -19,8 +19,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "asn1.helloWorld",
-        "title": "Hello World"
+        "command": "asn1.diagnose",
+        "title": "Refresh ASN.1 Diagnostics"
       }
     ],
     "languages": [

@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import {
-    diagnosticCollection,
     DIAG_CODE_IMPORT_SYMBOL_DUP,
     DIAG_CODE_IMPORT_SYMBOL_UNUSED,
     DIAG_CODE_ASSIGNMENT_DUP,
@@ -9,6 +8,7 @@ import { getParserOutputs } from "./parsing.js";
 import { getRangeFromLocation, positionFallsWithin } from "./utils.js";
 import { SymbolsFromModule, type Module, type Production } from "@wildboar/asn1-parser";
 
+// Written by Cursor AI
 function findSymbolListForRange(
     currentModule: Module,
     document: vscode.TextDocument,
@@ -26,6 +26,7 @@ function findSymbolListForRange(
     return undefined;
 }
 
+// Written by Cursor AI
 function getRemovalRangeForImportSymbol(
     document: vscode.TextDocument,
     symbolList: Production,
@@ -70,11 +71,6 @@ function getRemovalRangeForImportSymbol(
     return new vscode.Range(document.positionAt(start), symbolRange.end);
 }
 
-// ComponentTypeList ComponentType
-// AlternativeTypeList NamedType
-// Enumeration EnumerationItem
-// NamedBitList NamedBit
-// NamedNumberList NamedNumber
 function provideRemoveImportSymbol(
     document: vscode.TextDocument,
     diag: vscode.Diagnostic,
@@ -123,15 +119,21 @@ function provideRemoveImportSymbol(
     return [deleteSymAction, deleteSfmAction];
 }
 
-// TODO: Expand to neighboring comma.
-// TODO: Remove whole line if there's nothing else on the line.
 function provideRemove(
     document: vscode.TextDocument,
     diag: vscode.Diagnostic,
     thingName: string,
 ): vscode.CodeAction {
     const edit = new vscode.WorkspaceEdit();
-    edit.delete(document.uri, diag.range);
+    const endline = document.lineAt(diag.range.end.line);
+    // If we are deleting the whole last line, delete the newline char too.
+    const rmrange = (endline.text.length === diag.range.end.character)
+        ? new vscode.Range(
+            diag.range.start,
+            new vscode.Position(diag.range.end.line + 1, 0)
+        )
+        : diag.range;
+    edit.delete(document.uri, rmrange);
     const action = new vscode.CodeAction(
         "Remove this " + thingName,
         vscode.CodeActionKind.QuickFix,
@@ -139,106 +141,13 @@ function provideRemove(
     action.diagnostics = [ diag ];
     action.isPreferred = true;
     action.edit = edit;
+    action.command = {
+        title: "Refresh ASN.1 diagnostics",
+        command: "asn1.diagnose",
+        arguments: [document.uri],
+    };
     return action;
 }
-
-// TODO: Delete in a future commit.
-// I worked really hard on this, but it just sucks.
-// I cannot accept an implementation that leaves trailing commas in the line above.
-// BTW, I never realized that INTEGER and BIT STRING do not allow extension markers.
-
-// const ignoredTokenTypes: Set<string> = new Set([
-//     "newlineWhitespace",
-//     "nonNewlineWhitespace",
-//     "comment",
-// ]);
-
-// // Differs from provideRemove by removing leading whitespace and the trailing junk.
-// function provideDelist(
-//     document: vscode.TextDocument,
-//     diag: vscode.Diagnostic,
-//     thingName: string,
-// ): vscode.CodeAction {
-//     const beforeText = document
-//         .lineAt(diag.range.start.line)
-//         .text
-//         .slice(0, diag.range.start.character);
-//     const trimFromStart = beforeText.length - beforeText.trimEnd().length;
-//     const endlineText = document.lineAt(diag.range.end.line).text;
-//     const afterText = endlineText
-//         .slice(diag.range.end.character);
-//     const trimAfterEnd = afterText.length - afterText.trimStart().length;
-//     const startpos = new vscode.Position(
-//         diag.range.start.line,
-//         diag.range.start.character - trimFromStart,
-//     );
-//     let reprange = new vscode.Range(
-//         startpos,
-//         new vscode.Position(
-//             diag.range.end.line,
-//             diag.range.end.character + trimAfterEnd,
-//         ),
-//     );
-//     let endcol = reprange.end.character;
-//     try {
-//         const lexer = lex(afterText);
-//         for (const token of lexer) {
-//             if (ignoredTokenTypes.has(token.type)) {
-//                 endcol = document.positionAt(token.location.endIndex).character;
-//             } else {
-//                 break;
-//             }
-//         }
-//         const maybeComma = lexer.next();
-//         if (!maybeComma.done && (maybeComma.value.type === "comma")) {
-//             endcol++;
-//         }
-//         for (const token of lexer) {
-//             if (ignoredTokenTypes.has(token.type)) {
-//                 endcol += (token.location.endIndex - token.location.startIndex);
-//             } else {
-//                 break;
-//             }
-//         }
-//         reprange = new vscode.Range(
-//             startpos,
-//             new vscode.Position(
-//                 diag.range.end.line,
-//                 endcol,
-//             ),
-//         );
-//     } catch {}
-
-//     if (
-//         (
-//             (reprange.start.line < reprange.end.line) // The diagnostic already spans lines...
-//             || (reprange.start.character === 0) // ...or the diagnostic starts at the SOL
-//         )
-//         // ... and the replacement range goes to the end of the line.
-//         && reprange.end.character === endlineText.length
-//     ) {
-//         // ...it means we are replacing this whole line.
-//         // So wrap around so we delete the newline character, too.
-//         reprange = new vscode.Range(
-//             startpos,
-//             new vscode.Position(
-//                 reprange.end.line + 1,
-//                 0,
-//             ),
-//         );
-//     }
-
-//     const edit = new vscode.WorkspaceEdit();
-//     edit.delete(document.uri, reprange);
-//     const action = new vscode.CodeAction(
-//         "Remove this " + thingName,
-//         vscode.CodeActionKind.QuickFix,
-//     );
-//     action.diagnostics = [ diag ];
-//     action.isPreferred = true;
-//     action.edit = edit;
-//     return action;
-// }
 
 async function provideCodeActionsForOneDiag(
     document: vscode.TextDocument,
@@ -266,10 +175,6 @@ async function provideCodeActions(
     context: vscode.CodeActionContext,
     cancel: vscode.CancellationToken,
 ): Promise<(vscode.CodeAction | vscode.Command)[]> {
-    const diags = diagnosticCollection.get(document.uri);
-    if (!diags) {
-        return Promise.reject(null);
-    }
     const p = await getParserOutputs(document.uri, undefined, cancel);
     if (
         !p.parserEndState
@@ -282,10 +187,8 @@ async function provideCodeActions(
         return Promise.reject(null);
     }
     const modules = p.parsedModules.ok;
-
-    // TODO: I think you might want to use context.diagnostics instead.
     const actions: vscode.CodeAction[] = [];
-    for (const diag of diags) {
+    for (const diag of context.diagnostics) {
         if (cancel.isCancellationRequested) {
             return actions;
         }

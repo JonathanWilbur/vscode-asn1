@@ -49,16 +49,11 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 	}
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('asn1.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from ASN.1!');
+	const commandDiagnose = vscode.commands.registerCommand("asn1.diagnose", async (uri: vscode.Uri) => {
+		const doc = await vscode.workspace.openTextDocument(uri);
+    	await updateDiagnostics(doc, diagnosticCollection);
 	});
-
-	context.subscriptions.push(disposable);
+	context.subscriptions.push(commandDiagnose);
 
 	context.subscriptions.push(
 		vscode.languages.registerDocumentSymbolProvider(ASN1_MODE, new Asn1SymbolProvider()));
