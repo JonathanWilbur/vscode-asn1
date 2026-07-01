@@ -9,7 +9,7 @@ import {
     type Module,
 } from "@wildboar/asn1-parser";
 import { log } from "./logging.js";
-import { ASN1ModuleName, ASN1Reference } from "./types.js";
+import type { ASN1ModuleName, ASN1Reference } from "./types.js";
 
 // TODO: Move to @wildboar/asn1-parser
 /**

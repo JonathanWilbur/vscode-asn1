@@ -215,7 +215,6 @@ characters, called 'G', registered in the International Register of Coded \
 Character Sets to be used with Escape Sequences."
 );
 
-// TODO: Add ISO646String (page 176)
 export const VISIBLE_STRING_DEFINITION : MarkdownString = new MarkdownString(
 "A `UNIVERSAL` type that represents a string encoded with the character set \
 registered as character set number 6 in the International Register, but only \

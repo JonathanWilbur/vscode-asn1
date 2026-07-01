@@ -1,7 +1,16 @@
 import * as vscode from "vscode";
 import { getLastValidParserOutputs } from "./parsing.js";
 import { inOpenSyntaxRegion, positionFallsWithin } from "./utils.js";
-import { AssignmentType, ComponentType, FieldSpecType, lex, ObjectClassAssignment, TokenOrGroupSpec, TypeType, type Module } from "@wildboar/asn1-parser";
+import {
+    AssignmentType,
+    type ComponentType,
+    FieldSpecType,
+    lex,
+    type ObjectClassAssignment,
+    type TokenOrGroupSpec,
+    TypeType,
+    type Module,
+} from "@wildboar/asn1-parser";
 import {
     TYPE_IDENTIFIER_DEFINITION,
     ABSTRACT_SYNTAX_DEFINITION,
@@ -12,7 +21,7 @@ import {
     PRIVATE_DEFINTION,
 } from "./definitions/classes.js";
 import { typeTypesThatCouldBeAnything } from "./utils.js";
-import { LexedTokens } from "./types.js";
+import type { LexedTokens } from "./types.js";
 
 const COMPLETION_ITEM_TYPE_IDENTIFIER = new vscode.CompletionItem(
     "TYPE-IDENTIFIER",

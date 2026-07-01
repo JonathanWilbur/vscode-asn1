@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import {
 	type Module,
 	TaggingMode,
-	Production,
-	Assignment,
+	type Production,
+	type Assignment,
 	AssignmentType,
 } from '@wildboar/asn1-parser';
 import { getParserOutputs } from "./parsing.js";

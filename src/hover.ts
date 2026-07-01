@@ -9,13 +9,13 @@ import {
     positionFallsWithin,
 } from "./utils.js";
 import {
-    Assignment,
+    type Assignment,
     AssignmentType,
     builtinRootArcNamesToNumber,
-    Module,
-    NameAndOrNumber,
-    ObjIdComponents,
-    Production,
+    type Module,
+    type NameAndOrNumber,
+    type ObjIdComponents,
+    type Production,
     TypeType,
     ValueType,
 } from "@wildboar/asn1-parser";

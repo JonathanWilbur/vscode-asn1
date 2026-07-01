@@ -29,7 +29,6 @@ async function provideRenameForSymbol(
     const refs = await provideReferencesForSymbol(
         document,
         position,
-        { includeDeclaration: true }, // I don't think this means anything for ASN.1...
         token,
     );
     for (const ref of refs) {

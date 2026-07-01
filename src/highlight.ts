@@ -13,7 +13,7 @@ import {
     getSymbolReferencesWithinFile,
     getReferencesWithinModule,
 } from "./findallref.js";
-import { type LexedTokens } from "./types.js";
+import type { LexedTokens } from "./types.js";
 
 /**
  * @description

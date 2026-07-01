@@ -12,7 +12,12 @@ import {
 import { getParserOutputs } from './parsing.js';
 import { findAllModuleReferencesFallibly, findAllReferencesFallibly, getFilesContainingModule } from "./indexing.js";
 import { log } from "./logging.js";
-import { ASN1ModuleName, ASN1Reference, FileURIStr, LexedTokens } from './types.js';
+import type {
+    ASN1ModuleName,
+    ASN1Reference,
+    FileURIStr,
+    LexedTokens,
+} from './types.js';
 import { resolveAssignedIdentifier } from "./resolve.js";
 
 const ignoredTokenTypes: Set<string> = new Set([
@@ -437,7 +442,6 @@ export
 async function provideReferencesForSymbol(
     document: vscode.TextDocument,
     position: vscode.Position,
-    options: { includeDeclaration: boolean },
     cancel: vscode.CancellationToken,
 ): Promise<vscode.Location[]> {
     // If the document is invalid ASN.1, all bets are off.
@@ -581,7 +585,6 @@ export
 async function provideReferencesForModuleName(
     document: vscode.TextDocument,
     position: vscode.Position,
-    options: { includeDeclaration: boolean },
     cancel: vscode.CancellationToken,
     modoid?: NameAndOrNumber[], // Module must match in the ID or in imports to count
     selopt?: SelectionOption, // How the module must match.
@@ -637,7 +640,6 @@ export
 async function isModuleReference(
     document: vscode.TextDocument,
     position: vscode.Position,
-    options: { includeDeclaration: boolean },
     cancel: vscode.CancellationToken,
 ): Promise<[Module, NameAndOrNumber[]?, SelectionOption?] | null> {
     const wordRange = document.getWordRangeAtPosition(position);
@@ -733,17 +735,14 @@ export
 async function provideReferences(
     document: vscode.TextDocument,
     position: vscode.Position,
-    options: { includeDeclaration: boolean },
     token: vscode.CancellationToken,
 ): Promise<vscode.Location[]> {
-    const isModRef = await isModuleReference(
-        document, position, options, token);
+    const isModRef = await isModuleReference(document, position, token);
     if (isModRef) {
         const [ _, modoid, selopt ] = isModRef ?? [];
         return provideReferencesForModuleName(
             document,
             position,
-            options,
             token,
             modoid,
             selopt,
@@ -752,7 +751,6 @@ async function provideReferences(
         return provideReferencesForSymbol(
             document,
             position,
-            options,
             token,
         );
     }
@@ -760,10 +758,13 @@ async function provideReferences(
 
 export class Asn1ReferenceProvider implements vscode.ReferenceProvider {
     public provideReferences(
-        document: vscode.TextDocument, position: vscode.Position,
-        options: { includeDeclaration: boolean }, token: vscode.CancellationToken):
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        _options: { includeDeclaration: boolean },
+        token: vscode.CancellationToken,
+    ):
         Thenable<vscode.Location[]> {
-        return provideReferences(document, position, options, token);
+        return provideReferences(document, position, token);
     }
 }
 

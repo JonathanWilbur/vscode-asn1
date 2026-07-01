@@ -38,9 +38,18 @@ async function provideWorkspaceSymbols(
     const q = query.toLowerCase();
     const results: vscode.SymbolInformation[] = [];
     for (const [uri, mods] of getParsedModules()) {
+        if (token.isCancellationRequested) {
+            return results;
+        }
         let document: vscode.TextDocument | undefined;
         for (const mod of mods) {
+            if (token.isCancellationRequested) {
+                return results;
+            }
             for (const assn of Object.values(mod.assignments)) {
+                if (token.isCancellationRequested) {
+                    return results;
+                }
                 if (!assn.production) {
                     continue;
                 }

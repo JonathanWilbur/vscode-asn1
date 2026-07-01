@@ -2,7 +2,12 @@ import * as vscode from "vscode";
 import { getDefinedThingAtPosition, getRangeFromLocation, positionFallsWithin } from "./utils.js";
 import { getParserOutputs } from "./parsing.js";
 import { resolveDefined } from "./resolve.js";
-import { Assignment, AssignmentType, Defined, Type, TypeType, Module } from "@wildboar/asn1-parser";
+import {
+    AssignmentType,
+    type Defined,
+    TypeType,
+    type Module,
+} from "@wildboar/asn1-parser";
 
 function isTypeLikeAssignment(assntype: AssignmentType): boolean {
     return (

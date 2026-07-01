@@ -6,7 +6,7 @@ import {
 } from "./diagnostics.js";
 import { getParserOutputs } from "./parsing.js";
 import { getRangeFromLocation, positionFallsWithin } from "./utils.js";
-import { SymbolsFromModule, type Module, type Production } from "@wildboar/asn1-parser";
+import { type SymbolsFromModule, type Module, type Production } from "@wildboar/asn1-parser";
 
 // Written by Cursor AI
 function findSymbolListForRange(
@@ -163,8 +163,10 @@ async function provideCodeActionsForOneDiag(
                 diag,
                 currentModule,
             ));
+            return;
         case (DIAG_CODE_ASSIGNMENT_DUP):
             actions.push(provideRemove(document, diag, "assignment"));
+            return;
         default: return;
     }
 }

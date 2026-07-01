@@ -8,7 +8,7 @@ import {
     type ObjIdComponents,
     type IntegerValue,
     builtinRootArcNamesToNumber,
-    Defined,
+    type Defined,
     // AssignedIdentifier, // FIXME: Not exported. @wildboar/asn1-parser
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";

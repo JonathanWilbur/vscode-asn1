@@ -52,25 +52,6 @@ function separateBy(
     return new vscode.TextEdit(spaceBetween, sep);
 }
 
-// TODO: Deprecate.
-function separateAllChildrenBy(
-    document: vscode.TextDocument,
-    cstnode: Production,
-    sep: string,
-    edits: vscode.TextEdit[],
-): void {
-    const children = cstnode.children.filter((c) => c.type !== "whitespace");
-    if (children.length <= 1) {
-        return;
-    }
-    for (let i = 1; i < children.length; i++) {
-        const c1 = children[i - 1];
-        const c2 = children[i];
-        const edit = separateBy(document, c1, c2, sep);
-        edit && edits.push(edit);
-    }
-}
-
 function separateAllBy(
     document: vscode.TextDocument,
     cstnodes: Production[],
@@ -106,7 +87,7 @@ function formatDefinitiveOidComponent(
     if (!ident || !num) {
         return (cstnode.location.endIndex - cstnode.location.startIndex);
     }
-    separateAllChildrenBy(document, alt, "", edits);
+    separateAllBy(document, alt.children, "", edits);
     const identlen = (ident.location.endIndex - ident.location.startIndex);
     const numlen = (num.location.endIndex - num.location.startIndex);
     return identlen + numlen + 2; // +2 for the parens
@@ -129,7 +110,7 @@ function formatDefinitiveOid(
         : cstnode;
     if (list.type === "DefinitiveOID") {
         // Ensure no space after opening curly or before closing curly.
-        separateAllChildrenBy(document, list, "", edits);
+        separateAllBy(document, list.children, "", edits);
         const clist = list.children.find((c) => c.type === "DefinitiveObjIdComponentList");
         if (!clist) {
             return;
@@ -228,7 +209,7 @@ function formatSymbol(
     if (ref?.type !== "Reference") {
         return malformedProdLength(cstnode);
     }
-    separateAllChildrenBy(document, alt, "", edits);
+    separateAllBy(document, alt.children, "", edits);
     return prodLength(ref) + 2;
 }
 
@@ -344,7 +325,7 @@ function formatDefinedValue(
         if (rest.length > 0 || !valref) {
             return malformedProdLength(cstnode);
         }
-        separateAllChildrenBy(document, alt, "", edits);
+        separateAllBy(document, alt.children, "", edits);
         return (
             prodLength(modref)
             + 1
@@ -353,7 +334,7 @@ function formatDefinedValue(
     }
     if (alt.type === "ParameterizedValue") {
         // ParameterizedValue ::= SimpleDefinedValue ActualParameterList
-        separateAllChildrenBy(document, alt, "", edits);
+        separateAllBy(document, alt.children, "", edits);
         const sdv = alt.children[0];
         const plist = alt.children[alt.children.length - 1];
         if (
@@ -386,7 +367,7 @@ function formatObjIdComponents(
     if (alt.type !== "NameAndNumberForm") {
         return prodLength(cstnode);
     }
-    separateAllChildrenBy(document, alt, "", edits);
+    separateAllBy(document, alt.children, "", edits);
     const numform = alt
         .children
         .find((c) => c.type === "NumberForm");
@@ -782,12 +763,40 @@ function formatModule(
     const imports = body
         .children
         .find((c) => c.type === "Imports");
-    const assnlist = body
+    const assns = body
         .children
-        .find((c) => c.type === "AssignmentList");
+        .find((c) => c.type === "AssignmentList")
+        ?.children
+        .filter((c) => c.type === "Assignment") ?? [];
 
     exports && formatExports(document, edits, exports, eol, linemax, indent);
     imports && formatImports(document, edits, imports, eol, linemax, indent);
+
+    // Ensure double newlines between assignments that themselves span lines.
+    // No transformations are applied to single-line assignments.
+    if (assns.length > 1) {
+        for (let i = 1; i < assns.length; i++) {
+            const first = assns[i - 1];
+            const second = assns[i];
+            const firstRange = getRangeFromLocation(document, first.location);
+            const secondRange = getRangeFromLocation(document, second.location);
+            if (firstRange.isSingleLine && secondRange.isSingleLine) {
+                continue;
+            }
+            // Note that this does not produce an edit if there are comments
+            // between these assignments. This is out of caution.
+            // Conservativism is a deliberate design choice of this formatter.
+            const sepnl = separateBy(document, first, second, eol + eol);
+            sepnl && edits.push(sepnl);
+        }
+    }
+
+    // I don't really think I can do any other formattings for assignments.
+    // In nearly any case, there could be a good reason for a particular whitespacing.
+    // Consider:
+    // `Type9  ::= INTEGER`
+    // `Type10 ::= INTEGER`
+    // So I don't think I can universally enforce anything.
 
     return;
 }
