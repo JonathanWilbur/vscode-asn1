@@ -7,7 +7,6 @@ Currently in progress.
 - [ ] Ignore Diagnostics comment: `-- asn1: ignore_diagnostic`
 - [ ] Use the new specialized errors to report more precise problems
 - [ ] Better bracket completion
-- [ ] Strict null checks and other Typescript checks
 - [ ] Avoid re-parsing the file before where changes were made
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
@@ -16,19 +15,13 @@ Currently in progress.
   - [ ] `CLASS`
   - [ ] `WITH SYNTAX`
   - [ ] `(1..MAX)` and other ranges
-- [ ] Format Document / Format Range
-  - [x] Format imports
-  - [ ] One newline between all assignments that themselves are more than one line.
-  - [ ] All object assignments using defined syntax that aren't already single-line get one line per setting, indented
-  - [ ] Same indents for `SET`, `SEQUENCE` and `CHOICE`
-  - [ ] `ENUMERATED`, `INTEGER`, and `BIT STRING` types: one line or one line per named value
-  - [ ] `OBJECT IDENTIFIER` single space between arcs, wrapping to 80 characters if multi-line
-  - [ ] Single space between assignment token `::=`
-  - [ ] No spaces between parameters and brackets
+- [x] Format Document / Format Range
 - [ ] Snippets
 - [ ] If you encounter a syntax error (due to `RealValue`s using the structured alternative), the diagnostic never goes away.
-- [ ] Export Object Identifiers as CSV
+- [x] Export Object Identifiers as CSV
 - [ ] Export ASN.1 Dependency Graph as CSV
+- [ ] Export Object Identifiers as JSON
+- [ ] Export ASN.1 Dependency Graph as JSON
 
 ## Other To Dos
 

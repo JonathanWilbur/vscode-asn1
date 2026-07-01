@@ -21,6 +21,14 @@
       {
         "command": "asn1.diagnose",
         "title": "Refresh ASN.1 Diagnostics"
+      },
+      {
+        "command": "asn1.oid-to-csv.opendoc",
+        "title": "Export Object Identifiers in Current File to CSV"
+      },
+      {
+        "command": "asn1.oid-to-csv.workspace",
+        "title": "Export All Object Identifiers in Entire Workspace to CSV"
       }
     ],
     "languages": [

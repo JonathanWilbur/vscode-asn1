@@ -251,7 +251,33 @@ export async function resolveOIDComponent(
         log.appendLine("recursion limit exceeded in resolveOIDComponent()");
         return undefined;
     }
+    /* Some `DefinedValue` uses in `OBJECT IDENTIFIER`s can be mistaken for
+    name-only arcs. In our case, since we need to completely resolve the OID,
+    we assume that this mistake has been made and silently convert name-only
+    arcs to `DefinedValue` equivalents, and re-execute this function. */
+    if (
+        !("number" in arc)
+        && ("name" in arc)
+        && arc.name
+        && !builtinRootArcNamesToNumber.has(arc.name)
+    ) {
+        const name = arc.name;
+        return resolveOIDComponent(
+            cancel,
+            {
+                computedModule: Object.values(currentModule.imports.modules)
+                    .find((sfm) => Object.keys(sfm.symbolList).includes(name))
+                    ?.identifier
+                    ?? currentModule.name,
+                reference: arc.name,
+            },
+            currentModule,
+            currentDocUri,
+            recursionTTL, // We don't decrement. This shouldn't count.
+        );
+    }
     if ("reference" in arc) {
+        // NOTE: This reference may ONLY point to a RELATIVE-OID. NOT an INTEGER.
         // TODO: Ensure this code only runs for the first arc.
         if (builtinRootArcNamesToNumber.has(arc.reference)) {
             const num = builtinRootArcNamesToNumber.get(arc.reference)!;

@@ -20,6 +20,7 @@ import { Asn1SelectionRangeProvider } from './selectrange.js';
 import { Asn1SignatureHelpProvider } from './sighelp.js';
 import { Asn1TypeDefinitionProvider } from './typedef.js';
 import { Asn1WorkspaceSymbolProvider } from './wssymbols.js';
+import { export_oid_csv_from_doc, export_oid_csv_from_workspace } from "./commands.js";
 
 const LANGUAGE: string = "asn1";
 
@@ -49,11 +50,27 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 	}
 
+	// TODO: Make the URI optional so this can be user-invoked.
 	const commandDiagnose = vscode.commands.registerCommand("asn1.diagnose", async (uri: vscode.Uri) => {
 		const doc = await vscode.workspace.openTextDocument(uri);
     	await updateDiagnostics(doc, diagnosticCollection);
 	});
 	context.subscriptions.push(commandDiagnose);
+
+	vscode.commands.registerCommand("asn1.oid-to-csv.opendoc", async () => {
+		const editor = vscode.window.activeTextEditor;
+		const document = editor?.document;
+		if (!document) {
+			return; // TODO: Show error message.
+		}
+		const cts = new vscode.CancellationTokenSource();
+		await export_oid_csv_from_doc(document, cts.token);
+	});
+
+	vscode.commands.registerCommand("asn1.oid-to-csv.workspace", async () => {
+		const cts = new vscode.CancellationTokenSource();
+		await export_oid_csv_from_workspace(cts.token);
+	});
 
 	context.subscriptions.push(
 		vscode.languages.registerDocumentSymbolProvider(ASN1_MODE, new Asn1SymbolProvider()));

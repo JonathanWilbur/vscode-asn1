@@ -6,6 +6,8 @@ import {
     getOidNodesFromModuleIdentifier,
     getRangeFromLocation,
     inOpenSyntaxRegion,
+    nameAndOrNumberToIriString,
+    nameAndOrNumberToString,
     positionFallsWithin,
 } from "./utils.js";
 import {
@@ -314,29 +316,6 @@ async function provideDefinedHover(
         return new vscode.Hover(md, definedRange);
     }
     return new vscode.Hover(FAIL_MD, definedRange);
-}
-
-function nameAndOrNumberToString(nn: NameAndOrNumber): string {
-    if ("name" in nn && typeof nn.name === "string") {
-        let ret: string = nn.name;
-        if ("number" in nn) {
-            ret += `(${nn.number})`;
-        }
-        return ret;
-    } else if ("number" in nn) {
-        return nn.number.toString();
-    } else {
-        return "?";
-    }
-}
-
-function nameAndOrNumberToIriString(nn: NameAndOrNumber): string {
-    if (("name" in nn) && (typeof nn.name === "string") && nn.name.length) {
-        return nn.name;
-    } else if ("number" in nn) {
-        return nn.number.toString();
-    }
-    return "?";
 }
 
 function constructOidHover(
