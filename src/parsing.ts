@@ -9,10 +9,10 @@ import {
 } from '@wildboar/asn1-parser';
 import type { YieldType, Result, VersionNumbered } from "./types.js";
 
-export enum ParserStopAt {
-    lexing = 1,
-    parsing = 2,
-}
+export type ParserStopAt =
+    | "lexing"
+    | "parsing"
+    ;
 
 export interface ParserOutputs {
     // TODO: Change this to a different type signature when you fix the missing export
@@ -74,7 +74,7 @@ export async function getParserOutputs(
         return outputs;
     }
 
-    if (stopAt === ParserStopAt.lexing || cancel?.isCancellationRequested) {
+    if (stopAt === "lexing" || cancel?.isCancellationRequested) {
         // TODO: Cache this work.
         return outputs;
     }
@@ -89,7 +89,7 @@ export async function getParserOutputs(
         return outputs;
     }
 
-    if (stopAt === ParserStopAt.parsing || cancel?.isCancellationRequested) {
+    if (stopAt === "parsing" || cancel?.isCancellationRequested) {
         // TODO: Cache this work.
         return outputs;
     }

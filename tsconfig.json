@@ -26,8 +26,8 @@
 		"noUncheckedSideEffectImports": true,
 		"noPropertyAccessFromIndexSignature": true,
 		"verbatimModuleSyntax": true,
-		// "erasableSyntaxOnly": true
-		// "exactOptionalPropertyTypes": true
+		"erasableSyntaxOnly": true,
+		"exactOptionalPropertyTypes": false,
 		"forceConsistentCasingInFileNames": true,
 		"isolatedModules": true,
 		"noUncheckedIndexedAccess": false,

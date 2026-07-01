@@ -14,7 +14,7 @@ import type {
     ImportKey,
     ModuleInfo,
 } from "./types.js";
-import { getParserOutputs, ParserStopAt } from './parsing.js';
+import { getParserOutputs } from './parsing.js';
 import { setImmediate } from "node:timers";
 import { log } from "./logging.js";
 
@@ -102,7 +102,7 @@ export async function indexAsn1File(docOrUri: vscode.Uri | vscode.TextDocument) 
         return;
     }
     const text = document.getText();
-    const p = await getParserOutputs(document, ParserStopAt.lexing);
+    const p = await getParserOutputs(document, "lexing");
     if (!p.lexicalTokens || "err" in p.lexicalTokens) {
         log.appendLine(`malformed asn.1 file ${document.uri} could not be indexed: ${p.lexicalTokens?.err ?? "<unknown lexing error>"}`);
         return;

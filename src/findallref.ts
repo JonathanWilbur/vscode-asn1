@@ -26,11 +26,11 @@ const ignoredTokenTypes: Set<string> = new Set([
     "comment",
 ]);
 
-enum DefinedThingParsingState {
-    module,
-    period,
-    identifier,
-}
+type DefinedThingParsingState = 
+    | "module"
+    | "period"
+    | "identifier"
+    ;
 
 /* NOTE: Even when searching for a reference that is supposedly defined in this file,
 there is no need to skip over the imports, since the identifier could be re-exported
@@ -68,7 +68,7 @@ async function getReferencesWithinModule(
 
     let pastBegin: boolean = false;
     let ignoreUntilSemicolon: boolean = false;
-    let state: DefinedThingParsingState = DefinedThingParsingState.module;
+    let state: DefinedThingParsingState = "module";
     const locations: vscode.Location[] = [];
     let endIndex: number | undefined;
     for (let i = z; i < tokens.length; i++) {
@@ -113,13 +113,13 @@ async function getReferencesWithinModule(
         }
 
         if (
-            state !== DefinedThingParsingState.period
+            state !== "period"
             && token.type === identTokenType
         ) {
             const loc = token.location;
             const tokenText = text.slice(loc.startIndex, loc.endIndex);
             // Even if the identifier does not match, we have to reset the state.
-            state = DefinedThingParsingState.module;
+            state = "module";
             if (tokenText === ident) {
                 const range = getRangeFromLocation(document, loc);
                 locations.push(new vscode.Location(document.uri, range));
@@ -128,26 +128,26 @@ async function getReferencesWithinModule(
         }
 
         if (
-            state === DefinedThingParsingState.module
+            state === "module"
             && moduleReferenceTokens.has(token.type)
         ) {
             const loc = token.location;
             const tokenText = text.slice(loc.startIndex, loc.endIndex);
             if (modref && (tokenText === modref)) {
-                state = DefinedThingParsingState.period;
+                state = "period";
                 continue;
             }
         }
 
-        if (state === DefinedThingParsingState.period) {
+        if (state === "period") {
             /* Without this condition, if you encounter the module name in the
             imports, the parser waits for a period to occur next. */
             if (token.type === "FROM" || token.type === "comma") {
-                state = DefinedThingParsingState.module;
+                state = "module";
                 continue;
             }
             if (token.type === "period") {
-                state = DefinedThingParsingState.identifier;
+                state = "identifier";
                 continue;
             }
         }
