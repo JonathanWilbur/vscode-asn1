@@ -17,11 +17,18 @@ Currently in progress.
   - [ ] `(1..MAX)` and other ranges
 - [x] Format Document / Format Range
 - [ ] Snippets
+  - [ ] `seq`
+  - [ ] `set`
+  - [ ] `mod`
+  - [ ] `oid`
+  - [ ] `cls`
 - [ ] If you encounter a syntax error (due to `RealValue`s using the structured alternative), the diagnostic never goes away.
 - [x] Export Object Identifiers as CSV
-- [ ] Export ASN.1 Dependency Graph as CSV
-- [ ] Export Object Identifiers as JSON
-- [ ] Export ASN.1 Dependency Graph as JSON
+- [x] Export ASN.1 Dependency Graph as CSV
+- [x] Export ASN.1 Modules as CSV
+- [x] Export ASN.1 Assignments as CSV
+- [x] Export ASN.1 Modules as JSON (Include assignments too)
+- [ ] Export X.500 Information Objects? (Support LDIF as well)
 
 ## Other To Dos
 

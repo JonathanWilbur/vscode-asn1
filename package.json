@@ -29,6 +29,34 @@
       {
         "command": "asn1.oid-to-csv.workspace",
         "title": "Export All Object Identifiers in Entire Workspace to CSV"
+      },
+      {
+        "command": "asn1.deps-to-csv.opendoc",
+        "title": "Export All ASN.1 Imports and Exports in Current File to CSV"
+      },
+      {
+        "command": "asn1.deps-to-csv.workspace",
+        "title": "Export All ASN.1 Imports and Exports in Entire Workspace to CSV"
+      },
+      {
+        "command": "asn1.mods-to-csv.opendoc",
+        "title": "Export All ASN.1 Modules in Current File to CSV"
+      },
+      {
+        "command": "asn1.mods-to-csv.workspace",
+        "title": "Export All ASN.1 Modules in Entire Workspace to CSV"
+      },
+      {
+        "command": "asn1.assns-to-csv.opendoc",
+        "title": "Export All ASN.1 Assignments in Current File to CSV"
+      },
+      {
+        "command": "asn1.assns-to-csv.workspace",
+        "title": "Export All ASN.1 Assignments in Entire Workspace to CSV"
+      },
+      {
+        "command": "asn1.mods-to-json.opendoc",
+        "title": "Export All ASN.1 Modules in Current File to JSON"
       }
     ],
     "languages": [

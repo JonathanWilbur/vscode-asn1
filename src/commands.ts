@@ -9,10 +9,12 @@ import {
     type Module,
     type Location,
     TypeType,
+    TaggingMode,
 } from "@wildboar/asn1-parser";
-import { resolveOID, resolveOIDComponents } from "./resolve.js";
+import { resolveAssignedIdentifier, resolveOID, resolveOIDComponents } from "./resolve.js";
 import {
     getOidNodesFromModuleIdentifier,
+    getRangeFromLocation,
     nameAndOrNumberToIriString,
     nameAndOrNumberToString,
     typeTypesThatCouldBeAnything,
@@ -34,7 +36,7 @@ interface OidInfo {
     location?: Location,
 }
 
-const CSV_HEADER: string = [
+const OID_CSV_HEADER: string = [
     "OID_SOURCE",
     "MODULE_NAME",
     "MODULE_OID",
@@ -53,6 +55,67 @@ const CSV_HEADER: string = [
     "START_LINE",
     "START_COLUMN",
     "ASSIGNMENT_INDEX",
+].join(",");
+
+const DEPS_CSV_HEADER: string = [
+    "MODULE_NAME",
+    "MODULE_OID",
+    "MODULE_IRI",
+    "RELATION_TYPE",
+    "SYMBOL_NAME",
+    "USED_PARAM_BRACKETS",
+    "FROM_MODULE_NAME",
+    "FROM_MODULE_OID",
+    "FROM_MODULE_IRI",
+    "FROM_MODULE_SEL_OPT",
+    "START_OFFSET",
+    "END_OFFSET",
+    "START_LINE",
+    "START_COLUMN",
+    "FILE_PATH",
+].join(",");
+
+const MODS_CSV_HEADER: string = [
+    "MODULE_NAME",
+    "MODULE_OID",
+    "MODULE_IRI",
+    "TAGGING_MODE",
+    "EXTENS_IMPLIED",
+    "ENCODING_REF",
+    "EXPORTS_ALL",
+    "ASSIGNMENTS_COUNT",
+    "IMPORTED_MODS_COUNT",
+    "IMPORTED_SYMS_COUNT",
+    "START_OFFSET",
+    "END_OFFSET",
+    "START_LINE",
+    "START_COLUMN",
+    "FILE_PATH",
+].join(",");
+
+const ASSNS_CSV_HEADER: string = [
+    "MODULE_NAME",
+    "MODULE_OID",
+    "MODULE_IRI",
+    "ASSIGNMENT_NAME",
+    "ASSIGNMENT_TYPE",
+    "PARAMETERS_COUNT",
+    "TYPE_TYPE",
+    "TYPE_NAME",
+    "VALUE_TYPE",
+    "INFO_OBJECT_CLASS",
+    // "SET_SIZE",
+    // "IS_EXTENSIBLE",
+    // "IS_SUBTYPE",
+    "ASSIGNMENT_INDEX",
+    "DEPENDENCY_INDEX",
+    // "LEFT_SIDE",
+    // "RIGHT_SIDE",
+    "START_OFFSET",
+    "END_OFFSET",
+    "START_LINE",
+    "START_COLUMN",
+    "FILE_PATH",
 ].join(",");
 
 function oidInfoToCSVRow(info: OidInfo): string {
@@ -153,7 +216,7 @@ async function resolveOidValue(
 
 // TODO: Support cancellation somehow?
 export
-async function get_csv_rows_from_doc(
+async function get_oid_csv_rows_from_doc(
     document: vscode.TextDocument,
     token: vscode.CancellationToken,
     rows: string[],
@@ -224,12 +287,285 @@ async function get_csv_rows_from_doc(
 }
 
 export
+async function get_dep_csv_rows_from_doc(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken,
+    rows: string[],
+): Promise<void> {
+    const p = await getParserOutputs(document, undefined, token);
+    if (!p.parsedModules || ("err" in p.parsedModules)) {
+        return failExport();   
+    }
+    const modules = p.parsedModules.ok;
+    for (const mod of modules) {
+        if (token.isCancellationRequested) {
+            return;
+        }
+        const modnums = mod.oid
+            ? getOidNodesFromModuleIdentifier(mod.oid)
+            : undefined;
+        const modiri = (
+            mod.iri
+            && !mod.iri.includes("\"")
+            && !mod.iri.includes(",")
+        )
+            ? mod.iri
+            : "";
+        for (const [symname, prod] of Object.entries(mod.exports?.exportedSymbols ?? {})) {
+            const range = getRangeFromLocation(document, prod.location);
+            const symtext = document.getText(range);
+            const row = [
+                mod.name, // "MODULE_NAME",
+                modnums?.join(".") ?? "", // "MODULE_OID",
+                modiri, // "MODULE_IRI",
+                "EXPORT", // "RELATION_TYPE",
+                symname, // "SYMBOL_NAME",
+                symtext.endsWith("}") ? "TRUE" : "FALSE", // "USED_PARAM_BRACKETS",
+                "", // "FROM_MODULE_NAME",
+                "", // "FROM_MODULE_OID",
+                "", // "FROM_MODULE_IRI",
+                "", // "FROM_MODULE_SEL_OPT",
+                prod.location.startIndex.toString() ?? "", // "START_OFFSET",
+                prod.location.endIndex.toString() ?? "", // "END_OFFSET",
+                prod.location.lineNumber.toString() ?? "", // "START_LINE",
+                prod.location.columnNumber.toString() ?? "", // "START_COLUMN",
+                // relative to avoid leaking user's full paths.
+                vscode.workspace.asRelativePath(document.uri), // FILE_PATH
+            ].join(",");
+            rows.push(row);
+        }
+
+        for (const sfm of Object.values(mod.imports.modules)) {
+            const fromModName: string = sfm.identifier;
+            let fromModOid: string = ""; 
+            if (sfm.assignedIdentifier) {
+                const resolved = await resolveAssignedIdentifier(
+                    token,
+                    sfm.assignedIdentifier,
+                    mod,
+                    document.uri,
+                );
+                if (resolved) {
+                    fromModOid = getOidNodesFromModuleIdentifier(resolved)?.join(".") ?? "";
+                }
+            }
+            const selopt: string = sfm.selectionOption?.toString().replace(" ", "_") ?? "";
+            for (const [symname, prod] of Object.entries(sfm.symbolList)) {
+                const symrange = prod && getRangeFromLocation(document, prod.location);
+                const symtext: string = symrange
+                    ? document.getText(symrange)
+                    : "";
+                const row = [
+                    mod.name, // "MODULE_NAME",
+                    modnums?.join(".") ?? "", // "MODULE_OID",
+                    modiri, // "MODULE_IRI",
+                    "IMPORT", // "RELATION_TYPE",
+                    symname, // "SYMBOL_NAME",
+                    symtext.endsWith("}") ? "TRUE" : "FALSE", // "USED_PARAM_BRACKETS",
+                    fromModName, // "FROM_MODULE_NAME",
+                    fromModOid, // "FROM_MODULE_OID",
+                    "", // "FROM_MODULE_IRI", (Not even allowed in syntax.)
+                    selopt, // "FROM_MODULE_SEL_OPT",
+                    prod?.location.startIndex.toString() ?? "", // "START_OFFSET",
+                    prod?.location.endIndex.toString() ?? "", // "END_OFFSET",
+                    prod?.location.lineNumber.toString() ?? "", // "START_LINE",
+                    prod?.location.columnNumber.toString() ?? "", // "START_COLUMN",
+                    // relative to avoid leaking user's full paths.
+                    vscode.workspace.asRelativePath(document.uri), // FILE_PATH
+                ].join(",");
+                rows.push(row);
+            }
+        }
+    }
+}
+
+export
+async function get_module_csv_rows_from_doc(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken,
+    rows: string[],
+): Promise<void> {
+    const p = await getParserOutputs(document, undefined, token);
+    if (!p.parsedModules || ("err" in p.parsedModules)) {
+        return failExport();   
+    }
+    const modules = p.parsedModules.ok;
+    for (const mod of modules) {
+        if (token.isCancellationRequested) {
+            return;
+        }
+        const modnums = mod.oid
+            ? getOidNodesFromModuleIdentifier(mod.oid)
+            : undefined;
+        const modiri = (
+            mod.iri
+            && !mod.iri.includes("\"")
+            && !mod.iri.includes(",")
+        )
+            ? mod.iri
+            : "";
+
+        const taggingMode: string = mod.taggingMode;
+        const extensImplied: string = mod.extensibilityImplied ? "TRUE" : "FALSE";
+        const encodingRef: string = mod.encodingReference?.replace(/\s+INSTRUCTIONS/, "") ?? "";
+        const exportsAll: string = mod.exports ? "FALSE" : "TRUE";
+        const assnsCount: string = Object.keys(mod.assignments).length.toString();
+        const impModsCount: string = Object.keys(mod.imports.modules).length.toString();
+        const impSymsCount: string = Object.values(mod.imports.modules)
+            .map((sfm) => Object.keys(sfm.symbolList).length)
+            .reduce((acc, cur) => acc + cur, 0)
+            .toString()
+            ;
+        const prod = mod.production;
+        const row = [
+            mod.name, // "MODULE_NAME",
+            modnums?.join(".") ?? "", // "MODULE_OID",
+            modiri, // "MODULE_IRI",
+            taggingMode, // "TAGGING_MODE",
+            extensImplied, // "EXTENS_IMPLIED",
+            encodingRef, // "ENCODING_REF",
+            exportsAll, // "EXPORTS_ALL",
+            assnsCount, // "ASSIGNMENTS_COUNT",
+            impModsCount, // "IMPORTED_MODS_COUNT",
+            impSymsCount, // "IMPORTED_SYMS_COUNT",
+            prod?.location.startIndex.toString() ?? "", // "START_OFFSET",
+            prod?.location.endIndex.toString() ?? "", // "END_OFFSET",
+            prod?.location.lineNumber.toString() ?? "", // "START_LINE",
+            prod?.location.columnNumber.toString() ?? "", // "START_COLUMN",
+            // relative to avoid leaking user's full paths.
+            vscode.workspace.asRelativePath(document.uri), // FILE_PATH
+        ].join(",");
+        rows.push(row);
+    }
+}
+
+export
+async function get_assignment_csv_rows_from_doc(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken,
+    rows: string[],
+): Promise<void> {
+    const p = await getParserOutputs(document, undefined, token);
+    if (!p.parsedModules || ("err" in p.parsedModules)) {
+        return failExport();   
+    }
+    const modules = p.parsedModules.ok;
+    for (const mod of modules) {
+        if (token.isCancellationRequested) {
+            return;
+        }
+        const modnums = mod.oid
+            ? getOidNodesFromModuleIdentifier(mod.oid)
+            : undefined;
+        const modiri = (
+            mod.iri
+            && !mod.iri.includes("\"")
+            && !mod.iri.includes(",")
+        )
+            ? mod.iri
+            : "";
+
+        for (const assn of Object.values(mod.assignments)) {
+            const prod = assn.production;
+            const typeType = (
+                assn.assignmentType === AssignmentType.ValueAssignment
+                || assn.assignmentType === AssignmentType.TypeAssignment
+                || assn.assignmentType === AssignmentType.ValueSetTypeAssignment
+            )
+                ? assn.type.typeType.toString()
+                : "";
+            const typeName = (
+                (
+                    assn.assignmentType === AssignmentType.ValueAssignment
+                    || assn.assignmentType === AssignmentType.TypeAssignment
+                    || assn.assignmentType === AssignmentType.ValueSetTypeAssignment
+                )
+                && assn.type.typeType === TypeType.DefinedType
+            )
+                ? [
+                    assn.type.type.computedModule,
+                    assn.type.type.reference,
+                ].join(".")
+                : "";
+            const valueType = (assn.assignmentType === AssignmentType.ValueAssignment)
+                ? assn.value.valueType.toString()
+                : "";
+            const objClassName = (
+                assn.assignmentType === AssignmentType.ObjectAssignment
+                || assn.assignmentType === AssignmentType.ObjectSetAssignment
+            )
+                ? [
+                    assn.definedObjectClass.computedModule,
+                    assn.definedObjectClass.reference,
+                ].join(".")
+                : "";
+            const row = [
+                mod.name, // "MODULE_NAME",
+                modnums?.join(".") ?? "", // "MODULE_OID",
+                modiri, // "MODULE_IRI",
+                assn.identifier, // "ASSIGNMENT_NAME",
+                assn.assignmentType, // "ASSIGNMENT_TYPE",
+                (assn.parameters?.length ?? 0).toString(), // "PARAMETERS_COUNT",
+                typeType, // "TYPE_TYPE",
+                typeName, // "TYPE_NAME",
+                valueType, // "VALUE_TYPE",
+                objClassName, // "INFO_OBJECT_CLASS",
+                assn.originalIndex?.toString() ?? "", // "ASSIGNMENT_INDEX",
+                assn.dependencyIndex?.toString() ?? "", // "DEPENDENCY_INDEX",
+                prod?.location.startIndex.toString() ?? "", // "START_OFFSET",
+                prod?.location.endIndex.toString() ?? "", // "END_OFFSET",
+                prod?.location.lineNumber.toString() ?? "", // "START_LINE",
+                prod?.location.columnNumber.toString() ?? "", // "START_COLUMN",
+                // relative to avoid leaking user's full paths.
+                vscode.workspace.asRelativePath(document.uri), // FILE_PATH
+            ].join(",");
+            rows.push(row);
+        }
+    }
+}
+
+function replacer(this: any, _: string, value: any): any {
+    if (
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        Array.isArray(value.children)
+    ) {
+        const { children, ...rest } = value;
+        return {
+            ...rest,
+            childrenCount: children.length,
+        };
+    }
+
+    return value;
+}
+
+export
+async function get_modules_json_from_doc(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken,
+): Promise<string> {
+    const p = await getParserOutputs(document, undefined, token);
+    if (!p.parsedModules || ("err" in p.parsedModules)) {
+        return failExport();   
+    }
+    const ret: unknown[] = [];
+    const modules = p.parsedModules.ok;
+    const obj = {
+        fileUri: vscode.workspace.asRelativePath(document.uri),
+        modules,
+    };
+    return JSON.stringify(obj, replacer, 4);
+}
+
+export
 async function export_oid_csv_from_doc(
     document: vscode.TextDocument,
     token: vscode.CancellationToken,
 ): Promise<void> {
     const rows: string[] = [];
-    await get_csv_rows_from_doc(document, token, rows);
+    await get_oid_csv_rows_from_doc(document, token, rows);
     // TODO: Allow a user to override this.
     const eol = (document.eol === vscode.EndOfLine.CRLF)
         ? "\r\n"
@@ -237,7 +573,7 @@ async function export_oid_csv_from_doc(
 
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: CSV_HEADER + eol + rows.join(eol),
+        content: OID_CSV_HEADER + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
@@ -252,7 +588,7 @@ async function export_oid_csv_from_workspace(
     for (const uri of uris) {
         try {
             const doc = await vscode.workspace.openTextDocument(uri);
-            await get_csv_rows_from_doc(doc, token, rows);
+            await get_oid_csv_rows_from_doc(doc, token, rows);
         } catch {
             continue;
         }
@@ -263,8 +599,221 @@ async function export_oid_csv_from_workspace(
 
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: CSV_HEADER + eol + rows.join(eol),
+        content: OID_CSV_HEADER + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
+}
+
+export
+async function export_deps_csv_from_doc(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken,
+): Promise<void> {
+    const rows: string[] = [];
+    await get_dep_csv_rows_from_doc(document, token, rows);
+    // TODO: Allow a user to override this.
+    const eol = (document.eol === vscode.EndOfLine.CRLF)
+        ? "\r\n"
+        : "\n";
+
+    const csvDocument = await vscode.workspace.openTextDocument({
+        language: "csv",
+        content: DEPS_CSV_HEADER + eol + rows.join(eol),
+    });
+
+    await vscode.window.showTextDocument(csvDocument);
+}
+
+export
+async function export_deps_csv_from_workspace(
+    token: vscode.CancellationToken,
+): Promise<void> {
+    const rows: string[] = [];
+    const uris = await vscode.workspace.findFiles("**/*.asn1");
+    for (const uri of uris) {
+        try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            await get_dep_csv_rows_from_doc(doc, token, rows);
+        } catch {
+            continue;
+        }
+    }
+
+    // TODO: Allow a user to override this.
+    const eol = "\r\n";
+
+    const csvDocument = await vscode.workspace.openTextDocument({
+        language: "csv",
+        content: OID_CSV_HEADER + eol + rows.join(eol),
+    });
+
+    await vscode.window.showTextDocument(csvDocument);
+}
+
+export
+async function export_modules_csv_from_doc(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken,
+): Promise<void> {
+    const rows: string[] = [];
+    await get_module_csv_rows_from_doc(document, token, rows);
+    // TODO: Allow a user to override this.
+    const eol = (document.eol === vscode.EndOfLine.CRLF)
+        ? "\r\n"
+        : "\n";
+
+    const csvDocument = await vscode.workspace.openTextDocument({
+        language: "csv",
+        content: MODS_CSV_HEADER + eol + rows.join(eol),
+    });
+
+    await vscode.window.showTextDocument(csvDocument);
+}
+
+export
+async function export_modules_csv_from_workspace(
+    token: vscode.CancellationToken,
+): Promise<void> {
+    const rows: string[] = [];
+    const uris = await vscode.workspace.findFiles("**/*.asn1");
+    for (const uri of uris) {
+        try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            await get_module_csv_rows_from_doc(doc, token, rows);
+        } catch {
+            continue;
+        }
+    }
+
+    // TODO: Allow a user to override this.
+    const eol = "\r\n";
+
+    const csvDocument = await vscode.workspace.openTextDocument({
+        language: "csv",
+        content: MODS_CSV_HEADER + eol + rows.join(eol),
+    });
+
+    await vscode.window.showTextDocument(csvDocument);
+}
+
+export
+async function export_assignments_csv_from_doc(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken,
+): Promise<void> {
+    const rows: string[] = [];
+    await get_assignment_csv_rows_from_doc(document, token, rows);
+    // TODO: Allow a user to override this.
+    const eol = (document.eol === vscode.EndOfLine.CRLF)
+        ? "\r\n"
+        : "\n";
+
+    const csvDocument = await vscode.workspace.openTextDocument({
+        language: "csv",
+        content: ASSNS_CSV_HEADER + eol + rows.join(eol),
+    });
+
+    await vscode.window.showTextDocument(csvDocument);
+}
+
+export
+async function export_assignments_csv_from_workspace(
+    token: vscode.CancellationToken,
+): Promise<void> {
+    const rows: string[] = [];
+    const uris = await vscode.workspace.findFiles("**/*.asn1");
+    for (const uri of uris) {
+        try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            await get_assignment_csv_rows_from_doc(doc, token, rows);
+        } catch {
+            continue;
+        }
+    }
+
+    // TODO: Allow a user to override this.
+    const eol = "\r\n";
+
+    const csvDocument = await vscode.workspace.openTextDocument({
+        language: "csv",
+        content: ASSNS_CSV_HEADER + eol + rows.join(eol),
+    });
+
+    await vscode.window.showTextDocument(csvDocument);
+}
+
+export async function export_deps_csv_from_doc_cmd(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor?.document;
+    if (!document) {
+        return; // TODO: Show error message.
+    }
+    const cts = new vscode.CancellationTokenSource();
+    await export_deps_csv_from_doc(document, cts.token);
+}
+
+export async function export_deps_csv_from_workspace_cmd(): Promise<void> {
+    const cts = new vscode.CancellationTokenSource();
+    await export_deps_csv_from_workspace(cts.token);
+}
+
+export async function export_oid_csv_from_doc_cmd(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor?.document;
+    if (!document) {
+        return; // TODO: Show error message.
+    }
+    const cts = new vscode.CancellationTokenSource();
+    await export_oid_csv_from_doc(document, cts.token);
+}
+
+export async function export_oid_csv_from_workspace_cmd(): Promise<void> {
+    const cts = new vscode.CancellationTokenSource();
+    await export_oid_csv_from_workspace(cts.token);
+}
+
+export async function export_modules_csv_from_doc_cmd(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor?.document;
+    if (!document) {
+        return; // TODO: Show error message.
+    }
+    const cts = new vscode.CancellationTokenSource();
+    await export_modules_csv_from_doc(document, cts.token);
+}
+
+export async function export_modules_csv_from_workspace_cmd(): Promise<void> {
+    const cts = new vscode.CancellationTokenSource();
+    await export_modules_csv_from_workspace(cts.token);
+}
+
+export async function export_assignments_csv_from_doc_cmd(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor?.document;
+    if (!document) {
+        return; // TODO: Show error message.
+    }
+    const cts = new vscode.CancellationTokenSource();
+    await export_assignments_csv_from_doc(document, cts.token);
+}
+
+export async function export_assignments_csv_from_workspace_cmd(): Promise<void> {
+    const cts = new vscode.CancellationTokenSource();
+    await export_assignments_csv_from_workspace(cts.token);
+}
+
+export async function export_modules_json_from_doc_cmd(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor?.document;
+    if (!document) {
+        return; // TODO: Show error message.
+    }
+    const cts = new vscode.CancellationTokenSource();
+    const jsonstr = await get_modules_json_from_doc(document, cts.token);
+    const jsonDocument = await vscode.workspace.openTextDocument({
+        language: "json",
+        content: jsonstr,
+    });
+    await vscode.window.showTextDocument(jsonDocument);
 }

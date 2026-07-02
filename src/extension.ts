@@ -20,7 +20,17 @@ import { Asn1SelectionRangeProvider } from './selectrange.js';
 import { Asn1SignatureHelpProvider } from './sighelp.js';
 import { Asn1TypeDefinitionProvider } from './typedef.js';
 import { Asn1WorkspaceSymbolProvider } from './wssymbols.js';
-import { export_oid_csv_from_doc, export_oid_csv_from_workspace } from "./commands.js";
+import {
+	export_deps_csv_from_doc_cmd,
+	export_deps_csv_from_workspace_cmd,
+	export_oid_csv_from_doc_cmd,
+	export_oid_csv_from_workspace_cmd,
+	export_modules_csv_from_doc_cmd,
+	export_modules_csv_from_workspace_cmd,
+	export_assignments_csv_from_doc_cmd,
+	export_assignments_csv_from_workspace_cmd,
+	export_modules_json_from_doc_cmd,
+} from "./commands.js";
 
 const LANGUAGE: string = "asn1";
 
@@ -57,20 +67,18 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(commandDiagnose);
 
-	vscode.commands.registerCommand("asn1.oid-to-csv.opendoc", async () => {
-		const editor = vscode.window.activeTextEditor;
-		const document = editor?.document;
-		if (!document) {
-			return; // TODO: Show error message.
-		}
-		const cts = new vscode.CancellationTokenSource();
-		await export_oid_csv_from_doc(document, cts.token);
-	});
-
-	vscode.commands.registerCommand("asn1.oid-to-csv.workspace", async () => {
-		const cts = new vscode.CancellationTokenSource();
-		await export_oid_csv_from_workspace(cts.token);
-	});
+	vscode.commands.registerCommand("asn1.oid-to-csv.opendoc", export_oid_csv_from_doc_cmd);
+	vscode.commands.registerCommand("asn1.oid-to-csv.workspace", export_oid_csv_from_workspace_cmd);
+	vscode.commands.registerCommand("asn1.deps-to-csv.opendoc", export_deps_csv_from_doc_cmd);
+	vscode.commands.registerCommand("asn1.deps-to-csv.workspace", export_deps_csv_from_workspace_cmd);
+	vscode.commands.registerCommand("asn1.mods-to-csv.opendoc", export_modules_csv_from_doc_cmd);
+	vscode.commands.registerCommand("asn1.mods-to-csv.workspace", export_modules_csv_from_workspace_cmd);
+	vscode.commands.registerCommand("asn1.assns-to-csv.opendoc", export_assignments_csv_from_doc_cmd);
+	vscode.commands.registerCommand("asn1.assns-to-csv.workspace", export_assignments_csv_from_workspace_cmd);
+	// There is no workspace equivalent for this command because it creates a
+	// gigantic output just for just one file. I'm not sure my computer, or
+	// anybody's computer, even has enough memory to test it.
+	vscode.commands.registerCommand("asn1.mods-to-json.opendoc", export_modules_json_from_doc_cmd);
 
 	context.subscriptions.push(
 		vscode.languages.registerDocumentSymbolProvider(ASN1_MODE, new Asn1SymbolProvider()));
