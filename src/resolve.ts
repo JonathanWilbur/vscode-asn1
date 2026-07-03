@@ -9,7 +9,10 @@ import {
     type IntegerValue,
     builtinRootArcNamesToNumber,
     type Defined,
-    // AssignedIdentifier, // FIXME: Not exported. @wildboar/asn1-parser
+    type ObjectIdentifierValue,
+    type AssignedIdentifier,
+    type ObjectDefn,
+    type Object_,
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
 import { getParserOutputs } from "./parsing.js";
@@ -22,7 +25,7 @@ import * as vscode from "vscode";
 
 export async function resolveAssignedIdentifier(
     cancel: vscode.CancellationToken,
-    assid: NonNullable<SymbolsFromModule["assignedIdentifier"]>,
+    assid: NonNullable<AssignedIdentifier>,
     currentModule: Module,
     currentDocUri: vscode.Uri,
     recursionTTL: number = 10,
@@ -359,6 +362,7 @@ export async function resolveOIDComponents(
     return resolvedComponents;
 }
 
+// TODO: Allow document to be passed in as well.
 // NOTE: You do not have to worry about resolving things like ValueFromObject,
 // because the BNF specifically only allows DefinedValue as a prefix.
 // ObjectIdentifierValue ::=
@@ -486,4 +490,102 @@ function resolveDefinedInstantly(
     }
     // TODO: Recurse.
     return currentModule.assignments[defined.reference];
+}
+
+function failExport(): never {
+    // TODO: Do something better than this.
+    throw new Error("Resolving an OID value failed");
+}
+
+export
+async function resolveOidValue(
+    document: vscode.TextDocument,
+    val: ObjectIdentifierValue,
+    cancel: vscode.CancellationToken,
+    currentModule: Module,
+): Promise<NameAndOrNumber[] | undefined> {
+    let oid: NameAndOrNumber[] | undefined;
+    if (val.prefix) {
+        const prefix = val.prefix;
+        // TODO: @wildboar/asn1-parser: fix this
+        /* It seems that the built-in OID root arc values can be mistaken
+        for the `DefinedValue` prefix. We check for these values here and
+        convert them to numbers. */
+        if (!prefix.module && builtinRootArcNamesToNumber.has(prefix.reference)) {
+            const num = builtinRootArcNamesToNumber.get(prefix.reference);
+            oid = [{ name: prefix.reference, number: num }];
+        } else {
+            oid = await resolveOID(
+                cancel,
+                prefix.module,
+                prefix.reference,
+                currentModule,
+                document.uri,
+            );
+            if (!oid) {
+                return failExport();
+            }
+        }
+    }
+    const resolvedComponents = await resolveOIDComponents(
+        cancel,
+        val.components,
+        currentModule,
+        document.uri,
+    );
+    if (!resolvedComponents) {
+        return failExport();
+    }
+    if (oid) {
+        oid.push(...resolvedComponents);
+    } else {
+        oid = resolvedComponents;
+    }
+    return oid;
+}
+
+// export type Object_ = DefinedObject | ObjectDefn | ObjectFromObject;
+export async function resolveObjectDefn(
+    cancel: vscode.CancellationToken,
+    object: Object_,
+    currentModule: Module,
+    currentDocUri: vscode.Uri,
+    recursionTTL: number = 10,
+): Promise<ObjectDefn | undefined> {
+    if (recursionTTL <= 0) {
+        return undefined;
+    }
+    if ("reference" in object) {
+        const ref = object;
+        const resolved = await resolveDefined(
+            cancel,
+            ref.module ?? ref.computedModule,
+            ref.reference,
+            currentModule,
+            currentDocUri,
+        );
+        if (!resolved) {
+            return undefined;
+        }
+        const [assn, mod, newdocuri] = resolved;
+        if (assn.assignmentType !== AssignmentType.ObjectAssignment) {
+            throw new Error(`${ref.reference} in ${mod.name} was not an object assignment`);
+        }
+        return resolveObjectDefn(
+            cancel,
+            assn.object,
+            mod,
+            newdocuri,
+            recursionTTL - 1,
+        );
+    } else if ("referencedObjects" in object) {
+        // Not supported. Very complicated to implement.
+        return undefined;
+    } else if ("tokens" in object) {
+        return object; // Already an ObjectDefn (DefinedSyntax)
+    } else if ("fieldSettings" in object) {
+        return object; // Already an ObjectDefn (DefaultSyntax)
+    } else {
+        return undefined; // Unrecognized syntax.
+    }
 }

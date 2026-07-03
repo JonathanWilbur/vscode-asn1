@@ -79,6 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// gigantic output just for just one file. I'm not sure my computer, or
 	// anybody's computer, even has enough memory to test it.
 	vscode.commands.registerCommand("asn1.mods-to-json.opendoc", export_modules_json_from_doc_cmd);
+	// vscode.commands.registerCommand("asn1.x500-to-json.opendoc", export_x500_schema_json_from_doc_cmd);
 
 	context.subscriptions.push(
 		vscode.languages.registerDocumentSymbolProvider(ASN1_MODE, new Asn1SymbolProvider()));

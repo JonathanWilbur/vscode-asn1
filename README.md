@@ -4,6 +4,7 @@ Currently in progress.
 
 ## To Do
 
+- [ ] Cache OID resolution (cache key being uri + version + module name + module offset)
 - [ ] Ignore Diagnostics comment: `-- asn1: ignore_diagnostic`
 - [ ] Use the new specialized errors to report more precise problems
 - [ ] Better bracket completion
@@ -23,12 +24,8 @@ Currently in progress.
   - [ ] `oid`
   - [ ] `cls`
 - [ ] If you encounter a syntax error (due to `RealValue`s using the structured alternative), the diagnostic never goes away.
-- [x] Export Object Identifiers as CSV
-- [x] Export ASN.1 Dependency Graph as CSV
-- [x] Export ASN.1 Modules as CSV
-- [x] Export ASN.1 Assignments as CSV
-- [x] Export ASN.1 Modules as JSON (Include assignments too)
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
+  - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.
 
 ## Other To Dos
 

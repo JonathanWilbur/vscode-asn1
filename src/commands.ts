@@ -2,16 +2,15 @@ import * as vscode from "vscode";
 import { getParserOutputs } from "./parsing.js";
 import {
     AssignmentType,
-    builtinRootArcNamesToNumber,
     ValueType,
     type NameAndOrNumber,
-    type ObjectIdentifierValue,
-    type Module,
     type Location,
     TypeType,
-    TaggingMode,
 } from "@wildboar/asn1-parser";
-import { resolveAssignedIdentifier, resolveOID, resolveOIDComponents } from "./resolve.js";
+import {
+    resolveAssignedIdentifier,
+    resolveOidValue,
+} from "./resolve.js";
 import {
     getOidNodesFromModuleIdentifier,
     getRangeFromLocation,
@@ -166,52 +165,6 @@ function oidInfoToCSVRow(info: OidInfo): string {
         info.location?.columnNumber.toString() ?? "",
         info.assignmentIndex?.toString() ?? "",
     ].join(",");
-}
-
-async function resolveOidValue(
-    document: vscode.TextDocument,
-    val: ObjectIdentifierValue,
-    cancel: vscode.CancellationToken,
-    currentModule: Module,
-): Promise<NameAndOrNumber[] | undefined> {
-    let oid: NameAndOrNumber[] | undefined;
-    if (val.prefix) {
-        const prefix = val.prefix;
-        // TODO: @wildboar/asn1-parser: fix this
-        /* It seems that the built-in OID root arc values can be mistaken
-        for the `DefinedValue` prefix. We check for these values here and
-        convert them to numbers. */
-        if (!prefix.module && builtinRootArcNamesToNumber.has(prefix.reference)) {
-            const num = builtinRootArcNamesToNumber.get(prefix.reference);
-            oid = [{ name: prefix.reference, number: num }];
-        } else {
-            oid = await resolveOID(
-                cancel,
-                prefix.module,
-                prefix.reference,
-                currentModule,
-                document.uri,
-            );
-            if (!oid) {
-                return failExport();
-            }
-        }
-    }
-    const resolvedComponents = await resolveOIDComponents(
-        cancel,
-        val.components,
-        currentModule,
-        document.uri,
-    );
-    if (!resolvedComponents) {
-        return failExport();
-    }
-    if (oid) {
-        oid.push(...resolvedComponents);
-    } else {
-        oid = resolvedComponents;
-    }
-    return oid;
 }
 
 // TODO: Support cancellation somehow?
@@ -817,3 +770,4 @@ export async function export_modules_json_from_doc_cmd(): Promise<void> {
     });
     await vscode.window.showTextDocument(jsonDocument);
 }
+

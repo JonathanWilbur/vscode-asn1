@@ -57,6 +57,10 @@
       {
         "command": "asn1.mods-to-json.opendoc",
         "title": "Export All ASN.1 Modules in Current File to JSON"
+      },
+      {
+        "command": "asn1.x500-to-json.opendoc",
+        "title": "Export X.500 Directory Schema in Current File to JSON"
       }
     ],
     "languages": [
@@ -128,6 +132,6 @@
   },
   "dependencies": {
     "@wildboar/asn1": "npm:@jsr/wildboar__asn1@^11.1.0",
-    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.4.1"
+    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.5.0"
   }
 }
