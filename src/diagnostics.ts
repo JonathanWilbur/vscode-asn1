@@ -67,6 +67,7 @@ export const DIAG_CODE_EXPORT_NOT_DEFINED: string = "E0023";
 export const DIAG_CODE_LEX_ERROR: string = "E0024";
 export const DIAG_CODE_PARSE_ERROR: string = "E0025";
 export const DIAG_CODE_GROK_ERROR: string = "E0026";
+export const DIAG_CODE_DIAG_DISABLED: string = "E0027";
 
 const AT_INDEX = "at index ";
 
@@ -1288,11 +1289,30 @@ function provideMissingSymbolDiagnostics(
     drillForUndefinedSymbols(document, mod, diags, assnlist, usedSymbols);
 }
 
+function lineDisablesDiagnostics(line: string): boolean {
+    return (
+        /^\s*--\s*no_diagnose/.test(line)
+        || /^\s*\/\*\s*no_diagnose/.test(line)
+    );
+}
+
 export
 async function updateDiagnostics(
     document: vscode.TextDocument,
     diagnosticCollection: vscode.DiagnosticCollection,
 ): Promise<void> {
+    const firstline = document.lineAt(0);
+    const firstlineText = firstline.text;
+    if (lineDisablesDiagnostics(firstlineText)) {
+        const diag = new vscode.Diagnostic(
+            firstline.range,
+            "diagnostics disabled. remove the 'no_diagnose' to re-enable diagnostics.",
+            vscode.DiagnosticSeverity.Warning,
+        );
+        diag.code = DIAG_CODE_DIAG_DISABLED;
+        diagnosticCollection.set(document.uri, [diag]);
+        return;
+    }
     log.appendLine(`updating diagnostics for file ${document.uri}`);
     const p = await getParserOutputs(document);
     if (!p.lexicalTokens) {

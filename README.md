@@ -2,10 +2,22 @@
 
 Currently in progress.
 
+## Disabling Diagnostics
+
+It can be annoying to get diagnostics for an ASN.1 file that you are in the
+process of editing, because it might be invalid until it is done, and repeatedly
+analyzing it for diagnostics wastes computing power and creates visual clutter
+with all of the "squiggles." To disable diagnostics, add a comment to the top of your
+ASN.1 file that starts with `no_diagnose`, such as `-- no_diagnose` or
+`/* no_diagnose */`. This will only have an effect if it is on the first line.
+
+If this special comment is present, it will be a lone warning diagnostic for
+the file, just to remind you that you have otherwise disabled diagnostics.
+
 ## To Do
 
 - [ ] Cache OID resolution (cache key being uri + version + module name + module offset)
-- [ ] Ignore Diagnostics comment: `-- asn1: ignore_diagnostic`
+- [x] Ignore Diagnostics comment: `-- asn1: ignore_diagnostic`
 - [ ] Use the new specialized errors to report more precise problems
 - [ ] Better bracket completion
 - [ ] Avoid re-parsing the file before where changes were made

@@ -217,10 +217,11 @@ async function getOidFromSetting<FieldNameType extends string = string>(
         if ("tokens" in obj) {
 
         } else if ("fieldSettings" in obj) {
-            
+
         }
         // Object = DefinedObject | ObjectDefn | ObjectFromObject;
         // return oidToJSON(resolved, ref);
+        throw new Error("not implemented");
     } else {
         throw new Error(`Failed to resolve an oid in ${identifier} in ${currentModule.name}`);
     }

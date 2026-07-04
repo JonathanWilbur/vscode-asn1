@@ -8,6 +8,7 @@ import {
     type ParseContext,
 } from '@wildboar/asn1-parser';
 import type { YieldType, Result, VersionNumbered } from "./types.js";
+import { getRangeFromLocation } from './utils.js';
 
 export type ParserStopAt =
     | "lexing"
@@ -66,7 +67,8 @@ export async function getParserOutputs(
 
     // Lex: obtain a stream of lexical tokens
     try {
-        outputs.lexicalTokens = { ok: Array.from(lex(text)) };
+        const lexicalTokens = Array.from(lex(text));
+        outputs.lexicalTokens = { ok: lexicalTokens };
     } catch (e) {
         // TODO: If e isn't an error, try to make it into one.
         outputs.lexicalTokens = { err: e as Error };
