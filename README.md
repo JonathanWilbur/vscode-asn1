@@ -16,11 +16,13 @@ the file, just to remind you that you have otherwise disabled diagnostics.
 
 ## To Do
 
-- [ ] Cache OID resolution (cache key being uri + version + module name + module offset)
+- [x] ~~Cache OID resolution (cache key being uri + version + module name + module offset)~~
+  - Dangerous, complicated, and its already fast enough.
 - [x] Ignore Diagnostics comment: `-- asn1: ignore_diagnostic`
-- [ ] Use the new specialized errors to report more precise problems
-- [ ] Better bracket completion
-- [ ] Avoid re-parsing the file before where changes were made
+- [x] Use the new specialized errors to report more precise problems
+- [x] ~~Better bracket completion~~ (I don't know what this means... it works.)
+- [x] ~~Avoid re-parsing the file before where changes were made~~
+  - Very low value. Lexing is already the fastest part, and that's all you could improve upon.
 - [ ] CodeLens: Convert to and from defined syntax
 - [ ] CodeLens or Right-Click: Display defined syntax
 - [ ] Hovers for `TYPE-IDENTIFIER.&Type` et. al.

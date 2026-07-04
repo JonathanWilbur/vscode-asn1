@@ -31,6 +31,9 @@ import {
     type ObjIdComponents,
     type ProductionType,
     LogLevel,
+    ASN1SemanticError,
+    ASN1SyntaxError,
+    ASN1ParserExpectationError,
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
 import log from "./logging.js";
@@ -1296,6 +1299,69 @@ function lineDisablesDiagnostics(line: string): boolean {
     );
 }
 
+function syntaxErrorToDiag(
+    document: vscode.TextDocument,
+    e: ASN1SyntaxError,
+    malformedThing: string,
+    code: string,
+): vscode.Diagnostic {
+    const range = getRangeFromLocation(document, e.production.location);
+    const diag = new vscode.Diagnostic(
+        range,
+        e.moduleName
+            ? `malformed ${malformedThing}: syntax error in ${e.moduleName}: ${e.message}`
+            : `malformed ${malformedThing}: syntax error: ${e.message}`,
+        vscode.DiagnosticSeverity.Error,
+    );
+    diag.code = code;
+    return diag;
+}
+
+function asn1NonSyntaxErrorToDiag(
+    document: vscode.TextDocument,
+    e: ASN1SemanticError | ASN1ParserExpectationError,
+    malformedThing: string,
+    code: string,
+    errstring: string,
+): vscode.Diagnostic {
+    let [start, end] = getRangeForWholeDocument(document);
+    const range = e.production
+        ? getRangeFromLocation(document, e.production.location)
+        : new vscode.Range(start, end);
+    let locdesc: string = "";
+    if (e.assignment) {
+        locdesc += ` in assignment ${e.assignment}`;
+    }
+    if (e.moduleName) {
+        locdesc += ` in module ${e.moduleName}`;
+    }
+    const diag = new vscode.Diagnostic(
+        range,
+        `malformed ${malformedThing}: ${errstring}${locdesc}: ${e.message}`,
+        vscode.DiagnosticSeverity.Error,
+    );
+    diag.code = code;
+    return diag;
+}
+
+function semanticErrorToDiag(
+    document: vscode.TextDocument,
+    e: ASN1ParserExpectationError,
+    malformedThing: string,
+    code: string,
+): vscode.Diagnostic {
+    return asn1NonSyntaxErrorToDiag(document, e, malformedThing, code, "semantic error");
+}
+
+function expectationErrorToDiag(
+    document: vscode.TextDocument,
+    e: ASN1ParserExpectationError,
+    malformedThing: string,
+    code: string,
+): vscode.Diagnostic {
+    return asn1NonSyntaxErrorToDiag(document, e, malformedThing, code, "assertion failure");
+}
+
 export
 async function updateDiagnostics(
     document: vscode.TextDocument,
@@ -1319,10 +1385,25 @@ async function updateDiagnostics(
         return; // Should not happen.
     }
     let [start, end] = getRangeForWholeDocument(document);
+    let modname: string | undefined;
+    let thing: string = "asn.1 lexical token stream";
+    let code: string = DIAG_CODE_LEX_ERROR;
     if ("err" in p.lexicalTokens) {
         const e = p.lexicalTokens.err;
         const indexInMessage = e.message.indexOf(AT_INDEX);
-        if (indexInMessage > -1) {
+        if (e instanceof ASN1SyntaxError) {
+            const diag = syntaxErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        } else if (e instanceof ASN1SemanticError) {
+            const diag = semanticErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        } else if (e instanceof ASN1ParserExpectationError) {
+            const diag = expectationErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        } else if (indexInMessage > -1) {
             /* I checked: this will return after encountering non-digits, so
             I do not have to trim the string to only digits. */
             const index = Number.parseInt(
@@ -1336,7 +1417,9 @@ async function updateDiagnostics(
         const range = new vscode.Range(start, end);
         const diag = new vscode.Diagnostic(
             range,
-            "malformed asn.1 lexical token stream: " + e.message,
+            modname
+                ? (`malformed asn.1 lexical token stream in ${modname}: ` + e.message)
+                : ("malformed asn.1 lexical token stream: " + e.message),
             vscode.DiagnosticSeverity.Error,
         );
         diag.code = DIAG_CODE_LEX_ERROR;
@@ -1347,8 +1430,23 @@ async function updateDiagnostics(
     if (!p.parserEndState) {
         return; // Should not happen.
     }
+    thing = "asn.1 syntax";
+    code = DIAG_CODE_PARSE_ERROR;
     if ("err" in p.parserEndState) {
         const e = p.parserEndState.err;
+        if (e instanceof ASN1SyntaxError) {
+            const diag = syntaxErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        } else if (e instanceof ASN1SemanticError) {
+            const diag = semanticErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        } else if (e instanceof ASN1ParserExpectationError) {
+            const diag = expectationErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        }
         const range = new vscode.Range(start, end);
         const diag = new vscode.Diagnostic(
             range,
@@ -1373,18 +1471,8 @@ async function updateDiagnostics(
     }
     if (Object.keys(parsing.syntaxErrors).length > 0) {
         const diags: vscode.Diagnostic[] = [];
-        for (const [indexstr, e] of Object.entries(parsing.syntaxErrors)) {
-            const index = Number.parseInt(indexstr, 10);
-            if (!Number.isSafeInteger(index)) {
-                continue;
-            }
-            const range = getRangeFromLocation(document, e.production.location);
-            const diag = new vscode.Diagnostic(
-                range,
-                `malformed asn.1 syntax for ${e.production.type}: ` + e.message,
-                vscode.DiagnosticSeverity.Error,
-            );
-            diag.code = DIAG_CODE_PARSE_ERROR;
+        for (const e of Object.values(parsing.syntaxErrors)) {
+            const diag = syntaxErrorToDiag(document, e, thing, code);
             diags.push(diag);
         }
         diagnosticCollection.set(document.uri, diags);
@@ -1394,8 +1482,23 @@ async function updateDiagnostics(
         return; // Should not happen
     }
     // TODO: Make this still return the modules that succeeded.
+    thing = "asn.1 module";
+    code = DIAG_CODE_GROK_ERROR;
     if ("err" in p.parsedModules) {
         const e = p.parsedModules.err;
+        if (e instanceof ASN1SyntaxError) {
+            const diag = syntaxErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        } else if (e instanceof ASN1SemanticError) {
+            const diag = semanticErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        } else if (e instanceof ASN1ParserExpectationError) {
+            const diag = expectationErrorToDiag(document, e, thing, code);
+            diagnosticCollection.set(document.uri, [diag]);
+            return;
+        }
         const range = new vscode.Range(start, end);
         const diag = new vscode.Diagnostic(
             range,
