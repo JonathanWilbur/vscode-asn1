@@ -12,12 +12,29 @@ import {
     resolveOidValue,
 } from "./resolve.js";
 import {
+    getAsn1Files,
     getOidNodesFromModuleIdentifier,
     getRangeFromLocation,
     nameAndOrNumberToIriString,
     nameAndOrNumberToString,
     typeTypesThatCouldBeAnything,
 } from "./utils.js";
+
+export function getExportEol(document?: vscode.TextDocument): "\r\n" | "\n" {
+    if (document) {
+        const eol = (document.eol === vscode.EndOfLine.CRLF)
+            ? "\r\n"
+            : "\n";
+        return eol;
+    }
+    const config = vscode.workspace.getConfiguration("asn1");
+    const exportEol = config.get<"lf" | "crlf">("exportEndOfLine", "crlf");
+    if (exportEol === "crlf") {
+        return "\r\n";
+    } else {
+        return "\n";
+    }
+}
 
 function failExport(): never {
     // TODO: Do something better than this.
@@ -519,11 +536,7 @@ async function export_oid_csv_from_doc(
 ): Promise<void> {
     const rows: string[] = [];
     await get_oid_csv_rows_from_doc(document, token, rows);
-    // TODO: Allow a user to override this.
-    const eol = (document.eol === vscode.EndOfLine.CRLF)
-        ? "\r\n"
-        : "\n";
-
+    const eol = getExportEol(document);
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
         content: OID_CSV_HEADER + eol + rows.join(eol),
@@ -537,7 +550,7 @@ async function export_oid_csv_from_workspace(
     token: vscode.CancellationToken,
 ): Promise<void> {
     const rows: string[] = [];
-    const uris = await vscode.workspace.findFiles("**/*.asn1");
+    const uris = await getAsn1Files();
     for (const uri of uris) {
         try {
             const doc = await vscode.workspace.openTextDocument(uri);
@@ -546,10 +559,7 @@ async function export_oid_csv_from_workspace(
             continue;
         }
     }
-
-    // TODO: Allow a user to override this.
-    const eol = "\r\n";
-
+    const eol = getExportEol();
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
         content: OID_CSV_HEADER + eol + rows.join(eol),
@@ -565,11 +575,7 @@ async function export_deps_csv_from_doc(
 ): Promise<void> {
     const rows: string[] = [];
     await get_dep_csv_rows_from_doc(document, token, rows);
-    // TODO: Allow a user to override this.
-    const eol = (document.eol === vscode.EndOfLine.CRLF)
-        ? "\r\n"
-        : "\n";
-
+    const eol = getExportEol(document);
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
         content: DEPS_CSV_HEADER + eol + rows.join(eol),
@@ -583,7 +589,7 @@ async function export_deps_csv_from_workspace(
     token: vscode.CancellationToken,
 ): Promise<void> {
     const rows: string[] = [];
-    const uris = await vscode.workspace.findFiles("**/*.asn1");
+    const uris = await getAsn1Files();
     for (const uri of uris) {
         try {
             const doc = await vscode.workspace.openTextDocument(uri);
@@ -592,10 +598,7 @@ async function export_deps_csv_from_workspace(
             continue;
         }
     }
-
-    // TODO: Allow a user to override this.
-    const eol = "\r\n";
-
+    const eol = getExportEol();
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
         content: OID_CSV_HEADER + eol + rows.join(eol),
@@ -611,11 +614,7 @@ async function export_modules_csv_from_doc(
 ): Promise<void> {
     const rows: string[] = [];
     await get_module_csv_rows_from_doc(document, token, rows);
-    // TODO: Allow a user to override this.
-    const eol = (document.eol === vscode.EndOfLine.CRLF)
-        ? "\r\n"
-        : "\n";
-
+    const eol = getExportEol(document);
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
         content: MODS_CSV_HEADER + eol + rows.join(eol),
@@ -629,7 +628,7 @@ async function export_modules_csv_from_workspace(
     token: vscode.CancellationToken,
 ): Promise<void> {
     const rows: string[] = [];
-    const uris = await vscode.workspace.findFiles("**/*.asn1");
+    const uris = await getAsn1Files();
     for (const uri of uris) {
         try {
             const doc = await vscode.workspace.openTextDocument(uri);
@@ -638,10 +637,7 @@ async function export_modules_csv_from_workspace(
             continue;
         }
     }
-
-    // TODO: Allow a user to override this.
-    const eol = "\r\n";
-
+    const eol = getExportEol();
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
         content: MODS_CSV_HEADER + eol + rows.join(eol),
@@ -657,11 +653,7 @@ async function export_assignments_csv_from_doc(
 ): Promise<void> {
     const rows: string[] = [];
     await get_assignment_csv_rows_from_doc(document, token, rows);
-    // TODO: Allow a user to override this.
-    const eol = (document.eol === vscode.EndOfLine.CRLF)
-        ? "\r\n"
-        : "\n";
-
+    const eol = getExportEol(document);
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
         content: ASSNS_CSV_HEADER + eol + rows.join(eol),
@@ -670,12 +662,14 @@ async function export_assignments_csv_from_doc(
     await vscode.window.showTextDocument(csvDocument);
 }
 
+const NO_DOC_OPEN = "No document open. This command requires an open ASN.1 file.";
+
 export
 async function export_assignments_csv_from_workspace(
     token: vscode.CancellationToken,
 ): Promise<void> {
     const rows: string[] = [];
-    const uris = await vscode.workspace.findFiles("**/*.asn1");
+    const uris = await getAsn1Files();
     for (const uri of uris) {
         try {
             const doc = await vscode.workspace.openTextDocument(uri);
@@ -684,10 +678,7 @@ async function export_assignments_csv_from_workspace(
             continue;
         }
     }
-
-    // TODO: Allow a user to override this.
-    const eol = "\r\n";
-
+    const eol = getExportEol();
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
         content: ASSNS_CSV_HEADER + eol + rows.join(eol),
@@ -700,7 +691,8 @@ export async function export_deps_csv_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
     if (!document) {
-        return; // TODO: Show error message.
+        vscode.window.showErrorMessage(NO_DOC_OPEN);
+        return;
     }
     const cts = new vscode.CancellationTokenSource();
     await export_deps_csv_from_doc(document, cts.token);
@@ -715,7 +707,8 @@ export async function export_oid_csv_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
     if (!document) {
-        return; // TODO: Show error message.
+        vscode.window.showErrorMessage(NO_DOC_OPEN);
+        return;
     }
     const cts = new vscode.CancellationTokenSource();
     await export_oid_csv_from_doc(document, cts.token);
@@ -730,7 +723,8 @@ export async function export_modules_csv_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
     if (!document) {
-        return; // TODO: Show error message.
+        vscode.window.showErrorMessage(NO_DOC_OPEN);
+        return;
     }
     const cts = new vscode.CancellationTokenSource();
     await export_modules_csv_from_doc(document, cts.token);
@@ -745,7 +739,8 @@ export async function export_assignments_csv_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
     if (!document) {
-        return; // TODO: Show error message.
+        vscode.window.showErrorMessage(NO_DOC_OPEN);
+        return;
     }
     const cts = new vscode.CancellationTokenSource();
     await export_assignments_csv_from_doc(document, cts.token);
@@ -760,7 +755,8 @@ export async function export_modules_json_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
     if (!document) {
-        return; // TODO: Show error message.
+        vscode.window.showErrorMessage(NO_DOC_OPEN);
+        return;
     }
     const cts = new vscode.CancellationTokenSource();
     const jsonstr = await get_modules_json_from_doc(document, cts.token);

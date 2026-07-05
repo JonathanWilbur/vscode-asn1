@@ -61,9 +61,14 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 	}
 
-	// TODO: Make the URI optional so this can be user-invoked.
-	const commandDiagnose = vscode.commands.registerCommand("asn1.diagnose", async (uri: vscode.Uri) => {
-		const doc = await vscode.workspace.openTextDocument(uri);
+	const commandDiagnose = vscode.commands.registerCommand("asn1.diagnose", async (uri?: vscode.Uri) => {
+		const activeDoc = vscode.window.activeTextEditor?.document;
+		const activeUri = uri ?? activeDoc?.uri;
+		if (!activeUri) {
+			vscode.window.showErrorMessage("No document open. This command requires an open ASN.1 file.");
+			return;
+		}
+		const doc = await vscode.workspace.openTextDocument(activeUri);
     	await updateDiagnostics(doc, diagnosticCollection);
 	});
 	context.subscriptions.push(commandDiagnose);

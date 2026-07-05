@@ -1277,6 +1277,12 @@ async function updateDiagnostics(
     document: vscode.TextDocument,
     diagnosticCollection: vscode.DiagnosticCollection,
 ): Promise<void> {
+    const config = vscode.workspace.getConfiguration("asn1");
+    const enableDiagnostics = config.get<boolean>("enableDiagnostics");
+    if (!enableDiagnostics) {
+        diagnosticCollection.clear();
+        return;
+    }
     const firstline = document.lineAt(0);
     const firstlineText = firstline.text;
     if (lineDisablesDiagnostics(firstlineText)) {

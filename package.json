@@ -17,6 +17,41 @@
   "icon": "images/Icon512.png",
   "homepage": "https://github.com/JonathanWilbur/vscode-asn1/README.md",
   "contributes": {
+    "configuration": {
+      "title": "ASN.1 Language",
+      "properties": {
+        "asn1.includeFiles": {
+          "type": "string",
+          "default": "**/*.{asn,asn1}",
+          "description": "Glob matching ASN.1 files in this workspace."
+        },
+        "asn1.excludeFiles": {
+          "type": "string",
+          "default": "**/{node_modules,dist,out,build,.git}/**",
+          "description": "Glob matching ASN.1 files in this workspace."
+        },
+        "asn1.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable diagnostics for ASN.1 files."
+        },
+        "asn1.strictModuleOidMatch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Match modules strictly, by OID, respecting WITH SUCCESSORS and WITH DESCENDANTS. If false, modules are only matched by name."
+        },
+        "asn1.maxLineLength": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Maximum preferred line length, used in formatting"
+        },
+        "asn1.exportEndOfLine": {
+          "type": "string",
+          "enum": ["lf", "crlf"],
+          "description": "Line endings for CSV exports. Defaults to the line endings of the source ASN.1 file."
+        }
+      }
+    },
     "commands": [
       {
         "command": "asn1.diagnose",

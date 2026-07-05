@@ -184,6 +184,9 @@ async function getSymbolReferencesWithinFile(
         // TODO: Everywhere you do this, do better logging of the errors.
         return Promise.reject(null);
     }
+
+    const config = vscode.workspace.getConfiguration("asn1");
+    const strict = config.get<boolean>("strictModuleOidMatch", true);
     const modules = p.parsedModules.ok;
     const tokens = p.lexicalTokens.ok;
     const modoidarcs = modoid ? getOidNodesFromModuleIdentifier(modoid) : undefined;
@@ -217,16 +220,17 @@ async function getSymbolReferencesWithinFile(
                     skipModulesCount++;
                     continue; // Skip: could not resolve assigned identifier.
                 }
-                // TODO: Make it configurable whether or not this check happens.
-                const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
-                if (!impoidarcs) {
-                    skipModulesCount++;
-                    continue;
-                }
-                if (!asn1ModuleOidMatch(modoidarcs, impoidarcs, sfm.selectionOption)) {
-                    log.appendLine(`non-matching oid used in import statement in module ${mod.name} in ${docuri}`);
-                    skipModulesCount++;
-                    continue; // Not a matching module.
+                if (strict) {
+                    const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
+                    if (!impoidarcs) {
+                        skipModulesCount++;
+                        continue;
+                    }
+                    if (!asn1ModuleOidMatch(modoidarcs, impoidarcs, sfm.selectionOption)) {
+                        log.appendLine(`non-matching oid used in import statement in module ${mod.name} in ${docuri}`);
+                        skipModulesCount++;
+                        continue; // Not a matching module.
+                    }
                 }
             }
         }
@@ -272,6 +276,8 @@ async function getModuleReferencesWithinFile(
         // TODO: Everywhere you do this, do better logging of the errors.
         return Promise.reject(null);
     }
+    const config = vscode.workspace.getConfiguration("asn1");
+    const strict = config.get<boolean>("strictModuleOidMatch", true);
     const modules = p.parsedModules.ok;
     const tokens = p.lexicalTokens.ok;
     const selarcs = seloid ? getOidNodesFromModuleIdentifier(seloid) : undefined;
@@ -302,7 +308,7 @@ async function getModuleReferencesWithinFile(
                 const modarcs = getOidNodesFromModuleIdentifier(mod.oid);
                 if (modarcs && selarcs) {
                     const matchesOid = asn1ModuleOidMatch(modarcs, selarcs, selopt);
-                    if (matchesOid) {
+                    if (matchesOid || !strict) {
                         const range = getRangeFromLocation(doc, modid.location);
                         ret.push(new vscode.Location(docuri, range));
                     }
@@ -326,9 +332,14 @@ async function getModuleReferencesWithinFile(
                         docuri,
                     );
                     if (impoid && selarcs) {
-                        // TODO: Make it configurable whether or not this check happens.
                         const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
-                        if (impoidarcs && asn1ModuleOidMatch(selarcs, impoidarcs, sfm.selectionOption)) {
+                        if (
+                            impoidarcs
+                            && (
+                                !strict
+                                || asn1ModuleOidMatch(selarcs, impoidarcs, sfm.selectionOption)
+                            )
+                        ) {
                             // The name and OID matches, so return this module reference.
                             const range = getRangeFromLocation(doc, sfmModName.location);
                             ret.push(new vscode.Location(docuri, range));
@@ -387,6 +398,9 @@ async function getReferencesFromAssigningModules(
     selopt?: SelectionOption,
 ): Promise<vscode.Location[]> {
     const ret: vscode.Location[] = [];
+    const config = vscode.workspace.getConfiguration("asn1");
+    const strict = config.get<boolean>("strictModuleOidMatch", true);
+
     // ... iterate over all possible files that might have a matching module.
     for (const docuri of getFilesContainingModule(modref)) {
         if (cancel.isCancellationRequested) {
@@ -405,7 +419,7 @@ async function getReferencesFromAssigningModules(
             if (!mod.oid !== !modoid) {
                 continue;
             }
-            if (mod.oid && modoid) {
+            if (strict && mod.oid && modoid) {
                 const oid1 = getOidNodesFromModuleIdentifier(mod.oid);
                 const impoid = getOidNodesFromModuleIdentifier(modoid);
                 if (!oid1 || !impoid || !asn1ModuleOidMatch(oid1, impoid, selopt)) {

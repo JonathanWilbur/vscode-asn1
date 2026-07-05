@@ -10,7 +10,7 @@ import { getRangeFromLocation } from "./utils.js";
  *
  * Assumes both strings have already been lowercased.
  */
-function fuzzyMatch(query: string, symbol: string) {
+export function fuzzyMatch(query: string, symbol: string) {
     let q = 0;
 
     for (let s = 0; s < symbol.length && q < query.length; s++) {
@@ -21,15 +21,6 @@ function fuzzyMatch(query: string, symbol: string) {
 
     return q === query.length;
 }
-
-// TODO: Test the above.
-// fuzzyMatch("abc", "a_b_c");           // true
-// fuzzyMatch("abc", "alphabetic");      // true
-// fuzzyMatch("cmp", "completionitem");  // true
-// fuzzyMatch("vsc", "visualstudiocode");// true
-// fuzzyMatch("cat", "cart");            // true
-// fuzzyMatch("cta", "cart");            // false
-// fuzzyMatch("xyz", "completion");      // false
 
 async function provideWorkspaceSymbols(
     query: string,

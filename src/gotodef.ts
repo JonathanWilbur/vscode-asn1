@@ -26,9 +26,12 @@ async function provideModuleDefinition(
         // TODO: Warn of ambiguity: unable to resolve to a single module.
     } // Otherwise, we can just select the first module that matches.
 
+    const config = vscode.workspace.getConfiguration("asn1");
+    const strict = config.get<boolean>("strictModuleOidMatch", true);
+
     let sfmarcs: number[] | undefined;
     const assid = sfm.assignedIdentifier;
-    if (assid) {
+    if (assid && strict) {
         const sfmoid = await resolveAssignedIdentifier(
             cancel,
             assid,
@@ -76,13 +79,12 @@ async function provideModuleDefinition(
                 continue;
             }
             
-            if (mod.oid && sfmarcs) {
+            if (strict && mod.oid && sfmarcs) {
                 const modoid = getOidNodesFromModuleIdentifier(mod.oid);
                 if (!modoid || !asn1ModuleOidMatch(modoid, sfmarcs, sfm.selectionOption)) {
                     continue;
                 }
             }
-            // TODO: The module matches. Obtain the module reference and return it.
             const prod = mod.production;
             const modid = prod.children[0].children[0];
             if (modid.type !== 'modulereference') {

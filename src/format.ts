@@ -801,10 +801,13 @@ async function provideDocumentFormattingEdits(
     options: vscode.FormattingOptions,
     cancel: vscode.CancellationToken,
 ): Promise<vscode.TextEdit[]> {
-    const linemax: number = vscode.workspace
-        .getConfiguration("editor", document)
-        .get<number[]>("rulers")
-        ?.find((ruler) => (ruler >= 80))
+    const config = vscode.workspace.getConfiguration("asn1");
+    const configLinemax = config.get<number>("maxLineLength");
+    const linemax: number = configLinemax
+        ?? vscode.workspace
+            .getConfiguration("editor", document)
+            .get<number[]>("rulers")
+            ?.find((ruler) => (ruler >= 80))
         ?? 80;
     const eol = (document.eol === vscode.EndOfLine.CRLF)
         ? "\r\n"

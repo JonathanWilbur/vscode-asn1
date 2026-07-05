@@ -125,6 +125,9 @@ export async function resolveDefined(
     const sfm = maybesfm;
     moduleref = sfm.identifier;
 
+    const config = vscode.workspace.getConfiguration("asn1");
+    const strict = config.get<boolean>("strictModuleOidMatch", true);
+
     // Completely resolve the importing module's assigned identifier to an OID.
     let oid: NameAndOrNumber[] | undefined;
     if (sfm.assignedIdentifier) {
@@ -135,7 +138,7 @@ export async function resolveDefined(
             currentDocUri,
             recursionTTL - 1,
         );
-        if (!oid) {
+        if (!oid && strict) {
             log.appendLine(`could not resolve oid for for imported module ${sfm.identifier}`);
             return undefined;
         }
@@ -171,7 +174,7 @@ export async function resolveDefined(
                     log.appendLine(`skipping over module ${module.name}, since we are interested in ${moduleref} in ${file}`);
                     continue;
                 }
-                if (module.oid && oid) {
+                if (strict && module.oid && oid) {
                     const modoid = getOidNodesFromModuleIdentifier(module.oid);
                     const impoid = getOidNodesFromModuleIdentifier(oid);
                     if (!modoid) {

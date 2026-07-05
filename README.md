@@ -4,15 +4,10 @@ Currently in progress.
 
 ## To Do
 
-- [ ] Configurable file selection
-- [ ] Configurable file ignores
-- [ ] Configurable linemax
-- [ ] Configurable spaces / tabs
-- [ ] Configurable EOL
-- [ ] Configurable Diagnostics
-- [ ] Configurable Export EOL
-- [ ] Configurable strict module match (particularly in FAR)
 - [ ] Cancellation for long-running commands
+- [ ] JSDoc
+- [ ] `README.md` Documentation
+- [ ] Screenshots
 
 ## Disabling Diagnostics
 

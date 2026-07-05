@@ -17,6 +17,7 @@ import type {
 import { getParserOutputs } from './parsing.js';
 import { setImmediate } from "node:timers";
 import { log } from "./logging.js";
+import { getAsn1Files } from './utils.js';
 
 // TODO: Test this.
 // TODO: This could be moved to @wildboar/asn1-parser
@@ -134,11 +135,7 @@ export async function indexAsn1File(docOrUri: vscode.Uri | vscode.TextDocument) 
 }
 
 export async function indexAsn1Files(): Promise<void> {
-    const uris = await vscode.workspace.findFiles(
-        "**/*.{asn,asn1}",
-        "**/{node_modules,dist,out,build,.git}/**", // TODO: Configurable ignores.
-    );
-
+    const uris = await getAsn1Files();
     // TODO: Change this to use multithreading / worker threads
     for (const uri of uris) {
         // To give other extensions a chance to run.

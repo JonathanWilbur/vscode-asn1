@@ -1,12 +1,10 @@
 import * as vscode from "vscode";
 import {
-    SelectionOption,
     type Production,
     type Location,
     type NameAndOrNumber,
     builtinRootArcNamesToNumber,
     TypeType,
-    type Module,
 } from "@wildboar/asn1-parser";
 import { log } from "./logging.js";
 import type { ASN1ModuleName, ASN1Reference } from "./types.js";
@@ -219,4 +217,11 @@ function nameAndOrNumberToIriString(nn: NameAndOrNumber): string {
         return nn.number.toString();
     }
     return "?";
+}
+
+export function getAsn1Files(): Thenable<vscode.Uri[]> {
+    const config = vscode.workspace.getConfiguration("asn1");
+    const includeFiles = config.get<string>("includeFiles", "**/*.{asn,asn1}");
+    const excludeFiles = config.get<string>("excludeFiles", "**/{node_modules,dist,out,build,.git}/**");
+    return vscode.workspace.findFiles(includeFiles, excludeFiles);
 }
