@@ -148,16 +148,22 @@ export async function indexAsn1Files(): Promise<void> {
     log.appendLine(`${new Date()}: total of ${uris.length} asn.1 files indexed`);
 }
 
-// FIXME: Make this return the decoded URLs instead. It would clean up a lot of boilerplate.
 export
 function* getFilesContainingModule(
     modname: string,
-): IterableIterator<FileURIStr> {
+): IterableIterator<vscode.Uri, void> {
     const files = modulesToFiles.get(modname);
     if (!files) {
         return;
     }
-    yield *files.keys();
+    for (const uristr of files.keys()) {
+        try {
+            yield vscode.Uri.parse(uristr, true);
+        } catch (e) {
+            log.appendLine(`malformed document uri ${uristr}: ${e}`);
+            continue;
+        }
+    }
 }
 
 export
@@ -198,27 +204,30 @@ function* findAllModuleReferencesFallibly(
     }
 }
 
-// export
-// function* getModulesWithinFile(
-//     uristr: FileURIStr,
-// ): IterableIterator<ASN1ModuleName> {
-//     const modules = filesToModules.get(uristr);
-//     if (!modules) {
-//         return;
-//     }
-//     yield *modules.item.values();
-// }
-
 // Intended to be called upon file changes.
 export
 async function reindexAsn1File(uri: vscode.Uri) {
-    const uristr = uri.toString();
-    filesToModules.delete(uristr);
-    // FIXME: Not done yet.
-    // modulesToFiles
+    deindexAsn1File(uri);
+    await indexAsn1File(uri);
+    log.appendLine(`${new Date()}: asn.1 file ${uri} reindexed`);
 }
 
-// TODO: deindexAsn1File()
+export function deindexAsn1File(uri: vscode.Uri) {
+    const uristr = uri.toString();
+    const modules = filesToModules.get(uristr);
+    if (modules) {
+        // For every module in the file, remove the file from the reverse
+        // lookup inde.
+        for (const mod of modules.item.values()) {
+            const files = modulesToFiles.get(mod.name);
+            if (files) {
+                files.delete(uristr);
+            }
+        }
+    }
+    // Remove the file from the forward lookup index.
+    filesToModules.delete(uristr);
+}
 
 export
 function clearAsn1ModuleIndexes() {

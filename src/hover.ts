@@ -775,7 +775,6 @@ async function provideHover(
         return provideOctetStringHover(octetStringRange, s);
     }
 
-
     const dumbHover2 = provideDumbHover(document, position);
     if (dumbHover2) {
         return Promise.resolve(dumbHover2);

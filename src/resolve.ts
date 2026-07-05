@@ -1,9 +1,10 @@
 import {
     type Assignment,
-    type SymbolsFromModule,
     type Module,
     AssignmentType,
     ValueType,
+    parserFor,
+    grokerFor,
     type NameAndOrNumber,
     type ObjIdComponents,
     type IntegerValue,
@@ -20,6 +21,7 @@ import {
     asn1ModuleMatch,
     getOidNodesFromModuleIdentifier,
 } from "./utils.js";
+import { maybeReparse } from "./reparse.js";
 import { log } from "./logging.js";
 import * as vscode from "vscode";
 
@@ -146,8 +148,7 @@ export async function resolveDefined(
         }
         log.appendLine(`checking file ${file} for module ${moduleref}`);
         try {
-            const uri = vscode.Uri.parse(file, true);
-            const p = await getParserOutputs(uri, undefined, cancel);
+            const p = await getParserOutputs(file, undefined, cancel);
             if (
                 !p.parserEndState
                 || ("err" in p.parserEndState)
@@ -188,7 +189,7 @@ export async function resolveDefined(
                 }
                 const ass = module.assignments[identifier];
                 if (ass) {
-                    return [ass, module, uri];
+                    return [ass, module, file];
                 }
                 // Odd situation: the identifier was not in the module where expected.
                 // Just keep iterating. Maybe the module is malformed and is present
@@ -433,13 +434,21 @@ export async function resolveOID(
             components.unshift(...resolvedComponents);
             return components;
         }
-        if (nextass.value.valueType !== ValueType.ObjectIdentifierValue) {
-            // FIXME: If not, try parsing it as an OID value, unless the type
-            // totally contradicts it being an OID value.
-            log.appendLine(`identifier ${identifier} did not refer to an object identifier value assignment. type was ${nextass.value.valueType}`);
-            return undefined;
+        let oid: ObjectIdentifierValue;
+        if (nextass.value.valueType === ValueType.ObjectIdentifierValue) {
+            oid = nextass.value.value;
+        } else {
+            const reparsed = maybeReparse(
+                nextass.value,
+                parserFor.ObjectIdentifierValue,
+                grokerFor.ObjectIdentifierValue,
+            );
+            if (!reparsed) {
+                log.appendLine(`identifier ${identifier} could not be reparsed as an object identifier value. type was ${nextass.value.valueType}`);
+                return undefined;
+            }
+            oid = reparsed;
         }
-        const oid = nextass.value.value;
 
         const resolvedComponents = await resolveOIDComponents(
             cancel,

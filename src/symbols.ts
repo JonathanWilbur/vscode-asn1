@@ -92,13 +92,23 @@ function getDocumentSymbolFromAssignment(
 	}
 	const assloc = ass.production.location;
 	const assrange = getRangeFromLocation(document, assloc);
-	const nameRange = assrange; // FIXME: Actually find the identifier.
+	let alt = ass.production.type === "Assignment"
+		? ass.production.children[0]
+		: ass.production;
+	if (alt?.type.startsWith("Parameterized")) {
+		alt = alt.children[0];
+	}
+	// The identifier is the first child of any assignment production.
+	const identloc = alt?.children[0].location;
+	const identrange = identloc
+		? getRangeFromLocation(document, identloc)
+		: null;
 	return new vscode.DocumentSymbol(
 		name,
 		getSymbolInfoFromAssignment(ass),
 		getSymbolKindFromAssignment(ass.assignmentType),
 		assrange, // full symbol range
-		nameRange ?? assrange, // name/selection range
+		identrange ?? assrange, // name/selection range
 	);
 }
 
@@ -159,7 +169,6 @@ async function provideDocumentSymbols(
 		}
         for (const [assname, ass] of Object.entries(module.assignments)) {
             const asym = getDocumentSymbolFromAssignment(document, assname, ass);
-            // FIXME: This isn't working because the assignment never has an associated production.
             if (asym) {
                 symbol.children.push(asym);
             }

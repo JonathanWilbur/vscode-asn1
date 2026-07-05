@@ -6,7 +6,6 @@ import {
     isDefinedOrImported,
 } from "./utils.js";
 import {
-    lex,
     parserFor,
     grokerFor,
     type Assignment,
@@ -17,25 +16,22 @@ import {
     type NamedNumber,
     type NamedType,
     Production,
+    createGrokContext,
     type TypeAssignment,
     TypeType,
-    type Value,
     type ValueAssignment,
+    type Value,
     ValueType,
     type Location as Asn1ParserLocation,
-    type Parser,
-    type GrokContext,
-    createGrokContext,
     type ObjectIdentifierValue,
     builtinRootArcNamesToNumber,
     type ObjIdComponents,
-    type ProductionType,
-    LogLevel,
     ASN1SemanticError,
     ASN1SyntaxError,
     ASN1ParserExpectationError,
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
+import { maybeReparse } from "./reparse.js";
 import log from "./logging.js";
 import { DATE_REGEX, TIME_REGEX } from "./time.js";
 import { ASN1Construction, ASN1TagClass, ASN1UniversalType, BERElement } from "@wildboar/asn1";
@@ -558,92 +554,6 @@ function provideTypeAssignmentDiagnostics(
     }
     // TODO: Provide hints around SET OF / SEQUENCE OF with size constraints
     // TODO: check that field exists in ObjectClassFieldType
-}
-
-type ValueFor<T extends ValueType> = Extract<Value, { valueType: T }>;
-
-type ContentFor<T extends ValueType> = ValueFor<T>["value"];
-
-type ValueTypeToValueValueTypeMap = {
-    [ValueType.BitStringValue]: ContentFor<ValueType.BitStringValue>;
-    [ValueType.BooleanValue]: ContentFor<ValueType.BooleanValue>;
-    [ValueType.CharacterStringValue]: ContentFor<ValueType.CharacterStringValue>;
-    [ValueType.ChoiceValue]: ContentFor<ValueType.ChoiceValue>;
-    [ValueType.EmbeddedPDVValue]: ContentFor<ValueType.EmbeddedPDVValue>;
-    [ValueType.ExternalValue]: ContentFor<ValueType.ExternalValue>;
-    [ValueType.InstanceOfValue]: ContentFor<ValueType.InstanceOfValue>;
-    [ValueType.IntegerValue]: ContentFor<ValueType.IntegerValue>;
-    // [ValueType.IRIValue]: ContentFor<ValueType.IRIValue>;
-    [ValueType.NullValue]: ContentFor<ValueType.NullValue>;
-    [ValueType.ObjectIdentifierValue]: ContentFor<ValueType.ObjectIdentifierValue>;
-    [ValueType.OctetStringValue]: ContentFor<ValueType.OctetStringValue>;
-    [ValueType.RealValue]: ContentFor<ValueType.RealValue>;
-    // [ValueType.RelativeIRIValue]: ContentFor<ValueType.RelativeIRIValue>;
-    [ValueType.RelativeOIDValue]: ContentFor<ValueType.RelativeOIDValue>;
-    [ValueType.SequenceValue]: ContentFor<ValueType.SequenceValue>;
-    [ValueType.SequenceOfValue]: ContentFor<ValueType.SequenceOfValue>;
-    [ValueType.SetValue]: ContentFor<ValueType.SetValue>;
-    [ValueType.SetOfValue]: ContentFor<ValueType.SetOfValue>;
-    [ValueType.PrefixedValue]: ContentFor<ValueType.PrefixedValue>;
-    // [ValueType.TimeValue]: ContentFor<ValueType.TimeValue>;
-    [ValueType.DefinedValue]: ContentFor<ValueType.DefinedValue>;
-    [ValueType.ValueFromObject]: ContentFor<ValueType.ValueFromObject>;
-    [ValueType.OpenTypeFieldVal]: ContentFor<ValueType.OpenTypeFieldVal>;
-    [ValueType.FixedTypeFieldVal]: ContentFor<ValueType.FixedTypeFieldVal>;
-};
-
-function maybeReparse<T>(
-    value: Value,
-    parser: Parser,
-    groker: (cst: Production, ctx: GrokContext) => T,
-): T | null {
-    log.appendLine(`reparsing value of type ${value.valueType}`);
-    if (!value.production?.location) {
-        return null;
-    }
-    const startoffset = value.production.location.startIndex;
-    const startline = value.production.location.lineNumber;
-    const text = value.text;
-    try {
-        // TODO: in @wildboar/asn1-parser, make lex() take a startloc?: Location parameter.
-        const lexicalTokens = Array.from(lex(text));
-        // Update the locations to accurately reflect where they are in the doc.
-        // TODO: Remove this once lex() supports startloc
-        for (const tok of lexicalTokens) {
-            // Don't tell me I can't write to this value, asshole.
-            (tok.location.startIndex as number) += startoffset;
-            (tok.location.endIndex as number) += startoffset;
-            (tok.location.lineNumber as number) += (startline - 1);
-            // I am just going to accept the columnNumber being wrong.
-        }
-        // const pr = parser.start(lexicalTokens, text);
-        const pr = parser.executor({
-            log: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, level: LogLevel.silent },
-            tokens: lexicalTokens,
-            index: 0,
-            // FIXME: I don't know what is going on with the type here.
-            cst: new Production("empty" as ProductionType, [], {
-                startIndex: startoffset,
-                endIndex: startoffset,
-                lineNumber: startline,
-                columnNumber: 1, // I am just going to accept the columnNumber being wrong.
-            }),
-            syntaxErrors: {},
-            discoveredIdentifiers: new Map([]),
-            callbackMap: new Map(),
-            text,
-            definedSyntaxTokens: new Set([]),
-            definedEnumItems: new Set([]),
-        });
-        if (pr.error || Object.keys(pr.syntaxErrors).length > 0) {
-            return null;
-        }
-        const ctx = createGrokContext(text);
-        const v = groker(pr.cst, ctx);
-        return v;
-    } catch {
-        return null;
-    }
 }
 
 function provideOIDValueDiagnostics(

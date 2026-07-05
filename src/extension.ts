@@ -8,7 +8,7 @@ import { Asn1HighlightProvider } from "./highlight.js";
 import { Asn1FoldingRangeProvider } from "./folding.js";
 import { Asn1CodeActionProvider } from "./codeact.js";
 import { Asn1CompletionItemProvider } from "./completion.js";
-import { indexAsn1Files, indexAsn1File, reindexAsn1File } from "./indexing.js";
+import { indexAsn1Files, indexAsn1File, reindexAsn1File, deindexAsn1File } from "./indexing.js";
 import { log } from "./logging.js";
 import {
 	updateDiagnostics,
@@ -147,22 +147,19 @@ export function activate(context: vscode.ExtensionContext) {
 	const watcher = vscode.workspace.createFileSystemWatcher("**/*.{asn,asn1}");
 	watcher.onDidCreate((uri) => indexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
 	watcher.onDidChange((uri) => reindexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
-	// TODO:
-	// watcher.onDidDelete((uri) => {
-	// 	symbolIndex.delete(uri.toString());
-	// });
-	// vscode.workspace.onDidOpenTextDocument((e) => {
-	// 	if (!isAsn1File(e)) {
-	// 		return;
-	// 	}
-	// 	updateDiagnostics(e, diagnosticCollection);
-	// });
-	// TODO: Clear diagnostics on change, but update them on open
-	vscode.workspace.onDidSaveTextDocument((document) => {
+	watcher.onDidDelete((uri) => deindexAsn1File(uri));
+	vscode.workspace.onDidOpenTextDocument((e) => {
+		if (!isAsn1File(e)) {
+			return;
+		}
+		updateDiagnostics(e, diagnosticCollection);
+	});
+	vscode.workspace.onDidSaveTextDocument(async (document) => {
 		if (!isAsn1File(document)) {
 			return;
 		}
-		updateDiagnostics(document, diagnosticCollection);
+		await reindexAsn1File(document.uri);
+		await updateDiagnostics(document, diagnosticCollection);
 	});
 	context.subscriptions.push(watcher);
 	log.appendLine(`${new Date()}: asn.1 providers initialized / starting indexing of files`);

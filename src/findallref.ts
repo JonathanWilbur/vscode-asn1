@@ -10,7 +10,11 @@ import {
     moduleReferenceTokens,
 } from "./utils.js";
 import { getParserOutputs } from './parsing.js';
-import { findAllModuleReferencesFallibly, findAllReferencesFallibly, getFilesContainingModule } from "./indexing.js";
+import {
+    findAllModuleReferencesFallibly,
+    findAllReferencesFallibly,
+    getFilesContainingModule,
+} from "./indexing.js";
 import { log } from "./logging.js";
 import type {
     ASN1ModuleName,
@@ -379,17 +383,9 @@ async function getReferencesFromAssigningModules(
 ): Promise<vscode.Location[]> {
     const ret: vscode.Location[] = [];
     // ... iterate over all possible files that might have a matching module.
-    for (const definingDocUriStr of getFilesContainingModule(modref)) {
+    for (const docuri of getFilesContainingModule(modref)) {
         if (cancel.isCancellationRequested) {
             break;
-        }
-        // Decode the URI
-        let docuri;
-        try {
-            docuri = vscode.Uri.parse(definingDocUriStr, true);
-        } catch (e) {
-            log.appendLine(`malformed document uri ${definingDocUriStr}: ${e}`);
-            continue;
         }
 
         // Obtain the ASN.1 modules within this file.
@@ -594,7 +590,10 @@ async function provideReferencesForModuleName(
     if (!wordRange || !wordText) {
         return [];
     }
-    const fileUriStrings: Set<FileURIStr> = new Set(getFilesContainingModule(wordText));
+    const fileUriStrings: Set<FileURIStr> = new Set();
+    for (const uristr of getFilesContainingModule(wordText)) {
+        fileUriStrings.add(uristr.toString());
+    }
     for (const uristr of findAllModuleReferencesFallibly(wordText)) {
         fileUriStrings.add(uristr);
     }

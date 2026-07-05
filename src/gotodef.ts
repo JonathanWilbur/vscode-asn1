@@ -18,8 +18,8 @@ async function provideModuleDefinition(
     sfmmod: Module,
     sfm: SymbolsFromModule,
 ): Promise<vscode.Location> {
-    const urlstrs = Array.from(getFilesContainingModule(sfm.identifier));
-    if (urlstrs.length > 1 && sfm.selectionOption) {
+    const uris = Array.from(getFilesContainingModule(sfm.identifier));
+    if (uris.length > 1 && sfm.selectionOption) {
         // TODO: Warn of ambiguity: unable to resolve to a single module.
     } // Otherwise, we can just select the first module that matches.
 
@@ -44,17 +44,9 @@ async function provideModuleDefinition(
         }
     }
 
-    for (const urlstr of urlstrs) {
+    for (const docuri of uris) {
         if (cancel.isCancellationRequested) {
             break;
-        }
-        // Decode the URI
-        let docuri;
-        try {
-            docuri = vscode.Uri.parse(urlstr, true);
-        } catch (e) {
-            log.appendLine(`malformed document uri ${urlstr}: ${e}`);
-            continue;
         }
         
         const p = await getParserOutputs(docuri, undefined, cancel);
