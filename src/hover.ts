@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as definitions from "./definitions/index.js";
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 import {
     getDefinedThingAtPosition,
     getOidNodesFromModuleIdentifier,
@@ -780,15 +780,8 @@ async function provideHover(
         return Promise.resolve(dumbHover2);
     }
 
-    const p = await getParserOutputs(document.uri, undefined, cancel);
-    if (
-        !p.parserEndState
-        || ("err" in p.parserEndState)
-        || p.parserEndState.ok.error
-        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-        || !p.parsedModules
-        || ("err" in p.parsedModules)
-    ) {
+    const p = await getParserOutputsWithLogging(document.uri, cancel);
+    if (!p) {
         const dumbHover = provideDumbHover(document, position);
         if (dumbHover) {
             return Promise.resolve(dumbHover);
@@ -796,8 +789,8 @@ async function provideHover(
             return Promise.reject(null);
         }
     }
-    const modules = p.parsedModules.ok;
-    const cst = p.parserEndState.ok.cst;
+    const modules = p.parsedModules;
+    const cst = p.parserEndState.cst;
     const currentModule = modules
         .find((mod) => (
             mod.production

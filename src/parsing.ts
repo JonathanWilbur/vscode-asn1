@@ -8,6 +8,7 @@ import {
     type ParseContext,
 } from '@wildboar/asn1-parser';
 import type { YieldType, Result, VersionNumbered } from "./types.js";
+import { log } from "./logging.js";
 
 export type ParserStopAt =
     | "lexing"
@@ -19,6 +20,12 @@ export interface ParserOutputs {
     lexicalTokens?: Result<YieldType<ReturnType<typeof lex>>[], Error>,
     parserEndState?: Result<ParseContext, Error>,
     parsedModules?: Result<Module[], Error>,
+}
+
+export interface ParsingSuccess {
+    lexicalTokens: YieldType<ReturnType<typeof lex>>[],
+    parserEndState: ParseContext,
+    parsedModules: Module[],
 }
 
 const cache = new Map<string, VersionNumbered<ParserOutputs>>();
@@ -41,6 +48,13 @@ export function* getParsedModules(): IterableIterator<[vscode.Uri, Module[]]> {
             continue;
         }
     }
+}
+
+function coerceToError(e: unknown): Error {
+    if (e instanceof Error) {
+        return e;
+    }
+    return new Error(String(e));
 }
 
 export async function getParserOutputs(
@@ -69,14 +83,12 @@ export async function getParserOutputs(
         const lexicalTokens = Array.from(lex(text));
         outputs.lexicalTokens = { ok: lexicalTokens };
     } catch (e) {
-        // TODO: If e isn't an error, try to make it into one.
-        outputs.lexicalTokens = { err: e as Error };
+        outputs.lexicalTokens = { err: coerceToError(e) };
         cache.set(key, { version: document.version, item: outputs });
         return outputs;
     }
 
     if (stopAt === "lexing" || cancel?.isCancellationRequested) {
-        // TODO: Cache this work.
         return outputs;
     }
 
@@ -84,14 +96,12 @@ export async function getParserOutputs(
     try {
         outputs.parserEndState = { ok: parse(text, outputs.lexicalTokens.ok) };
     } catch (e) {
-        // TODO: If e isn't an error, try to make it into one.
-        outputs.parserEndState = { err: e as Error };
+        outputs.parserEndState = { err: coerceToError(e) };
         cache.set(key, { version: document.version, item: outputs });
         return outputs;
     }
 
     if (stopAt === "parsing" || cancel?.isCancellationRequested) {
-        // TODO: Cache this work.
         return outputs;
     }
 
@@ -101,7 +111,7 @@ export async function getParserOutputs(
         correct(modules);
         outputs.parsedModules = { ok: modules };
     } catch (e) {
-        outputs.parsedModules = { err: e as Error };
+        outputs.parsedModules = { err: coerceToError(e) };
         cache.set(key, { version: document.version, item: outputs });
         return outputs;
     }
@@ -114,6 +124,42 @@ export async function getParserOutputs(
         lastValidCache.set(key, outputs);
     }
     return outputs;
+}
+
+export async function getParserOutputsWithLogging(
+    docOrUri: vscode.Uri | vscode.TextDocument,
+    cancel?: vscode.CancellationToken,
+): Promise<ParsingSuccess | null> {
+    const p = await getParserOutputs(docOrUri, undefined, cancel);
+    if (
+        !p.lexicalTokens
+        || ("err" in p.lexicalTokens)
+        || !p.parserEndState
+        || ("err" in p.parserEndState)
+        || p.parserEndState.ok.error
+        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
+        || !p.parsedModules
+        || ("err" in p.parsedModules)
+    ) {
+        const e =
+            ((p.lexicalTokens && ("err" in p.lexicalTokens))
+                ? p.lexicalTokens.err
+                : undefined)
+            ?? ((p.parserEndState && ("err" in p.parserEndState))
+                ? p.parserEndState.err
+                : undefined)
+            ?? ((p.parsedModules && ("err" in p.parsedModules))
+                ? p.parsedModules.err
+                : undefined)
+            ;
+        log.appendLine(`the current module seems to be malformed: ${e}`);
+        return Promise.reject(null);
+    }
+    return {
+        lexicalTokens: p.lexicalTokens.ok,
+        parserEndState: p.parserEndState.ok,
+        parsedModules: p.parsedModules.ok,
+    };
 }
 
 export function getLastValidParserOutputs(

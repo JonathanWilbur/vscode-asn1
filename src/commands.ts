@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 import {
     AssignmentType,
     ValueType,
@@ -191,11 +191,11 @@ async function get_oid_csv_rows_from_doc(
     token: vscode.CancellationToken,
     rows: string[],
 ): Promise<void> {
-    const p = await getParserOutputs(document, undefined, token);
-    if (!p.parsedModules || ("err" in p.parsedModules)) {
+    const p = await getParserOutputsWithLogging(document, token);
+    if (!p) {
         return failExport();   
     }
-    const modules = p.parsedModules.ok;
+    const modules = p.parsedModules;
     for (const mod of modules) {
         if (token.isCancellationRequested) {
             return;
@@ -262,11 +262,11 @@ async function get_dep_csv_rows_from_doc(
     token: vscode.CancellationToken,
     rows: string[],
 ): Promise<void> {
-    const p = await getParserOutputs(document, undefined, token);
-    if (!p.parsedModules || ("err" in p.parsedModules)) {
+    const p = await getParserOutputsWithLogging(document, token);
+    if (!p) {
         return failExport();   
     }
-    const modules = p.parsedModules.ok;
+    const modules = p.parsedModules;
     for (const mod of modules) {
         if (token.isCancellationRequested) {
             return;
@@ -355,11 +355,11 @@ async function get_module_csv_rows_from_doc(
     token: vscode.CancellationToken,
     rows: string[],
 ): Promise<void> {
-    const p = await getParserOutputs(document, undefined, token);
-    if (!p.parsedModules || ("err" in p.parsedModules)) {
+    const p = await getParserOutputsWithLogging(document, token);
+    if (!p) {
         return failExport();   
     }
-    const modules = p.parsedModules.ok;
+    const modules = p.parsedModules;
     for (const mod of modules) {
         if (token.isCancellationRequested) {
             return;
@@ -415,11 +415,11 @@ async function get_assignment_csv_rows_from_doc(
     token: vscode.CancellationToken,
     rows: string[],
 ): Promise<void> {
-    const p = await getParserOutputs(document, undefined, token);
-    if (!p.parsedModules || ("err" in p.parsedModules)) {
+    const p = await getParserOutputsWithLogging(document, token);
+    if (!p) {
         return failExport();   
     }
-    const modules = p.parsedModules.ok;
+    const modules = p.parsedModules;
     for (const mod of modules) {
         if (token.isCancellationRequested) {
             return;
@@ -516,12 +516,11 @@ async function get_modules_json_from_doc(
     document: vscode.TextDocument,
     token: vscode.CancellationToken,
 ): Promise<string> {
-    const p = await getParserOutputs(document, undefined, token);
-    if (!p.parsedModules || ("err" in p.parsedModules)) {
+    const p = await getParserOutputsWithLogging(document, token);
+    if (!p) {
         return failExport();   
     }
-    const ret: unknown[] = [];
-    const modules = p.parsedModules.ok;
+    const modules = p.parsedModules;
     const obj = {
         fileUri: vscode.workspace.asRelativePath(document.uri),
         modules,

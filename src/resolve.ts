@@ -17,7 +17,7 @@ import {
     asn1ModuleOidMatch,
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 import {
     getOidNodesFromModuleIdentifier,
 } from "./utils.js";
@@ -151,19 +151,11 @@ export async function resolveDefined(
         }
         log.appendLine(`checking file ${file} for module ${moduleref}`);
         try {
-            const p = await getParserOutputs(file, undefined, cancel);
-            if (
-                !p.parserEndState
-                || ("err" in p.parserEndState)
-                || p.parserEndState.ok.error
-                || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-                || !p.parsedModules
-                || ("err" in p.parsedModules)
-            ) {
-                log.appendLine(`malformed asn.1 file url ${file}: import will not be resolved`);
+            const p = await getParserOutputsWithLogging(file, cancel);
+            if (!p) {
                 continue;
             }
-            const modules = p.parsedModules.ok;
+            const modules = p.parsedModules;
             for (const module of modules) {
                 if (cancel.isCancellationRequested) {
                     return undefined;

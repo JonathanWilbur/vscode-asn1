@@ -6,7 +6,7 @@ import {
 	type Assignment,
 	AssignmentType,
 } from '@wildboar/asn1-parser';
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 import { getRangeFromLocation } from "./utils.js";
 import { getOidNodesFromModuleIdentifier } from "./utils.js";
 
@@ -116,19 +116,12 @@ async function provideDocumentSymbols(
     document: vscode.TextDocument,
     token: vscode.CancellationToken,
 ): Promise<vscode.DocumentSymbol[]> {
-    const p = await getParserOutputs(document.uri, undefined, token);
-    if (
-        !p.parserEndState
-        || ("err" in p.parserEndState)
-        || p.parserEndState.ok.error
-        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-        || !p.parsedModules
-        || ("err" in p.parsedModules)
-    ) {
+    const p = await getParserOutputsWithLogging(document.uri, token);
+    if (!p) {
         return [];
     }
-    const modules = p.parsedModules.ok;
-    const cst = p.parserEndState.ok.cst;
+    const modules = p.parsedModules;
+    const cst = p.parserEndState.cst;
     const parseModules = cst.children
         .find((c) => c.type === 'modules')
         ?.children.filter((c) => c.type === 'ModuleDefinition')

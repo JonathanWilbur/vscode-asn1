@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 import {
     getDefinedThingAtPosition,
     getOidNodesFromModuleIdentifier,
@@ -55,19 +55,11 @@ async function provideModuleDefinition(
             break;
         }
         
-        const p = await getParserOutputs(docuri, undefined, cancel);
-        if (
-            !p.parserEndState
-            || ("err" in p.parserEndState)
-            || p.parserEndState.ok.error
-            || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-            || !p.parsedModules
-            || ("err" in p.parsedModules)
-        ) {
-            // TODO: Logging
+        const p = await getParserOutputsWithLogging(docuri, cancel);
+        if (!p) {
             continue;
         }
-        const modules = p.parsedModules.ok;
+        const modules = p.parsedModules;
         for (const mod of modules) {
             if (cancel.isCancellationRequested) {
                 break;
@@ -104,30 +96,11 @@ async function provideDefinition(
     position: vscode.Position,
     cancel: vscode.CancellationToken,
 ): Promise<vscode.Location> {
-    const p = await getParserOutputs(document, undefined, cancel);
-    if (
-        !p.parserEndState
-        || ("err" in p.parserEndState)
-        || p.parserEndState.ok.error
-        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-        || !p.parsedModules
-        || ("err" in p.parsedModules)
-    ) {
-        const e =
-            ((p.lexicalTokens && ("err" in p.lexicalTokens))
-                ? p.lexicalTokens.err
-                : undefined)
-            ?? ((p.parserEndState && ("err" in p.parserEndState))
-                ? p.parserEndState.err
-                : undefined)
-            ?? ((p.parsedModules && ("err" in p.parsedModules))
-                ? p.parsedModules.err
-                : undefined)
-            ;
-        log.appendLine(`the current module seems to be malformed: ${e}`);
+    const p = await getParserOutputsWithLogging(document, cancel);
+    if (!p) {
         return Promise.reject(null);
     }
-    const modules = p.parsedModules.ok;
+    const modules = p.parsedModules;
 
     const currentModule = modules
         .find((mod) => (
@@ -158,7 +131,7 @@ async function provideDefinition(
         }
     }
 
-    const cst = p.parserEndState.ok.cst;
+    const cst = p.parserEndState.cst;
     const wordRange = document.getWordRangeAtPosition(position);
     const word = wordRange ? document.getText(wordRange) : "<bad range or position>";
     const defined = getDefinedThingAtPosition(cancel, document, position, cst);

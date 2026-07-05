@@ -3,7 +3,7 @@ import {
     type Production,
 } from "@wildboar/asn1-parser";
 import { getRangeFromLocation, positionFallsWithin } from "./utils.js";
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 
 function addParent(sr: vscode.SelectionRange, parent: vscode.SelectionRange): void {
     let curr = sr;
@@ -114,13 +114,16 @@ async function provideSelectionRanges(
     positions: readonly vscode.Position[],
     token: vscode.CancellationToken,
 ): Promise<vscode.SelectionRange[]> {
+    const p = await getParserOutputsWithLogging(document.uri, token);
+    if (!p) {
+        return [];
+    }
+    const modules = p.parsedModules;
     const ranges: vscode.SelectionRange[] = [];
     for (const position of positions) {
-        const p = await getParserOutputs(document.uri, undefined, token);
-        if (!p.parsedModules || ("err" in p.parsedModules)) {
-            return [];
+        if (token.isCancellationRequested) {
+            break;
         }
-        const modules = p.parsedModules.ok;
         const currentModule = modules
             .find((mod) => (
                 mod.production

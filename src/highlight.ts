@@ -5,7 +5,7 @@ import {
     getDefinedThingAtPosition,
     getRangeFromLocation,
 } from "./utils.js";
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 import { log } from "./logging.js";
 import { type NameAndOrNumber } from "@wildboar/asn1-parser";
 import { resolveAssignedIdentifier } from "./resolve.js";
@@ -69,35 +69,14 @@ async function provideDocumentHighlights(
     cancel: vscode.CancellationToken,
 ): Promise<vscode.DocumentHighlight[]> {
     log.appendLine(`getting highlights for symbol at ${position.line}:${position.character}`);
-    const p = await getParserOutputs(document.uri);
-    if (
-        !p.lexicalTokens
-        || ("err" in p.lexicalTokens)
-        || !p.parserEndState
-        || ("err" in p.parserEndState)
-        || p.parserEndState.ok.error
-        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-        || !p.parsedModules
-        || ("err" in p.parsedModules)
-    ) {
-        const e =
-            ((p.lexicalTokens && ("err" in p.lexicalTokens))
-                ? p.lexicalTokens.err
-                : undefined)
-            ?? ((p.parserEndState && ("err" in p.parserEndState))
-                ? p.parserEndState.err
-                : undefined)
-            ?? ((p.parsedModules && ("err" in p.parsedModules))
-                ? p.parsedModules.err
-                : undefined)
-            ;
-        log.appendLine(`the current module seems to be malformed: ${e}`);
+    const p = await getParserOutputsWithLogging(document.uri, cancel);
+    if (!p) {
         return Promise.reject(null);
     }
 
-    const tokens = p.lexicalTokens.ok;
-    const modules = p.parsedModules.ok;
-    const cst = p.parserEndState.ok.cst;
+    const tokens = p.lexicalTokens;
+    const modules = p.parsedModules;
+    const cst = p.parserEndState.cst;
 
     const defined = getDefinedThingAtPosition(cancel, document, position, cst);
     if (!defined) {

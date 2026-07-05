@@ -14,7 +14,7 @@ import {
     startsWithCapitalLetter,
     moduleReferenceTokens,
 } from "./utils.js";
-import { getParserOutputs } from './parsing.js';
+import { getParserOutputs, getParserOutputsWithLogging } from './parsing.js';
 import {
     findAllModuleReferencesFallibly,
     findAllReferencesFallibly,
@@ -174,21 +174,15 @@ async function getSymbolReferencesWithinFile(
     modoid?: NameAndOrNumber[],
 ): Promise<vscode.Location[]> {
     const doc = await vscode.workspace.openTextDocument(docuri);
-    const p = await getParserOutputs(docuri);
-    if (
-        !p.parsedModules
-        || ("err" in p.parsedModules)
-        || !p.lexicalTokens
-        || ("err" in p.lexicalTokens)
-    ) {
-        // TODO: Everywhere you do this, do better logging of the errors.
+    const p = await getParserOutputsWithLogging(docuri);
+    if (!p) {
         return Promise.reject(null);
     }
 
     const config = vscode.workspace.getConfiguration("asn1");
     const strict = config.get<boolean>("strictModuleOidMatch", true);
-    const modules = p.parsedModules.ok;
-    const tokens = p.lexicalTokens.ok;
+    const modules = p.parsedModules;
+    const tokens = p.lexicalTokens;
     const modoidarcs = modoid ? getOidNodesFromModuleIdentifier(modoid) : undefined;
     const ret: vscode.Location[] = [];
     const len = modules.length;
@@ -263,23 +257,14 @@ async function getModuleReferencesWithinFile(
     selopt?: SelectionOption,
 ): Promise<vscode.Location[]> {
     const doc = await vscode.workspace.openTextDocument(docuri);
-    const p = await getParserOutputs(docuri, undefined, cancel);
-    if (
-        !p.parsedModules
-        || ("err" in p.parsedModules)
-        || !p.lexicalTokens
-        || ("err" in p.lexicalTokens)
-        || !p.parserEndState
-        // || ("err" in p.parserEndState)
-        // || (Object.keys(p.parserEndState.ok.syntaxErrors).length > 0)
-    ) {
-        // TODO: Everywhere you do this, do better logging of the errors.
+    const p = await getParserOutputsWithLogging(docuri, cancel);
+    if (!p) {
         return Promise.reject(null);
     }
     const config = vscode.workspace.getConfiguration("asn1");
     const strict = config.get<boolean>("strictModuleOidMatch", true);
-    const modules = p.parsedModules.ok;
-    const tokens = p.lexicalTokens.ok;
+    const modules = p.parsedModules;
+    const tokens = p.lexicalTokens;
     const selarcs = seloid ? getOidNodesFromModuleIdentifier(seloid) : undefined;
     const ret: vscode.Location[] = [];
     const len = modules.length;
@@ -460,31 +445,12 @@ async function provideReferencesForSymbol(
     cancel: vscode.CancellationToken,
 ): Promise<vscode.Location[]> {
     // If the document is invalid ASN.1, all bets are off.
-    const p = await getParserOutputs(document.uri, undefined, cancel);
-    if (
-        !p.parserEndState
-        || ("err" in p.parserEndState)
-        || p.parserEndState.ok.error
-        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-        || !p.parsedModules
-        || ("err" in p.parsedModules)
-    ) {
-        const e =
-            ((p.lexicalTokens && ("err" in p.lexicalTokens))
-                ? p.lexicalTokens.err
-                : undefined)
-            ?? ((p.parserEndState && ("err" in p.parserEndState))
-                ? p.parserEndState.err
-                : undefined)
-            ?? ((p.parsedModules && ("err" in p.parsedModules))
-                ? p.parsedModules.err
-                : undefined)
-            ;
-        log.appendLine(`the current module seems to be malformed: ${e}`);
+    const p = await getParserOutputsWithLogging(document.uri, cancel);
+    if (!p) {
         return Promise.reject(null);
     }
-    const cst = p.parserEndState.ok.cst;
-    const modules = p.parsedModules.ok;
+    const cst = p.parserEndState.cst;
+    const modules = p.parsedModules;
     const defined = getDefinedThingAtPosition(cancel, document, position, cst);
     if (!defined) {
         log.appendLine(`defined thing not found at position ${position.line}:${position.character}`);
@@ -666,31 +632,12 @@ async function isModuleReference(
         return null;
     }
 
-    const p = await getParserOutputs(document.uri);
-    if (
-        !p.parserEndState
-        || ("err" in p.parserEndState)
-        || p.parserEndState.ok.error
-        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-        || !p.parsedModules
-        || ("err" in p.parsedModules)
-    ) {
-        const e =
-            ((p.lexicalTokens && ("err" in p.lexicalTokens))
-                ? p.lexicalTokens.err
-                : undefined)
-            ?? ((p.parserEndState && ("err" in p.parserEndState))
-                ? p.parserEndState.err
-                : undefined)
-            ?? ((p.parsedModules && ("err" in p.parsedModules))
-                ? p.parsedModules.err
-                : undefined)
-            ;
-        log.appendLine(`the current module seems to be malformed: ${e}`);
+    const p = await getParserOutputsWithLogging(document.uri, cancel);
+    if (!p) {
         return Promise.reject(null);
     }
-    const cst = p.parserEndState.ok.cst;
-    const modules = p.parsedModules.ok;
+    const cst = p.parserEndState.cst;
+    const modules = p.parsedModules;
 
     for (const mod of modules) {
         if (cancel.isCancellationRequested) {

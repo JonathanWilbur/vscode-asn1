@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { type Production, type Module } from "@wildboar/asn1-parser";
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 import { getRangeFromLocation } from "./utils.js";
 
 function isEmptyProduction(prod: Production): boolean {
@@ -816,18 +816,11 @@ async function provideDocumentFormattingEdits(
         ? " ".repeat(options.tabSize)
         : "\t";
 
-    const p = await getParserOutputs(document.uri, undefined, cancel);
-    if (
-        !p.parserEndState
-        || ("err" in p.parserEndState)
-        || p.parserEndState.ok.error
-        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-        || !p.parsedModules
-        || ("err" in p.parsedModules)
-    ) {
+    const p = await getParserOutputsWithLogging(document.uri, cancel);
+    if (!p) {
         return Promise.reject(null);
     }
-    const modules = p.parsedModules.ok;
+    const modules = p.parsedModules;
     const edits: vscode.TextEdit[] = [];
     for (const module of modules) {
         formatModule(document, edits, module, eol, linemax, indent);

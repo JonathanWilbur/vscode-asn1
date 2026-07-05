@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { getDefinedThingAtPosition, getRangeFromLocation, positionFallsWithin } from "./utils.js";
-import { getParserOutputs } from "./parsing.js";
+import { getParserOutputsWithLogging } from "./parsing.js";
 import { resolveDefined } from "./resolve.js";
 import {
     AssignmentType,
@@ -60,19 +60,12 @@ async function provideTypeDefinition(
     position: vscode.Position,
     cancel: vscode.CancellationToken,
 ): Promise<vscode.Definition | vscode.DefinitionLink[]> {
-    const p = await getParserOutputs(document.uri, undefined, cancel);
-    if (
-        !p.parserEndState
-        || ("err" in p.parserEndState)
-        || p.parserEndState.ok.error
-        || (Object.keys(p.parserEndState.ok.syntaxErrors ?? {}).length > 0)
-        || !p.parsedModules
-        || ("err" in p.parsedModules)
-    ) {
+    const p = await getParserOutputsWithLogging(document.uri, cancel);
+    if (!p) {
         return Promise.reject(null);
     }
-    const modules = p.parsedModules.ok;
-    const cst = p.parserEndState.ok.cst;
+    const modules = p.parsedModules;
+    const cst = p.parserEndState.cst;
     const currentModule = modules
         .find((mod) => (
             mod.production
