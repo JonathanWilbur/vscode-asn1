@@ -9,7 +9,6 @@ import {
 import { log } from "./logging.js";
 import type { ASN1ModuleName, ASN1Reference } from "./types.js";
 
-// TODO: Move to @wildboar/asn1-parser
 /**
  * Tokens that _could_ be an ASN.1 module name.
  */

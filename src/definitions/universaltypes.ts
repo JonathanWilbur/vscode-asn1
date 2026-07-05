@@ -1,7 +1,5 @@
 import { MarkdownString } from "vscode";
 
-// TODO: Add the character string multipliers
-
 export const END_OF_CONTENT_DEFINITION : MarkdownString = new MarkdownString(
 "A special UNIVERSAL type used to signal the termination of an \
 indefinite-length encoded ASN.1 element."
@@ -124,7 +122,8 @@ choices will be `CONTEXT-SPECIFIC` and numbered from 0 to 5.\
 ");
 
 export const UTF8_STRING_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents a UTF-8 String."
+"A `UNIVERSAL` type that represents a UTF-8 String. Each character can be encoded "
++ "on multiple bytes."
 );
 
 export const RELATIVE_OID_DEFINITION : MarkdownString = new MarkdownString(
@@ -146,12 +145,13 @@ whose ordering in the list _does not matter_, in contrast to a `SEQUENCE`."
 
 export const NUMERIC_STRING_DEFINITION : MarkdownString = new MarkdownString(
 "A `UNIVERSAL` type that represents a string that can contain only digits and \
-spaces (`0x20`)."
+spaces (`0x20`). Each character is encoded on a single byte."
 );
 
 export const PRINTABLE_STRING_DEFINITION : MarkdownString = new MarkdownString(
 "A `UNIVERSAL` type that represents a string that may contain only characters \
-from this selection: `etaoinsrhdlucmfywgpbvkxqjzETAOINSRHDLUCMFYWGPBVKXQJZ0123456789 '()+,-./:=?`."
+from this selection: `etaoinsrhdlucmfywgpbvkxqjzETAOINSRHDLUCMFYWGPBVKXQJZ0123456789 '()+,-./:=?`. \
+Each character is encoded on a single byte."
 );
 
 export const T61_STRING_DEFINITION : MarkdownString = new MarkdownString(
@@ -159,7 +159,9 @@ export const T61_STRING_DEFINITION : MarkdownString = new MarkdownString(
 set, as specified in the \
 [International Telecommunications Union](https://www.itu.int/en/pages/default.aspx)'s\
 [T.61 : Character repertoire and coded character sets for the international teletex service](https://www.itu.int/rec/T-REC-T.61-198811-S/en).\n\
-This data type is deprecated, but it remains in use in some old X.509 certificates."
+This data type is deprecated, but it remains in use in some old X.509 certificates. \
+Most characters are encoded on a single byte, but diacritics themselves are another \
+byte that prefixes the character."
 );
 
 export const VIDEOTEX_STRING_DEFINITION : MarkdownString = new MarkdownString(
@@ -175,7 +177,8 @@ Reference Alphabet (IRA) character set--formerly known as the \
 [International Telecommunications Union](https://www.itu.int/en/pages/default.aspx)'s\
 [T.50 : International Alphabet No. 5](https://www.itu.int/rec/T-REC-T.50-198811-S).\n\
 This is very similar to ASCII, but substitutes characters that are specific to \
-the United States, like the dollar sign (`$`) for more generic international characters."
+the United States, like the dollar sign (`$`) for more generic international characters. \
+Each character is encoded on a single byte."
 );
 
 export const UTC_TIME_DEFINITION : MarkdownString = new MarkdownString(
@@ -229,7 +232,8 @@ International Register of Coded Character Sets to be used with Escape Sequences.
 );
 
 export const UNIVERSAL_STRING_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents a string encoded with the UCS-4 character set."
+"A `UNIVERSAL` type that represents a string encoded with the UCS-4 character set. \
+Each character code point is encoded as a big-endian 32-bit integer on four bytes."
 );
 
 export const CHARACTER_STRING_DEFINITION : MarkdownString = new MarkdownString(
@@ -254,7 +258,8 @@ choices will be `CONTEXT-SPECIFIC` and numbered from 0 to 5."
 );
 
 export const BMP_STRING_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents a string encoded with the UCS-2 character set."
+"A `UNIVERSAL` type that represents a string encoded with the UCS-2 character set. \
+Each character code point is encoded as a big-endian 16-bit integer on two bytes."
 );
 
 export const CHOICE_DEFINITION : MarkdownString = new MarkdownString(

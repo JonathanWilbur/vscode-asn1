@@ -23,7 +23,7 @@ async function provideModuleDefinition(
 ): Promise<vscode.Location> {
     const uris = Array.from(getFilesContainingModule(sfm.identifier));
     if (uris.length > 1 && sfm.selectionOption) {
-        // TODO: Warn of ambiguity: unable to resolve to a single module.
+        log.appendLine(`unable to resolve to a single module for import of module ${sfm.identifier}`);
     } // Otherwise, we can just select the first module that matches.
 
     const config = vscode.workspace.getConfiguration("asn1");
@@ -39,14 +39,13 @@ async function provideModuleDefinition(
             document.uri,
         );
         if (!sfmoid) {
-            // TODO: Log.
-            // Also, is this the right behavior?
+            log.appendLine(`failed to resolve assigned identifier for import of module ${sfm.identifier}`);
             return Promise.reject(null);
         }
         sfmarcs = getOidNodesFromModuleIdentifier(sfmoid) ?? undefined;
         if (!sfmarcs) {
-            // TODO: Do something?
-            // return Promise.reject(null);
+            log.appendLine(`failed to resolve OID for import of module ${sfm.identifier}`);
+            return Promise.reject(null);
         }
     }
 

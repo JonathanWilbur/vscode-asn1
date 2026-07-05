@@ -36,8 +36,11 @@ export function getExportEol(document?: vscode.TextDocument): "\r\n" | "\n" {
     }
 }
 
-function failExport(): never {
-    // TODO: Do something better than this.
+function failExport(document?: vscode.TextDocument): never {
+    if (document) {
+        const path = vscode.workspace.asRelativePath(document.uri);
+        throw new Error(`Export failed for malformed ASN.1 file ${path}`);
+    }
     throw new Error("Export failed");
 }
 
@@ -184,7 +187,6 @@ function oidInfoToCSVRow(info: OidInfo): string {
     ].join(",");
 }
 
-// TODO: Support cancellation somehow?
 export
 async function get_oid_csv_rows_from_doc(
     document: vscode.TextDocument,
@@ -193,7 +195,7 @@ async function get_oid_csv_rows_from_doc(
 ): Promise<void> {
     const p = await getParserOutputsWithLogging(document, token);
     if (!p) {
-        return failExport();   
+        return failExport(document);   
     }
     const modules = p.parsedModules;
     for (const mod of modules) {
@@ -264,7 +266,7 @@ async function get_dep_csv_rows_from_doc(
 ): Promise<void> {
     const p = await getParserOutputsWithLogging(document, token);
     if (!p) {
-        return failExport();   
+        return failExport(document);   
     }
     const modules = p.parsedModules;
     for (const mod of modules) {
@@ -357,7 +359,7 @@ async function get_module_csv_rows_from_doc(
 ): Promise<void> {
     const p = await getParserOutputsWithLogging(document, token);
     if (!p) {
-        return failExport();   
+        return failExport(document);   
     }
     const modules = p.parsedModules;
     for (const mod of modules) {
@@ -417,7 +419,7 @@ async function get_assignment_csv_rows_from_doc(
 ): Promise<void> {
     const p = await getParserOutputsWithLogging(document, token);
     if (!p) {
-        return failExport();   
+        return failExport(document);   
     }
     const modules = p.parsedModules;
     for (const mod of modules) {
@@ -518,7 +520,7 @@ async function get_modules_json_from_doc(
 ): Promise<string> {
     const p = await getParserOutputsWithLogging(document, token);
     if (!p) {
-        return failExport();   
+        return failExport(document);   
     }
     const modules = p.parsedModules;
     const obj = {

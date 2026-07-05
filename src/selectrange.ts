@@ -59,7 +59,6 @@ function drillSelectionRangesForPosition(
     cstnode: Production,
     recursionTTL: number = 1000,
 ): vscode.SelectionRange | undefined {
-    // TODO: Eliminate tail recursion
     if (recursionTTL <= 0) {
         return undefined;
     }

@@ -20,7 +20,6 @@ import { log } from "./logging.js";
 import { getAsn1Files } from './utils.js';
 
 // TODO: Test this.
-// TODO: This could be moved to @wildboar/asn1-parser
 /**
  * @internal Only exported for testing purposes.
  * @param tokens 

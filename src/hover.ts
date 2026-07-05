@@ -20,6 +20,8 @@ import {
     type Production,
     TypeType,
     ValueType,
+    keywordsForbiddenAsLiterals,
+    ProductionType,
 } from "@wildboar/asn1-parser";
 import {
     resolveDefined,
@@ -80,42 +82,6 @@ const wordBitStringRegex = /'[01\s]*'B/;
  * Octet string regex
  */
 const wordOctetStringRegex = /'[0-9A-F\s]*'H/;
-
-// TODO: Use this
-const keywordsThatMustNotAppearAsLiterals: Set<string> = new Set([
-    "ABSTRACT-SYNTAX",
-    "BIT",
-    "BOOLEAN",
-    "CHARACTER",
-    "CHOICE",
-    "CONTAINING",
-    "DATE",
-    "DATE-TIME",
-    "DURATION",
-    "EMBEDDED",
-    "END",
-    "ENUMERATED",
-    "EXTERNAL",
-    "FALSE",
-    "INSTANCE",
-    "INTEGER",
-    "MINUS-INFINITY",
-    "NOT-A-NUMBER",
-    "NULL",
-    "OBJECT",
-    "OCTET",
-    "OID-IRI",
-    "PLUS-INFINITY",
-    "REAL",
-    "RELATIVE-OID",
-    "RELATIVE-OID-IRI",
-    "SEQUENCE",
-    "SET",
-    "TIME",
-    "TIME-OF-DAY",
-    "TRUE",
-    "TYPE-IDENTIFIER",
-]);
 
 // TODO: Make this just return the strings and let the caller populate the range parameter.
 /*
@@ -856,20 +822,14 @@ async function provideHover(
             && positionFallsWithin(document, position, objprod)
         ) {
             const obj = currentAssignment.object;
-            // if ("reference" in obj) {
-            //     // This should already be handled.
-            //     return Promise.reject(null);
-            // }
             if ("fieldSettings" in obj) {
-                // Currently not handled. This is super rare to see.
                 return Promise.reject(null);
             }
             if ("tokens" in obj) {
-                // currentAssignment.definedObjectClass.reference
-                // TODO: Use some known object classes, such as ATTRIBUTE, to provide hovers for some literals.
                 if (
                     wordText
                     && (wordText.toUpperCase() === wordText)
+                    && !keywordsForbiddenAsLiterals.has(wordText as ProductionType)
                 ) { // Looks like a literal. Do not provide hover.
                     return Promise.reject(null);
                 }
