@@ -168,36 +168,6 @@ function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | nul
 	return null;
 }
 
-// TODO: Test this.
-// TODO: Move to @wildboar/asn1-parser
-export
-function asn1ModuleMatch(
-    modoid: number[],
-    asserted: number[],
-    selopt?: SelectionOption,
-): boolean {
-    if (selopt === SelectionOption.WITH_DESCENDANTS) {
-        if (asserted.length > modoid.length) {
-            return false;
-        }
-        return asserted.every((arc, i) => arc === modoid[i]);
-    }
-    // Otherwise the lengths must be the same
-    if (asserted.length !== modoid.length) {
-        return false;
-    }
-    const len = asserted.length;
-    if (selopt === SelectionOption.WITH_SUCCESSORS) {
-        return (
-            asserted
-                .slice(0, -1)
-                .every((arc, i) => arc === modoid[i])
-            && (modoid[len - 1] >= asserted[len - 1])
-        );
-    }
-    return asserted.every((arc, i) => arc === modoid[i]);
-}
-
 export
 function startsWithCapitalLetter(s: string): boolean {
     return (s.slice(0, 1).toUpperCase() === s.slice(0, 1));
@@ -222,16 +192,6 @@ function inOpenSyntaxRegion (lineBeforeCursor: string) {
     // if (singleQuoteIndex > -1 || token.isCancellationRequested) {
     //     return []; // Assume that we are in a string.
     // }
-}
-
-// TODO: Import from `@wildboar/asn1-parser` when next version is published.
-export function isDefinedOrImported(mod: Module, ident: string): boolean {
-    return (
-        (ident in mod.assignments)
-        || Object.values(mod.imports.modules).some((sfm) => ident in sfm.symbolList)
-        || (ident === "TYPE-IDENTIFIER")
-        || (ident === "ABSTRACT-SYNTAX")
-    );
 }
 
 // TODO: Move to @wildboar/asn1-parser

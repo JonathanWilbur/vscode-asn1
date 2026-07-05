@@ -203,14 +203,14 @@ function formatSymbol(
         ? cstnode.children[0]
         : cstnode;
     if (alt.type !== "ParameterizedReference") {
-        return prodLength(cstnode); // Nothing to do here.
+        return cstnode.getLength(); // Nothing to do here.
     }
     const ref = alt.children[0];
     if (ref?.type !== "Reference") {
         return malformedProdLength(cstnode);
     }
     separateAllBy(document, alt.children, "", edits);
-    return prodLength(ref) + 2;
+    return ref.getLength() + 2;
 }
 
 // This always uses a single indent
@@ -265,13 +265,8 @@ function formatSymbolList(
 //     "{" ObjIdComponentsList "}"
 // 	| "{" DefinedValue ObjIdComponentsList "}"
 
-// TODO: Implement in @wildboar/asn1-parser
-function prodLength(cstnode: Production): number {
-    return (cstnode.location.endIndex - cstnode.location.startIndex);
-}
-
 function malformedProdLength(cstnode: Production): number {
-    return prodLength(cstnode);
+    return cstnode.getLength();
 }
 
 function formatActualParameterList(
@@ -279,7 +274,7 @@ function formatActualParameterList(
     edits: vscode.TextEdit[],
     cstnode: Production,
 ): number {
-    const len = prodLength(cstnode);
+    const len = cstnode.getLength();
     const range = getRangeFromLocation(document, cstnode.location);
     const text = document.getText(range);
     if (text.includes("--") || text.includes("*") || text.includes("\n")) {
@@ -299,7 +294,7 @@ function formatActualParameterList(
     const params = plist.children.filter((c) => c.type === "ActualParameter");
     separateAllBy(document, params, ", ", edits);
     return params
-        .map((p) => prodLength(p))
+        .map((p) => p.getLength())
         .reduce((acc, cur) => acc + cur)
         + 2 // For curly brackets
         + ((params.length - 1) * 2) // For the ", " between each.
@@ -317,7 +312,7 @@ function formatDefinedValue(
         ? cstnode.children[0]
         : cstnode;
     if (alt.type === "valuereference" || alt.type === "identifier") {
-        return prodLength(cstnode);
+        return cstnode.getLength();
     }
     if (alt.type === "ExternalValueReference") {
         const nonws = alt.children.filter((c) => c.type !== "whitespace");
@@ -327,9 +322,9 @@ function formatDefinedValue(
         }
         separateAllBy(document, alt.children, "", edits);
         return (
-            prodLength(modref)
+            modref.getLength()
             + 1
-            + prodLength(valref)
+            + valref.getLength()
         );
     }
     if (alt.type === "ParameterizedValue") {
@@ -343,14 +338,14 @@ function formatDefinedValue(
             || (sdv.type !== "SimpleDefinedValue")
             || (plist.type !== "ActualParameterList")
         ) {
-            return prodLength(cstnode);
+            return cstnode.getLength();
         }
         const sdvlen = formatDefinedValue(document, edits, sdv);
         const plistlen = formatActualParameterList(document, edits, plist);
         return (sdvlen + plistlen);
     }
     // Unrecognized alternative.
-    return prodLength(cstnode);
+    return cstnode.getLength();
 }
 
 function formatObjIdComponents(
@@ -365,7 +360,7 @@ function formatObjIdComponents(
         return formatDefinedValue(document, edits, alt);
     }
     if (alt.type !== "NameAndNumberForm") {
-        return prodLength(cstnode);
+        return cstnode.getLength();
     }
     separateAllBy(document, alt.children, "", edits);
     const numform = alt
@@ -380,8 +375,8 @@ function formatObjIdComponents(
     const ident = alt.children[0];
     const numlen = defvalnumform
         ? formatDefinedValue(document, edits, defvalnumform)
-        : prodLength(numform);
-    return (prodLength(ident) + numlen + 2); // +2 for parens
+        : numform.getLength();
+    return (ident.getLength() + numlen + 2); // +2 for parens
 }
 
 function formatObjIdComponentsList(

@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { getParserOutputs } from "./parsing.js";
 import {
-    asn1ModuleMatch,
     drillIntoDefinedInCST,
     getOidNodesFromModuleIdentifier,
     getRangeFromLocation,
@@ -9,7 +8,11 @@ import {
 } from "./utils.js";
 import { log } from "./logging.js";
 import { resolveAssignedIdentifier, resolveDefined } from "./resolve.js";
-import type { SymbolsFromModule, Module } from "@wildboar/asn1-parser";
+import {
+    type SymbolsFromModule,
+    type Module,
+    asn1ModuleOidMatch,
+} from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
 
 async function provideModuleDefinition(
@@ -75,7 +78,7 @@ async function provideModuleDefinition(
             
             if (mod.oid && sfmarcs) {
                 const modoid = getOidNodesFromModuleIdentifier(mod.oid);
-                if (!modoid || !asn1ModuleMatch(modoid, sfmarcs, sfm.selectionOption)) {
+                if (!modoid || !asn1ModuleOidMatch(modoid, sfmarcs, sfm.selectionOption)) {
                     continue;
                 }
             }

@@ -8,7 +8,7 @@ import { Asn1HighlightProvider } from "./highlight.js";
 import { Asn1FoldingRangeProvider } from "./folding.js";
 import { Asn1CodeActionProvider } from "./codeact.js";
 import { Asn1CompletionItemProvider } from "./completion.js";
-import { indexAsn1Files, indexAsn1File, reindexAsn1File, deindexAsn1File } from "./indexing.js";
+import { indexAsn1Files, indexAsn1File, reindexAsn1File, deindexAsn1File, clearAsn1ModuleIndexes } from "./indexing.js";
 import { log } from "./logging.js";
 import {
 	updateDiagnostics,
@@ -31,6 +31,7 @@ import {
 	export_assignments_csv_from_workspace_cmd,
 	export_modules_json_from_doc_cmd,
 } from "./commands.js";
+import { clearParserOutputCaches } from './parsing.js';
 
 const LANGUAGE: string = "asn1";
 
@@ -148,11 +149,21 @@ export function activate(context: vscode.ExtensionContext) {
 	watcher.onDidCreate((uri) => indexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
 	watcher.onDidChange((uri) => reindexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
 	watcher.onDidDelete((uri) => deindexAsn1File(uri));
-	vscode.workspace.onDidOpenTextDocument((e) => {
-		if (!isAsn1File(e)) {
+	vscode.window.onDidChangeActiveTextEditor(editor => {
+		if (!editor) {
 			return;
 		}
-		updateDiagnostics(e, diagnosticCollection);
+		const document = editor.document;
+		if (!isAsn1File(document)) {
+			return;
+		}
+		// This document is now the active tab.
+		// We don't want to update diagnostics just because the user switch tabs.
+		// This should only run if they switched tabs AND the diagnostics were
+		// never taken before.
+		if (!diagnosticCollection.has(document.uri)) {
+			updateDiagnostics(document, diagnosticCollection);
+		}
 	});
 	vscode.workspace.onDidSaveTextDocument(async (document) => {
 		if (!isAsn1File(document)) {
@@ -162,9 +173,23 @@ export function activate(context: vscode.ExtensionContext) {
 		await updateDiagnostics(document, diagnosticCollection);
 	});
 	context.subscriptions.push(watcher);
+
+	// Update diagnostics for the open editor.
+	const editor = vscode.window.activeTextEditor;
+	const activeDocument = editor?.document;
+	if (activeDocument && isAsn1File(activeDocument)) {
+		indexAsn1File(activeDocument)
+			.then(() => updateDiagnostics(activeDocument, diagnosticCollection))
+			.catch(() => {})
+			;
+	}
+
 	log.appendLine(`${new Date()}: asn.1 providers initialized / starting indexing of files`);
 	indexAsn1Files()
 		.catch((e) => log.appendLine(e.toString()));
 }
 
-export function deactivate() {}
+export function deactivate() {
+	clearAsn1ModuleIndexes();
+	clearParserOutputCaches();
+}

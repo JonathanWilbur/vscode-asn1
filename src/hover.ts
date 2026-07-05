@@ -874,7 +874,6 @@ async function provideHover(
             if ("tokens" in obj) {
                 // currentAssignment.definedObjectClass.reference
                 // TODO: Use some known object classes, such as ATTRIBUTE, to provide hovers for some literals.
-
                 if (
                     wordText
                     && (wordText.toUpperCase() === wordText)

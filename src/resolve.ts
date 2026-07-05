@@ -14,11 +14,11 @@ import {
     type AssignedIdentifier,
     type ObjectDefn,
     type Object_,
+    asn1ModuleOidMatch,
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
 import { getParserOutputs } from "./parsing.js";
 import {
-    asn1ModuleMatch,
     getOidNodesFromModuleIdentifier,
 } from "./utils.js";
 import { maybeReparse } from "./reparse.js";
@@ -182,7 +182,7 @@ export async function resolveDefined(
                         log.appendLine(`could not resolve imported module object identifier to integers`);
                         return undefined;
                     }
-                    if (!asn1ModuleMatch(modoid, impoid, sfm.selectionOption)) {
+                    if (!asn1ModuleOidMatch(modoid, impoid, sfm.selectionOption)) {
                         log.appendLine(`module ${moduleref} in ${file} didn't match import oid`);
                         continue;
                     }

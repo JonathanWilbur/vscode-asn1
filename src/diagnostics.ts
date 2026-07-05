@@ -3,7 +3,6 @@ import { getParserOutputs } from "./parsing.js";
 import {
     getRangeFromLocation,
     typeTypesThatCouldBeAnything,
-    isDefinedOrImported,
 } from "./utils.js";
 import {
     parserFor,
@@ -29,6 +28,7 @@ import {
     ASN1SemanticError,
     ASN1SyntaxError,
     ASN1ParserExpectationError,
+    isDefinedOrImported,
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
 import { maybeReparse } from "./reparse.js";

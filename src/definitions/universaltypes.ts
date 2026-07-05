@@ -2,7 +2,6 @@ import { MarkdownString } from "vscode";
 
 // TODO: Add the character string multipliers
 
-
 export const END_OF_CONTENT_DEFINITION : MarkdownString = new MarkdownString(
 "A special UNIVERSAL type used to signal the termination of an \
 indefinite-length encoded ASN.1 element."

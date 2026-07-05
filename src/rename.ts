@@ -1,14 +1,12 @@
 import * as vscode from "vscode";
 import { provideReferencesForSymbol } from "./findallref.js";
 
-// FIXME: You need a separate rename for modules
-
 /**
  * @summary Rename an ASN.1 assigned identifier in imports and in assignments
  * @description
  * 
  * This function renames an identifier established within an ASN.1 assignment
- * (as opposed to a module name).
+ * or used as a module name.
  * 
  * @param document The text document object
  * @param position The position within the text document in which the user

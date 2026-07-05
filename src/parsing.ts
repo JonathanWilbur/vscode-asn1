@@ -8,7 +8,6 @@ import {
     type ParseContext,
 } from '@wildboar/asn1-parser';
 import type { YieldType, Result, VersionNumbered } from "./types.js";
-import { getRangeFromLocation } from './utils.js';
 
 export type ParserStopAt =
     | "lexing"
@@ -125,4 +124,9 @@ export function getLastValidParserOutputs(
         : docOrUri.uri;
     const key = uri.toString();
     return lastValidCache.get(key);
+}
+
+export function clearParserOutputCaches(): void {
+    cache.clear();
+    lastValidCache.clear();
 }

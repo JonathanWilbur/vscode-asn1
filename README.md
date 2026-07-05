@@ -2,6 +2,18 @@
 
 Currently in progress.
 
+## To Do
+
+- [ ] Configurable file selection
+- [ ] Configurable file ignores
+- [ ] Configurable linemax
+- [ ] Configurable spaces / tabs
+- [ ] Configurable EOL
+- [ ] Configurable Diagnostics
+- [ ] Configurable Export EOL
+- [ ] Configurable strict module match (particularly in FAR)
+- [ ] Cancellation for long-running commands
+
 ## Disabling Diagnostics
 
 It can be annoying to get diagnostics for an ASN.1 file that you are in the

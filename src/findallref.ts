@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
-import type { NameAndOrNumber, SelectionOption, SymbolsFromModule, Module } from '@wildboar/asn1-parser';
 import {
-    asn1ModuleMatch,
+    type NameAndOrNumber,
+    type SelectionOption,
+    type SymbolsFromModule,
+    type Module,
+    asn1ModuleOidMatch, 
+} from '@wildboar/asn1-parser';
+import {
     getDefinedThingAtPosition,
     getOidNodesFromModuleIdentifier,
     getRangeFromLocation,
@@ -218,7 +223,7 @@ async function getSymbolReferencesWithinFile(
                     skipModulesCount++;
                     continue;
                 }
-                if (!asn1ModuleMatch(modoidarcs, impoidarcs, sfm.selectionOption)) {
+                if (!asn1ModuleOidMatch(modoidarcs, impoidarcs, sfm.selectionOption)) {
                     log.appendLine(`non-matching oid used in import statement in module ${mod.name} in ${docuri}`);
                     skipModulesCount++;
                     continue; // Not a matching module.
@@ -296,7 +301,7 @@ async function getModuleReferencesWithinFile(
             } else {
                 const modarcs = getOidNodesFromModuleIdentifier(mod.oid);
                 if (modarcs && selarcs) {
-                    const matchesOid = asn1ModuleMatch(modarcs, selarcs, selopt);
+                    const matchesOid = asn1ModuleOidMatch(modarcs, selarcs, selopt);
                     if (matchesOid) {
                         const range = getRangeFromLocation(doc, modid.location);
                         ret.push(new vscode.Location(docuri, range));
@@ -323,7 +328,7 @@ async function getModuleReferencesWithinFile(
                     if (impoid && selarcs) {
                         // TODO: Make it configurable whether or not this check happens.
                         const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
-                        if (impoidarcs && asn1ModuleMatch(selarcs, impoidarcs, sfm.selectionOption)) {
+                        if (impoidarcs && asn1ModuleOidMatch(selarcs, impoidarcs, sfm.selectionOption)) {
                             // The name and OID matches, so return this module reference.
                             const range = getRangeFromLocation(doc, sfmModName.location);
                             ret.push(new vscode.Location(docuri, range));
@@ -403,7 +408,7 @@ async function getReferencesFromAssigningModules(
             if (mod.oid && modoid) {
                 const oid1 = getOidNodesFromModuleIdentifier(mod.oid);
                 const impoid = getOidNodesFromModuleIdentifier(modoid);
-                if (!oid1 || !impoid || !asn1ModuleMatch(oid1, impoid, selopt)) {
+                if (!oid1 || !impoid || !asn1ModuleOidMatch(oid1, impoid, selopt)) {
                     continue;
                 }
             }
@@ -766,5 +771,3 @@ export class Asn1ReferenceProvider implements vscode.ReferenceProvider {
         return provideReferences(document, position, token);
     }
 }
-
-// TODO: Do I need to clean up open documents?
