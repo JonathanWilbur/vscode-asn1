@@ -39,7 +39,6 @@ function positionFallsWithin(
     return (start.isBeforeOrEqual(position) && end.isAfterOrEqual(position));
 }
 
-// TODO: Use getDefinedThingAtPosition instead of this. (This will fix some failures with go-to-definition.)
 export
 function drillIntoDefinedInCST(
     cancel: vscode.CancellationToken,
@@ -49,7 +48,6 @@ function drillIntoDefinedInCST(
     recursionTTL: number = 1000,
     definedOnly: boolean = false,
 ): Production | undefined {
-    // TODO: Eliminate tail recursion
     if (recursionTTL <= 0) {
         return undefined;
     }
@@ -144,7 +142,6 @@ export function getRangeFromLocation(
     return new vscode.Range(start, end);
 }
 
-// TODO: Move to @wildboar/asn1-parser
 export
 function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | null {
 	if (!(mid.slice(1).every((m) => "number" in m))) {
@@ -192,7 +189,6 @@ function inOpenSyntaxRegion (lineBeforeCursor: string) {
     // }
 }
 
-// TODO: Move to @wildboar/asn1-parser
 export
 function nameAndOrNumberToString(nn: NameAndOrNumber): string {
     if ("name" in nn && typeof nn.name === "string") {
@@ -208,7 +204,6 @@ function nameAndOrNumberToString(nn: NameAndOrNumber): string {
     }
 }
 
-// TODO: Move to @wildboar/asn1-parser
 export
 function nameAndOrNumberToIriString(nn: NameAndOrNumber): string {
     if (("name" in nn) && (typeof nn.name === "string") && nn.name.length) {

@@ -4,7 +4,7 @@ Currently in progress.
 
 ## To Do
 
-- [ ] Cancellation for long-running commands
+- [x] Cancellation for long-running commands
 - [ ] JSDoc
 - [ ] `README.md` Documentation
 - [ ] Screenshots

@@ -694,13 +694,29 @@ export async function export_deps_csv_from_doc_cmd(): Promise<void> {
         vscode.window.showErrorMessage(NO_DOC_OPEN);
         return;
     }
-    const cts = new vscode.CancellationTokenSource();
-    await export_deps_csv_from_doc(document, cts.token);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            await export_deps_csv_from_doc(document, token);
+        },
+    );
 }
 
 export async function export_deps_csv_from_workspace_cmd(): Promise<void> {
-    const cts = new vscode.CancellationTokenSource();
-    await export_deps_csv_from_workspace(cts.token);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            await export_deps_csv_from_workspace(token);
+        },
+    );
 }
 
 export async function export_oid_csv_from_doc_cmd(): Promise<void> {
@@ -710,13 +726,29 @@ export async function export_oid_csv_from_doc_cmd(): Promise<void> {
         vscode.window.showErrorMessage(NO_DOC_OPEN);
         return;
     }
-    const cts = new vscode.CancellationTokenSource();
-    await export_oid_csv_from_doc(document, cts.token);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            await export_oid_csv_from_doc(document, token);
+        },
+    );
 }
 
 export async function export_oid_csv_from_workspace_cmd(): Promise<void> {
-    const cts = new vscode.CancellationTokenSource();
-    await export_oid_csv_from_workspace(cts.token);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            await export_oid_csv_from_workspace(token);
+        },
+    );
 }
 
 export async function export_modules_csv_from_doc_cmd(): Promise<void> {
@@ -726,13 +758,29 @@ export async function export_modules_csv_from_doc_cmd(): Promise<void> {
         vscode.window.showErrorMessage(NO_DOC_OPEN);
         return;
     }
-    const cts = new vscode.CancellationTokenSource();
-    await export_modules_csv_from_doc(document, cts.token);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            await export_modules_csv_from_doc(document, token);
+        },
+    );
 }
 
 export async function export_modules_csv_from_workspace_cmd(): Promise<void> {
-    const cts = new vscode.CancellationTokenSource();
-    await export_modules_csv_from_workspace(cts.token);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            await export_modules_csv_from_workspace(token);
+        },
+    );
 }
 
 export async function export_assignments_csv_from_doc_cmd(): Promise<void> {
@@ -742,13 +790,29 @@ export async function export_assignments_csv_from_doc_cmd(): Promise<void> {
         vscode.window.showErrorMessage(NO_DOC_OPEN);
         return;
     }
-    const cts = new vscode.CancellationTokenSource();
-    await export_assignments_csv_from_doc(document, cts.token);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            await export_assignments_csv_from_doc(document, token);
+        },
+    );
 }
 
 export async function export_assignments_csv_from_workspace_cmd(): Promise<void> {
-    const cts = new vscode.CancellationTokenSource();
-    await export_assignments_csv_from_workspace(cts.token);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            await export_assignments_csv_from_workspace(token);
+        },
+    );
 }
 
 export async function export_modules_json_from_doc_cmd(): Promise<void> {
@@ -758,12 +822,20 @@ export async function export_modules_json_from_doc_cmd(): Promise<void> {
         vscode.window.showErrorMessage(NO_DOC_OPEN);
         return;
     }
-    const cts = new vscode.CancellationTokenSource();
-    const jsonstr = await get_modules_json_from_doc(document, cts.token);
-    const jsonDocument = await vscode.workspace.openTextDocument({
-        language: "json",
-        content: jsonstr,
-    });
-    await vscode.window.showTextDocument(jsonDocument);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+            title: "Processing..."
+        },
+        async (_progress, token) => {
+            const jsonstr = await get_modules_json_from_doc(document, token);
+            const jsonDocument = await vscode.workspace.openTextDocument({
+                language: "json",
+                content: jsonstr,
+            });
+            await vscode.window.showTextDocument(jsonDocument);
+        },
+    );
 }
 

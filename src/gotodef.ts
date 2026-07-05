@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { getParserOutputs } from "./parsing.js";
 import {
-    drillIntoDefinedInCST,
+    getDefinedThingAtPosition,
     getOidNodesFromModuleIdentifier,
     getRangeFromLocation,
     positionFallsWithin,
@@ -161,14 +161,14 @@ async function provideDefinition(
     const cst = p.parserEndState.ok.cst;
     const wordRange = document.getWordRangeAtPosition(position);
     const word = wordRange ? document.getText(wordRange) : "<bad range or position>";
-    const defined = drillIntoDefinedInCST(cancel, document, position, cst);
+    const defined = getDefinedThingAtPosition(cancel, document, position, cst);
     if (!defined) {
         log.appendLine(`word ${word} was not thought to be a "defined" production`);
         return Promise.reject(null);
     }
     const text = document.getText();
     const definedText = text
-        .slice(defined.location.startIndex, defined.location.endIndex);
+        .slice(defined[2].location.startIndex, defined[2].location.endIndex);
     const parts = definedText.split(".");
     const identifier = parts.pop()?.trim();
     const moduleref = parts.pop()?.trim();
