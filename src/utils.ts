@@ -53,7 +53,7 @@ function drillIntoDefinedInCST(
     }
     // All productions that are a symbol referring to some other assignment
     // are "Defined," such as `DefinedValue`, `DefinedType`, etc.
-    if (cstnode.type.startsWith('Defined')) {
+    if (isDefinedThing(cstnode)) {
         return cstnode;
     }
     /* I think identifiers were supported because I also wanted to find
@@ -232,4 +232,11 @@ export function isInECN(
         return false;
     }
     return positionFallsWithin(document, position, ecnprod);
+}
+
+export function isDefinedThing(cstnode: Production) {
+    return (
+        cstnode.type.startsWith('Defined')
+        && !cstnode.type.startsWith('DefinedSyntax')
+    );
 }

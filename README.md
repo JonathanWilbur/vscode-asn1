@@ -4,6 +4,12 @@ Currently in progress.
 
 ## To Do
 
+- [x] Fix wrong "unused imports" issue
+- [x] Detect unused parameters
+- [x] Detect use of parameters
+- [ ] Suggest removal of unused parameters
+- [x] Search enum items for defined symbols
+- [x] Go to definition for parameters
 - [x] Cancellation for long-running commands
 - [ ] JSDoc
 - [ ] `README.md` Documentation

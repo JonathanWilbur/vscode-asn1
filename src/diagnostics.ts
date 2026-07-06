@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import { getParserOutputs } from "./parsing.js";
 import {
     getRangeFromLocation,
+    isDefinedThing,
+    positionFallsWithin,
     typeTypesThatCouldBeAnything,
 } from "./utils.js";
 import {
@@ -68,6 +70,7 @@ export const DIAG_CODE_PARSE_ERROR: string = "E0025";
 export const DIAG_CODE_GROK_ERROR: string = "E0026";
 export const DIAG_CODE_DIAG_DISABLED: string = "E0027";
 export const DIAG_CODE_PROHIBITED_CHAR: string = "E0028";
+export const DIAG_CODE_PARAM_SYMBOL_UNUSED: string = "E0029";
 
 const AT_INDEX = "at index ";
 
@@ -1088,6 +1091,8 @@ function drillForUndefinedSymbols(
     diags: vscode.Diagnostic[],
     cstnode: Production,
     usedSymbols: Set<string>,
+    enumItemsDefined: Set<string>,
+    assignment: Assignment | undefined,
     recursionTTL: number = 100,
 ): void {
     if (recursionTTL <= 0) {
@@ -1098,22 +1103,22 @@ function drillForUndefinedSymbols(
         if (selfContainedProductions.has(child.type)) {
             continue;
         }
-        if (child.type.startsWith('Defined')) {
+        if (isDefinedThing(child)) {
             const text = document.getText();
             const ctx = createGrokContext(text);
             let def: Defined;
             try {
                 def = grokerFor.Defined(child, ctx);
             } catch {
-                return;
+                continue;
             }
             if (def.module) {
                 // Explicit module reference.
                 // We cannot say that it wasn't imported or defined.
-                return;
+                continue;
             }
             if (builtinRootArcNamesToNumber.has(def.reference)) {
-                return;
+                continue;
             }
             usedSymbols.add(def.reference);
 
@@ -1130,10 +1135,29 @@ function drillForUndefinedSymbols(
                 ?.children
                 .filter((c) => c.type === "ActualParameter");
             for (const param of params ?? []) {
-                drillForUndefinedSymbols(document, mod, diags, param, usedSymbols, recursionTTL);
+                drillForUndefinedSymbols(
+                    document,
+                    mod,
+                    diags,
+                    param,
+                    usedSymbols,
+                    enumItemsDefined,
+                    assignment,
+                    recursionTTL,
+                );
             }
-            if (isDefinedOrImported(mod, def.reference)) {
-                return;
+            const isDefinedEnumVariant: boolean = (
+                !!assignment
+                && enumItemsDefined.has(def.reference)
+            );
+            const isDefinedInParams: boolean = (assignment?.parameters ?? [])
+                .some((p) => p.dummyReference === def.reference);
+            if (
+                isDefinedOrImported(mod, def.reference)
+                || isDefinedInParams
+                || isDefinedEnumVariant
+            ) {
+                continue;
             }
             const range = getRangeFromLocation(document, child.location);
             const diag = new vscode.Diagnostic(
@@ -1144,7 +1168,16 @@ function drillForUndefinedSymbols(
             diag.code = DIAG_CODE_SYMBOL_NOT_DEFINED;
             diags.push(diag);
         } else {
-            drillForUndefinedSymbols(document, mod, diags, child, usedSymbols, recursionTTL);
+            drillForUndefinedSymbols(
+                document,
+                mod,
+                diags,
+                child,
+                usedSymbols,
+                enumItemsDefined,
+                assignment,
+                recursionTTL,
+            );
         }
     }
 }
@@ -1154,6 +1187,7 @@ function provideMissingSymbolDiagnostics(
     mod: Module,
     diags: vscode.Diagnostic[],
     usedSymbols: Set<string>,
+    enumItemsDefined: Set<string>,
 ): void {
     if (!mod.production) {
         return;
@@ -1194,16 +1228,42 @@ function provideMissingSymbolDiagnostics(
         if (!assid) {
             continue;
         }
-        drillForUndefinedSymbols(document, mod, diags, assid, usedSymbols, 10);
+        drillForUndefinedSymbols(
+            document,
+            mod,
+            diags,
+            assid,
+            usedSymbols,
+            new Set(),
+            undefined,
+            10,
+        );
     }
 
     // Check that all `Defined*` used in assignments are defined
-    const assnlist = body.children
-        .find((c) => c.type === "AssignmentList");
-    if (!assnlist) {
-        return;
+    for (const assn of Object.values(mod.assignments)) {
+        if (!assn.production) {
+            continue; // This should not happen.
+        }
+        drillForUndefinedSymbols(document, mod, diags, assn.production, usedSymbols, enumItemsDefined, assn);
+        const params = (assn.parameters ?? []);
+        for (const param of params) {
+            if (!usedSymbols.has(param.dummyReference)) {
+                const ploc = param.production?.location ?? assn.production.location;
+                const range = getRangeFromLocation(document, ploc);
+                const diag = new vscode.Diagnostic(
+                    range,
+                    "parameter not used in this asn.1 assignment",
+                    vscode.DiagnosticSeverity.Warning,
+                );
+                diag.code = DIAG_CODE_PARAM_SYMBOL_UNUSED;
+                diag.tags = [
+                    vscode.DiagnosticTag.Unnecessary,
+                ];
+                diags.push(diag);
+            }
+        }
     }
-    drillForUndefinedSymbols(document, mod, diags, assnlist, usedSymbols);
 }
 
 function lineDisablesDiagnostics(line: string): boolean {
@@ -1427,6 +1487,7 @@ async function updateDiagnostics(
         diagnosticCollection.set(document.uri, [diag]);
         return;
     }
+    const enumItems = p.parserEndState.ok.definedEnumItems;
     const modules = p.parsedModules.ok;
     const diags: vscode.Diagnostic[] = [];
     for (const module of modules) {
@@ -1437,7 +1498,7 @@ async function updateDiagnostics(
 
         // Ordering is important here: provideMissingSymbolDiagnostics populates
         // usedSymbols, which is used by provideImportDiagnostics.
-        provideMissingSymbolDiagnostics(document, module, diags, usedSymbols);
+        provideMissingSymbolDiagnostics(document, module, diags, usedSymbols, enumItems);
         provideImportDiagnostics(document, module, diags, usedSymbols);
     }
     diagnosticCollection.set(document.uri, diags);

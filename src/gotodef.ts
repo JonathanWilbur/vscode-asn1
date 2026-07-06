@@ -148,6 +148,21 @@ async function provideDefinition(
         return Promise.reject(null); // Malformed identifier.
     }
 
+    // This section provides go-to-definition for parameters.
+    const currentAssignment = !moduleref && Object.values(currentModule.assignments)
+        .find((assn) => (
+            assn.production
+            && positionFallsWithin(document, position, assn.production)
+        ));
+    if (currentAssignment && currentAssignment.parameters?.length) {
+        const currentParam = currentAssignment
+            .parameters.find((p) => p.dummyReference === identifier);
+        const loc = currentParam?.production?.location
+            ?? currentAssignment.production!.location;
+        const range = getRangeFromLocation(document, loc);
+        return new vscode.Location(document.uri, range);
+    }
+
     const res = await resolveDefined(cancel, moduleref, identifier, currentModule, document.uri);
     if (!res) {
         log.appendLine(`failed to resolve ${word}`);
