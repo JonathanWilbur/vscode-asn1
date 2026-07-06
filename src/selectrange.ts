@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import {
     type Production,
 } from "@wildboar/asn1-parser";
-import { getRangeFromLocation, positionFallsWithin } from "./utils.js";
+import { getRangeFromLocation, isInECN, positionFallsWithin } from "./utils.js";
 import { getParserOutputsWithLogging } from "./parsing.js";
 
 function addParent(sr: vscode.SelectionRange, parent: vscode.SelectionRange): void {
@@ -130,6 +130,9 @@ async function provideSelectionRanges(
             ));
         if (!currentModule) {
             return []; // User isn't even within an ASN.1 module.
+        }
+        if (isInECN(document, currentModule, position)) {
+            return []; // User is in an ECN section.
         }
         const range = drillSelectionRangesForPosition(
             token,

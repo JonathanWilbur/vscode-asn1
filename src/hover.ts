@@ -83,7 +83,6 @@ const wordBitStringRegex = /'[01\s]*'B/;
  */
 const wordOctetStringRegex = /'[0-9A-F\s]*'H/;
 
-// TODO: Make this just return the strings and let the caller populate the range parameter.
 /*
 ITU-T Rec. X.681, Section 10.6, says that these words MUST NOT appear as word literals in objects:
 
@@ -125,106 +124,106 @@ So those are fine for unconditional vscode.Hovers, except in comments and string
 This also means that I can identify the end of modules by searching for the
 first END literal that comes after the first BEGIN literal.
 */
-const keywordHovers: Map<string, vscode.Hover> = new Map([
+const keywordHovers: Map<string, vscode.MarkdownString> = new Map([
     // Booleans
-    [ "TRUE", new vscode.Hover(definitions.TRUE_DEFINITION) ],
-    [ "FALSE", new vscode.Hover(definitions.FALSE_DEFINITION) ],
+    [ "TRUE", definitions.TRUE_DEFINITION ],
+    [ "FALSE", definitions.FALSE_DEFINITION ],
 
     // Tag Classes
-    [ "UNIVERSAL", new vscode.Hover(definitions.UNIVERSAL_DEFINTION) ],
-    [ "PRIVATE", new vscode.Hover(definitions.PRIVATE_DEFINTION) ],
-    [ "APPLICATION", new vscode.Hover(definitions.APPLICATION_DEFINTION) ],
-    [ "CONTEXT", new vscode.Hover(definitions.CONTEXT_SPECIFIC_DEFINTION) ],
+    [ "UNIVERSAL", definitions.UNIVERSAL_DEFINITION ],
+    [ "PRIVATE", definitions.PRIVATE_DEFINITION ],
+    [ "APPLICATION", definitions.APPLICATION_DEFINITION ],
+    [ "CONTEXT", definitions.CONTEXT_SPECIFIC_DEFINITION ],
 
     // Constraints
-    [ "SIZE", new vscode.Hover(definitions.SIZE_DEFINITION) ],
-    [ "COMPONENT", new vscode.Hover(definitions.WITH_COMPONENT_DEFINITION) ],
-    [ "COMPONENTS", new vscode.Hover(definitions.WITH_COMPONENTS_DEFINITION) ],
-    [ "PATTERN", new vscode.Hover(definitions.PATTERN_DEFINITION) ],
-    [ "INCLUDES", new vscode.Hover(definitions.INCLUDES_DEFINITION) ],
-    [ "FROM", new vscode.Hover(definitions.FROM_DEFINITION) ],
-    [ "PRESENT", new vscode.Hover(definitions.PRESENT_DEFINITION) ],
-    [ "ABSENT", new vscode.Hover(definitions.ABSENT_DEFINITION) ],
-    [ "ENCODED", new vscode.Hover(definitions.ENCODED_BY_DEFINITION) ],
-    // [ "ALL EXCEPT", new vscode.Hover(definitions.) ],
-    [ "INTERSECTION", new vscode.Hover(definitions.INTERSECTION_DEFINITION) ],
-    [ "UNION", new vscode.Hover(definitions.UNION_DEFINITION) ],
-    [ "EXCEPT", new vscode.Hover(definitions.EXCEPT_DEFINITION) ],
-    [ "CONSTRAINED", new vscode.Hover(definitions.CONSTRAINED_BY_DEFINITION) ],
-    [ "DEFAULT", new vscode.Hover(definitions.DEFAULT_DEFINITION) ],
-    [ "OPTIONAL", new vscode.Hover(definitions.IMPLICIT_DEFINITION) ],
+    [ "SIZE", definitions.SIZE_DEFINITION ],
+    [ "COMPONENT", definitions.WITH_COMPONENT_DEFINITION ],
+    [ "COMPONENTS", definitions.WITH_COMPONENTS_DEFINITION ],
+    [ "PATTERN", definitions.PATTERN_DEFINITION ],
+    [ "INCLUDES", definitions.INCLUDES_DEFINITION ],
+    [ "FROM", definitions.FROM_DEFINITION ],
+    [ "PRESENT", definitions.PRESENT_DEFINITION ],
+    [ "ABSENT", definitions.ABSENT_DEFINITION ],
+    [ "ENCODED", definitions.ENCODED_BY_DEFINITION ],
+    // [ "ALL EXCEPT", definitions.) ],
+    [ "INTERSECTION", definitions.INTERSECTION_DEFINITION ],
+    [ "UNION", definitions.UNION_DEFINITION ],
+    [ "EXCEPT", definitions.EXCEPT_DEFINITION ],
+    [ "CONSTRAINED", definitions.CONSTRAINED_BY_DEFINITION ],
+    [ "DEFAULT", definitions.DEFAULT_DEFINITION ],
+    [ "OPTIONAL", definitions.IMPLICIT_DEFINITION ],
 
     // Mode
-    [ "EXPLICIT", new vscode.Hover(definitions.EXPLICIT_DEFINITION) ],
-    [ "IMPLICIT", new vscode.Hover(definitions.IMPLICIT_DEFINITION) ],
+    [ "EXPLICIT", definitions.EXPLICIT_DEFINITION ],
+    [ "IMPLICIT", definitions.IMPLICIT_DEFINITION ],
 
     // Module
-    [ "DEFINITIONS", new vscode.Hover(definitions.DEFINITIONS_DEFINITION) ],
-    [ "BEGIN", new vscode.Hover(definitions.BEGIN_DEFINITION) ],
-    [ "END", new vscode.Hover(definitions.END_DEFINITION) ],
-    [ "IMPORTS", new vscode.Hover(definitions.IMPORTS_DEFINITION) ],
-    [ "EXPORTS", new vscode.Hover(definitions.EXPORTS_DEFINITION) ],
-    // [ "EXPLICIT TAGS", new vscode.Hover(definitions.) ],
-    // [ "IMPLICIT TAGS", new vscode.Hover(definitions.) ],
-    [ "AUTOMATIC", new vscode.Hover(definitions.AUTOMATIC_TAGS_DEFINITION) ],
-    [ "EXTENSIBILITY", new vscode.Hover(definitions.EXTENSIBILITY_IMPLIED_DEFINITION) ],
-    [ "IMPLIED", new vscode.Hover(definitions.EXTENSIBILITY_IMPLIED_DEFINITION) ],
-    [ "TAGS", new vscode.Hover(definitions.TAGS_DEFINITION) ],
+    [ "DEFINITIONS", definitions.DEFINITIONS_DEFINITION ],
+    [ "BEGIN", definitions.BEGIN_DEFINITION ],
+    [ "END", definitions.END_DEFINITION ],
+    [ "IMPORTS", definitions.IMPORTS_DEFINITION ],
+    [ "EXPORTS", definitions.EXPORTS_DEFINITION ],
+    // [ "EXPLICIT TAGS", definitions.) ],
+    // [ "IMPLICIT TAGS", definitions.) ],
+    [ "AUTOMATIC", definitions.AUTOMATIC_TAGS_DEFINITION ],
+    [ "EXTENSIBILITY", definitions.EXTENSIBILITY_IMPLIED_DEFINITION ],
+    [ "IMPLIED", definitions.EXTENSIBILITY_IMPLIED_DEFINITION ],
+    [ "TAGS", definitions.TAGS_DEFINITION ],
 
     // Universal Types
-    [ "BOOLEAN", new vscode.Hover(definitions.BOOLEAN_DEFINITION) ],
-    [ "INTEGER", new vscode.Hover(definitions.INTEGER_DEFINITION) ],
-    [ "BIT", new vscode.Hover(definitions.BIT_STRING_DEFINITION) ],
-    [ "OCTET", new vscode.Hover(definitions.OCTET_STRING_DEFINITION) ],
-    [ "NULL", new vscode.Hover(definitions.NULL_DEFINITION) ],
-    // [ "OBJECT", new vscode.Hover(definitions.OBJECT_IDENTIFIER_DEFINITION) ],
-    // [ "IDENTIFIER", new vscode.Hover(definitions.OBJECT_IDENTIFIER_DEFINITION) ],
-    [ "ObjectDescriptor", new vscode.Hover(definitions.OBJECT_DESCRIPTOR_DEFINITION) ],
-    [ "EXTERNAL", new vscode.Hover(definitions.EXTERNAL_DEFINITION) ],
-    // [ "External", new vscode.Hover(definitions.EXTERNAL_DEFINITION) ],
-    [ "REAL", new vscode.Hover(definitions.REAL_DEFINITION) ],
-    [ "EMBEDDED", new vscode.Hover(definitions.EMBEDDED_PDV_DEFINITION) ],
-    [ "PDV", new vscode.Hover(definitions.EMBEDDED_PDV_DEFINITION) ],
-    [ "EmbeddedPDV", new vscode.Hover(definitions.EMBEDDED_PDV_DEFINITION) ],
-    [ "UTF8String", new vscode.Hover(definitions.UTF8_STRING_DEFINITION) ],
-    [ "RELATIVE-OID", new vscode.Hover(definitions.RELATIVE_OID_DEFINITION) ],
-    [ "SEQUENCE", new vscode.Hover(definitions.SEQUENCE_DEFINITION) ],
-    [ "SET", new vscode.Hover(definitions.SET_DEFINITION) ],
-    [ "NumericString", new vscode.Hover(definitions.NUMERIC_STRING_DEFINITION) ],
-    [ "PrintableString", new vscode.Hover(definitions.PRINTABLE_STRING_DEFINITION) ],
-    [ "TeletexString", new vscode.Hover(definitions.T61_STRING_DEFINITION) ],
-    [ "T61String", new vscode.Hover(definitions.T61_STRING_DEFINITION) ],
-    [ "VideotexString", new vscode.Hover(definitions.VIDEOTEX_STRING_DEFINITION) ],
-    [ "ISO646String", new vscode.Hover(definitions.IA5_STRING_DEFINITION) ],
-    [ "IA5String", new vscode.Hover(definitions.IA5_STRING_DEFINITION) ],
-    [ "UTCTime", new vscode.Hover(definitions.UTC_TIME_DEFINITION) ],
-    [ "GeneralizedTime", new vscode.Hover(definitions.GENERALIZED_TIME_DEFINITION) ],
-    [ "GraphicString", new vscode.Hover(definitions.GRAPHIC_STRING_DEFINITION) ],
-    [ "VisibleString", new vscode.Hover(definitions.VISIBLE_STRING_DEFINITION) ],
-    [ "GeneralString", new vscode.Hover(definitions.GENERAL_STRING_DEFINITION) ],
-    [ "UniversalString", new vscode.Hover(definitions.UNIVERSAL_STRING_DEFINITION) ],
-    [ "CharacterString", new vscode.Hover(definitions.CHARACTER_STRING_DEFINITION) ],
-    [ "BMPString", new vscode.Hover(definitions.BMP_STRING_DEFINITION) ],
-    [ "CHOICE", new vscode.Hover(definitions.CHOICE_DEFINITION) ],
-    [ "DATE", new vscode.Hover(definitions.DATE_DEFINITION) ],
-    [ "DATE-TIME", new vscode.Hover(definitions.DATE_TIME_DEFINITION) ],
-    [ "TIME", new vscode.Hover(definitions.TIME_DEFINITION) ],
-    [ "TIME-OF-DAY", new vscode.Hover(definitions.TIME_OF_DAY_DEFINITION) ],
-    [ "DURATION", new vscode.Hover(definitions.DURATION_DEFINITION) ],
-    // [ "INSTANCE OF", new vscode.Hover(definitions.) ],
-    // [ "SEQUENCE OF", new vscode.Hover(definitions.) ],
-    // [ "SET OF", new vscode.Hover(definitions.) ],
+    [ "BOOLEAN", definitions.BOOLEAN_DEFINITION ],
+    [ "INTEGER", definitions.INTEGER_DEFINITION ],
+    [ "BIT", definitions.BIT_STRING_DEFINITION ],
+    [ "OCTET", definitions.OCTET_STRING_DEFINITION ],
+    [ "NULL", definitions.NULL_DEFINITION ],
+    // [ "OBJECT", definitions.OBJECT_IDENTIFIER_DEFINITION ],
+    // [ "IDENTIFIER", definitions.OBJECT_IDENTIFIER_DEFINITION ],
+    [ "ObjectDescriptor", definitions.OBJECT_DESCRIPTOR_DEFINITION ],
+    [ "EXTERNAL", definitions.EXTERNAL_DEFINITION ],
+    // [ "External", definitions.EXTERNAL_DEFINITION ],
+    [ "REAL", definitions.REAL_DEFINITION ],
+    [ "EMBEDDED", definitions.EMBEDDED_PDV_DEFINITION ],
+    [ "PDV", definitions.EMBEDDED_PDV_DEFINITION ],
+    [ "EmbeddedPDV", definitions.EMBEDDED_PDV_DEFINITION ],
+    [ "UTF8String", definitions.UTF8_STRING_DEFINITION ],
+    [ "RELATIVE-OID", definitions.RELATIVE_OID_DEFINITION ],
+    [ "SEQUENCE", definitions.SEQUENCE_DEFINITION ],
+    [ "SET", definitions.SET_DEFINITION ],
+    [ "NumericString", definitions.NUMERIC_STRING_DEFINITION ],
+    [ "PrintableString", definitions.PRINTABLE_STRING_DEFINITION ],
+    [ "TeletexString", definitions.T61_STRING_DEFINITION ],
+    [ "T61String", definitions.T61_STRING_DEFINITION ],
+    [ "VideotexString", definitions.VIDEOTEX_STRING_DEFINITION ],
+    [ "ISO646String", definitions.IA5_STRING_DEFINITION ],
+    [ "IA5String", definitions.IA5_STRING_DEFINITION ],
+    [ "UTCTime", definitions.UTC_TIME_DEFINITION ],
+    [ "GeneralizedTime", definitions.GENERALIZED_TIME_DEFINITION ],
+    [ "GraphicString", definitions.GRAPHIC_STRING_DEFINITION ],
+    [ "VisibleString", definitions.VISIBLE_STRING_DEFINITION ],
+    [ "GeneralString", definitions.GENERAL_STRING_DEFINITION ],
+    [ "UniversalString", definitions.UNIVERSAL_STRING_DEFINITION ],
+    [ "CharacterString", definitions.CHARACTER_STRING_DEFINITION ],
+    [ "BMPString", definitions.BMP_STRING_DEFINITION ],
+    [ "CHOICE", definitions.CHOICE_DEFINITION ],
+    [ "DATE", definitions.DATE_DEFINITION ],
+    [ "DATE-TIME", definitions.DATE_TIME_DEFINITION ],
+    [ "TIME", definitions.TIME_DEFINITION ],
+    [ "TIME-OF-DAY", definitions.TIME_OF_DAY_DEFINITION ],
+    [ "DURATION", definitions.DURATION_DEFINITION ],
+    // [ "INSTANCE OF", definitions.) ],
+    // [ "SEQUENCE OF", definitions.) ],
+    // [ "SET OF", definitions.) ],
 
     // Values
-    [ "MIN", new vscode.Hover(definitions.MIN_DEFINITION) ],
-    [ "MAX", new vscode.Hover(definitions.MAX_DEFINITION) ],
-    [ "PLUS-INFINITY", new vscode.Hover(definitions.PLUS_INFINITY_DEFINITION) ],
-    [ "MINUS-INFINITY", new vscode.Hover(definitions.MINUS_INFINITY_DEFINITION) ],
-    [ "NOT-A-NUMBER", new vscode.Hover(definitions.NOT_A_NUMBER_DEFINITION) ],
+    [ "MIN", definitions.MIN_DEFINITION ],
+    [ "MAX", definitions.MAX_DEFINITION ],
+    [ "PLUS-INFINITY", definitions.PLUS_INFINITY_DEFINITION ],
+    [ "MINUS-INFINITY", definitions.MINUS_INFINITY_DEFINITION ],
+    [ "NOT-A-NUMBER", definitions.NOT_A_NUMBER_DEFINITION ],
 
     // Built-in Information Object Classes
-    [ "TYPE-IDENTIFIER", new vscode.Hover(definitions.TYPE_IDENTIFIER_DEFINITION) ],
-    [ "ABSTRACT-SYNTAX", new vscode.Hover(definitions.ABSTRACT_SYNTAX_DEFINITION) ],
+    [ "TYPE-IDENTIFIER", definitions.TYPE_IDENTIFIER_DEFINITION ],
+    [ "ABSTRACT-SYNTAX", definitions.ABSTRACT_SYNTAX_DEFINITION ],
 ]);
 
 function provideDumbHover(
@@ -233,7 +232,11 @@ function provideDumbHover(
 ): vscode.Hover | undefined {
     const wordRange = document.getWordRangeAtPosition(position);
     const word: string = document.getText(wordRange);
-    return keywordHovers.get(word);
+    const md = keywordHovers.get(word);
+    if (!md) {
+        return undefined;
+    }
+    return new vscode.Hover(md, wordRange);
 }
 
 const FAIL_MD = new vscode.MarkdownString("Symbol could not be resolved");
@@ -774,7 +777,6 @@ async function provideHover(
     const wordRange = document.getWordRangeAtPosition(position);
     const wordText = wordRange && document.getText(wordRange);
 
-    // TODO: This might be useful for other language features. Consider refactoring it out.
     const ecnprod = currentModule.production!.children
         .find((child) => child.type === 'EncodingControlSections');
     if (

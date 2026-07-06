@@ -82,6 +82,6 @@ export const DEFAULT_DEFINITION : MarkdownString = new MarkdownString(
 type if a value for this member is not given."
 );
 
-export const OPTIONAL_DEFINTION : MarkdownString = new MarkdownString(
+export const OPTIONAL_DEFINITION : MarkdownString = new MarkdownString(
 "An ASN.1 keyword that declares the member of a constructed type to be optional."
 );

@@ -17,6 +17,7 @@ const keywordFollowupCompletions: ReadonlyMap<string, string> = new Map([
     ["CONSTRAINED", "BY"],
     ["EXPORTS", "ALL;"],
     ["ENCODED", "BY"],
+    ["IDENTIFIED", "BY"],
 ]);
 
 async function provideInlineCompletionItems(
@@ -38,9 +39,39 @@ async function provideInlineCompletionItems(
         // Completions would be fine here, but not supported currently.
         return [];
     }
-    // TODO: Modify keyword completions if in an object assignment or in ECN?
 
     const lineBeforeCursorEndTrimmed = lineBeforeCursor.trimEnd();
+
+    const wordsBefore = lineBeforeCursorEndTrimmed.split(/\s+/);
+    if (
+        (wordsBefore.length === 4)
+        && (wordsBefore[0] === '')
+        && (/[a-z][A-Za-z0-9-]*/.test(wordsBefore[1]))
+        && ("DEFAULT".startsWith(wordsBefore[3]))
+    ) {
+        if (wordsBefore[2] === "BOOLEAN") {
+            const remainingFalse = "DEFAULT FALSE";
+            const remainingTrue = "DEFAULT TRUE";
+            const range = new vscode.Range(
+                new vscode.Position(position.line, position.character - wordsBefore[3].length),
+                position,
+            );
+            return [
+                new vscode.InlineCompletionItem(remainingFalse, range),
+                new vscode.InlineCompletionItem(remainingTrue, range),
+            ];
+        } else if (wordsBefore[2] === "INTEGER") {
+            const remaining = "DEFAULT 0";
+            const range = new vscode.Range(
+                new vscode.Position(position.line, position.character - wordsBefore[3].length),
+                position,
+            );
+            return [
+                new vscode.InlineCompletionItem(remaining, range),
+            ];
+        }
+    }
+    
     const whitespacesBeforeCursor = lineBeforeCursor.length - lineBeforeCursorEndTrimmed.length;
     const positionBeforeLastWhitespace = new vscode.Position(
         position.line,
@@ -80,10 +111,6 @@ async function provideInlineCompletionItems(
             }
         }
     }
-
-    // TODO: If in a component type of type BOOLEAN, suggest DEFAULT FALSE
-    // TODO: Support the WITH SYNTAX completion, without confusion with other cases WITH is used in
-    // TODO: MATCHING RULE, IDENTIFIED BY
     return [];
 }
 

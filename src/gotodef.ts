@@ -89,7 +89,6 @@ async function provideModuleDefinition(
     return Promise.reject(null); // Nothing matched.
 }
 
-// TODO: Use VS code diagnostics to report errors.
 async function provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,

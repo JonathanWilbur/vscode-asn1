@@ -16,9 +16,9 @@ import {
     ABSTRACT_SYNTAX_DEFINITION,
 } from "./definitions/universaltypes.js";
 import {
-    UNIVERSAL_DEFINTION,
-    APPLICATION_DEFINTION,
-    PRIVATE_DEFINTION,
+    UNIVERSAL_DEFINITION,
+    APPLICATION_DEFINITION,
+    PRIVATE_DEFINITION,
 } from "./definitions/classes.js";
 import { typeTypesThatCouldBeAnything } from "./utils.js";
 import type { LexedTokens } from "./types.js";
@@ -163,21 +163,21 @@ const COMPLETION_ITEM_UNIVERSAL = new vscode.CompletionItem(
     vscode.CompletionItemKind.Keyword,
 );
 COMPLETION_ITEM_UNIVERSAL.detail = "ASN.1 Tag Class";
-COMPLETION_ITEM_UNIVERSAL.documentation = UNIVERSAL_DEFINTION;
+COMPLETION_ITEM_UNIVERSAL.documentation = UNIVERSAL_DEFINITION;
 
 const COMPLETION_ITEM_APPLICATION = new vscode.CompletionItem(
     "APPLICATION",
     vscode.CompletionItemKind.Keyword,
 );
 COMPLETION_ITEM_APPLICATION.detail = "ASN.1 Tag Class";
-COMPLETION_ITEM_APPLICATION.documentation = APPLICATION_DEFINTION;
+COMPLETION_ITEM_APPLICATION.documentation = APPLICATION_DEFINITION;
 
 const COMPLETION_ITEM_PRIVATE = new vscode.CompletionItem(
     "PRIVATE",
     vscode.CompletionItemKind.Keyword,
 );
 COMPLETION_ITEM_PRIVATE.detail = "ASN.1 Tag Class";
-COMPLETION_ITEM_PRIVATE.documentation = PRIVATE_DEFINTION;
+COMPLETION_ITEM_PRIVATE.documentation = PRIVATE_DEFINITION;
 
 const TAG_CLASS_COMPLETION_ITEMS: vscode.CompletionItem[] = [
     COMPLETION_ITEM_UNIVERSAL,

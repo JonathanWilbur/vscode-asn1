@@ -5,6 +5,7 @@ import {
     type NameAndOrNumber,
     builtinRootArcNamesToNumber,
     TypeType,
+    type Module,
 } from "@wildboar/asn1-parser";
 import { log } from "./logging.js";
 import type { ASN1ModuleName, ASN1Reference } from "./types.js";
@@ -218,4 +219,17 @@ export function getAsn1Files(): Thenable<vscode.Uri[]> {
     const includeFiles = config.get<string>("includeFiles", "**/*.{asn,asn1}");
     const excludeFiles = config.get<string>("excludeFiles", "**/{node_modules,dist,out,build,.git}/**");
     return vscode.workspace.findFiles(includeFiles, excludeFiles);
+}
+
+export function isInECN(
+    document: vscode.TextDocument,
+    currentModule: Module,
+    position: vscode.Position,
+): boolean {
+    const ecnprod = currentModule.production!.children
+        .find((child) => child.type === 'EncodingControlSections');
+    if (!ecnprod) {
+        return false;
+    }
+    return positionFallsWithin(document, position, ecnprod);
 }

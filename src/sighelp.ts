@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { inOpenSyntaxRegion, positionFallsWithin } from "./utils.js";
+import { inOpenSyntaxRegion, isInECN, positionFallsWithin } from "./utils.js";
 import { getLastValidParserOutputs } from "./parsing.js";
 import { resolveDefined } from "./resolve.js";
 import { type Module } from "@wildboar/asn1-parser";
@@ -130,6 +130,9 @@ async function provideSignatureHelp(
             && positionFallsWithin(document, position, mod.production)
         ));
     if (!currentModule) {
+        return Promise.reject(null);
+    }
+    if (isInECN(document, currentModule, position)) {
         return Promise.reject(null);
     }
 

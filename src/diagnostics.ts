@@ -67,6 +67,7 @@ export const DIAG_CODE_LEX_ERROR: string = "E0024";
 export const DIAG_CODE_PARSE_ERROR: string = "E0025";
 export const DIAG_CODE_GROK_ERROR: string = "E0026";
 export const DIAG_CODE_DIAG_DISABLED: string = "E0027";
+export const DIAG_CODE_PROHIBITED_CHAR: string = "E0028";
 
 const AT_INDEX = "at index ";
 
@@ -77,7 +78,7 @@ function getRangeForWholeDocument(document: vscode.TextDocument): [vscode.Positi
     return [start, end];
 }
 
-// TODO: Handle duplicate imported modules too
+// TODO: Handle duplicate imported modules too (blocked on new release of @wildboar/asn1-parser)
 // Checks for duplicate or unnecessary imported symbols
 function provideImportDiagnostics(
     document: vscode.TextDocument,
@@ -552,8 +553,6 @@ function provideTypeAssignmentDiagnostics(
             }
         }
     }
-    // TODO: Provide hints around SET OF / SEQUENCE OF with size constraints
-    // TODO: check that field exists in ObjectClassFieldType
 }
 
 function provideOIDValueDiagnostics(
@@ -721,13 +720,13 @@ function provideTimeOfDayDiagnostics(
     // No further validation needed. The regex is sufficient.
 }
 
-// TODO: Allow caller to supply a diagnostic code.
 function useDecodingToProvideDiagnostics(
     s: string,
     range: vscode.Range,
     tagnum: ASN1UniversalType,
     test: (el: BERElement) => unknown,
     diags: vscode.Diagnostic[],
+    code?: string,
 ): void {
     let el: BERElement;
     try {
@@ -748,6 +747,9 @@ function useDecodingToProvideDiagnostics(
             `${e}`,
             vscode.DiagnosticSeverity.Error,
         );
+        if (code) {
+            diag.code = code;
+        }
         diags.push(diag);
     }
 }
@@ -850,6 +852,7 @@ function provideStringDiagnostics(
                 ASN1UniversalType.printableString,
                 (el) => el.printableString,
                 diags,
+                DIAG_CODE_PROHIBITED_CHAR,
             );
         }
         case (TypeType.NumericString): {
@@ -859,6 +862,7 @@ function provideStringDiagnostics(
                 ASN1UniversalType.numericString,
                 (el) => el.numericString,
                 diags,
+                DIAG_CODE_PROHIBITED_CHAR,
             );
         }
         // These are the same. I don't know why I have duplicates
@@ -870,6 +874,7 @@ function provideStringDiagnostics(
                 ASN1UniversalType.ia5String,
                 (el) => el.ia5String,
                 diags,
+                DIAG_CODE_PROHIBITED_CHAR,
             );
         }
         default: return;
@@ -891,11 +896,10 @@ function provideValueAssignmentDiagnostics(
             // we cannot validate the value with confidence.
             return;
         }
-        // TODO: I think assignmentType will never be Parameterized. Double check.
-        const expectedAssignType = ((def.parameters?.length ?? 0) > 0)
-            ? AssignmentType.ParameterizedTypeAssignment
-            : AssignmentType.TypeAssignment;
-        if (derefassn.assignmentType !== expectedAssignType) {
+        if (
+            (derefassn.assignmentType !== AssignmentType.ParameterizedTypeAssignment)
+            && (derefassn.assignmentType !== AssignmentType.TypeAssignment)
+        ) {
             if (assn.production?.location) {
                 const range = getRangeFromLocation(document, assn.production.location);
                 const diag = new vscode.Diagnostic(
@@ -1342,7 +1346,6 @@ async function updateDiagnostics(
         diagnosticCollection.set(document.uri, [diag]);
         return;
     }
-    // TODO: If the lexical tokens do not have an END, assume the user is not done writing and make only the first line error or something.
     if (!p.parserEndState) {
         return; // Should not happen.
     }
@@ -1397,7 +1400,6 @@ async function updateDiagnostics(
     if (!p.parsedModules) {
         return; // Should not happen
     }
-    // TODO: Make this still return the modules that succeeded.
     thing = "asn.1 module";
     code = DIAG_CODE_GROK_ERROR;
     if ("err" in p.parsedModules) {

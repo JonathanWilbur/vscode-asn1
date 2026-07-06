@@ -485,7 +485,7 @@ async function provideReferencesForSymbol(
                 `Could not find a unique ASN.1 module with the name ${sfm.identifier}. `
                 + `There are multiple files that have an ASN.1 module with this name in this workspace. `
                 + "This means that we cannot identify one assignment for which to check for references. "
-                + "Consider using 'Go to Defintion' to navigate to one somewhat arbitrarily,  "
+                + "Consider using 'Go to definition' to navigate to one somewhat arbitrarily,  "
                 + "or navigate to the assignment you want manually and retry 'Find All References' there. "
                 + "Alternatively, you could either remove `WITH SUCCESSORS` or `WITH DESCENDANTS` from "
                 + "the import of that module within this file, so that it points to only one ASN.1 "

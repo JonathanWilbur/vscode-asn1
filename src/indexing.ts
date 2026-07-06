@@ -135,7 +135,6 @@ export async function indexAsn1File(docOrUri: vscode.Uri | vscode.TextDocument) 
 
 export async function indexAsn1Files(): Promise<void> {
     const uris = await getAsn1Files();
-    // TODO: Change this to use multithreading / worker threads
     for (const uri of uris) {
         // To give other extensions a chance to run.
         await new Promise(resolve => setImmediate(resolve));
