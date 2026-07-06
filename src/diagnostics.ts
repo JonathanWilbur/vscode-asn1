@@ -31,12 +31,14 @@ import {
     ASN1SyntaxError,
     ASN1ParserExpectationError,
     isDefinedOrImported,
+    type SymbolsFromModule,
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
 import { maybeReparse } from "./reparse.js";
 import log from "./logging.js";
 import { DATE_REGEX, TIME_REGEX } from "./time.js";
 import { ASN1Construction, ASN1TagClass, ASN1UniversalType, BERElement } from "@wildboar/asn1";
+import type { ASN1ModuleName } from "./types.js";
 
 const LANGUAGE: string = "asn1";
 
@@ -71,6 +73,7 @@ export const DIAG_CODE_GROK_ERROR: string = "E0026";
 export const DIAG_CODE_DIAG_DISABLED: string = "E0027";
 export const DIAG_CODE_PROHIBITED_CHAR: string = "E0028";
 export const DIAG_CODE_PARAM_SYMBOL_UNUSED: string = "E0029";
+export const DIAG_CODE_IMPORT_MODULE_DUP: string = "E0030";
 
 const AT_INDEX = "at index ";
 
@@ -81,7 +84,6 @@ function getRangeForWholeDocument(document: vscode.TextDocument): [vscode.Positi
     return [start, end];
 }
 
-// TODO: Handle duplicate imported modules too (blocked on new release of @wildboar/asn1-parser)
 // Checks for duplicate or unnecessary imported symbols
 function provideImportDiagnostics(
     document: vscode.TextDocument,
@@ -89,6 +91,41 @@ function provideImportDiagnostics(
     diags: vscode.Diagnostic[],
     usedSymbols: Set<string>,
 ): void {
+    const encountered: Map<ASN1ModuleName, SymbolsFromModule> = new Map();
+    for (const sfm of mod.imports.modulesInOriginalOrder) {
+        const prev = encountered.get(sfm.identifier);
+        if (prev) {
+            const loc = sfm.production?.location;
+            if (!loc) {
+                continue;
+            }
+            const range = getRangeFromLocation(document, loc);
+            const diag = new vscode.Diagnostic(
+                range,
+                "module already imported before this",
+                vscode.DiagnosticSeverity.Error,
+            );
+            diag.code = DIAG_CODE_IMPORT_MODULE_DUP;
+            const modref = prev
+                .production
+                ?.children
+                .find((c) => c.type === "GlobalModuleReference")
+                ?.children[0]
+                ;
+            if (modref) {
+                const prevrange = getRangeFromLocation(document, modref.location);
+                diag.relatedInformation = [
+                    new vscode.DiagnosticRelatedInformation(
+                        new vscode.Location(document.uri, prevrange),
+                        "duplicate module first imported here",
+                    ),
+                ];
+            }
+            diags.push(diag);
+        } else {
+            encountered.set(sfm.identifier, sfm);
+        }
+    }
     for (const sfm of Object.values(mod.imports.modules)) {
         for (const dup of sfm.duplicateSymbols) {
             const range = getRangeFromLocation(document, dup.location);

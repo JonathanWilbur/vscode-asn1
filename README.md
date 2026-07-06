@@ -4,6 +4,7 @@ Currently in progress.
 
 ## To Do
 
+- [x] Detect duplicate modules
 - [ ] JSDoc
 - [ ] `README.md` Documentation
 - [ ] Screenshots
@@ -22,6 +23,7 @@ the file, just to remind you that you have otherwise disabled diagnostics.
 
 ## Future To Dos
 
+- [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.
 - [ ] Warnings
