@@ -36,7 +36,6 @@ export async function resolveAssignedIdentifier(
     if ("components" in assid) {
         if (assid.prefix) {
             const prefix = assid.prefix;
-            // TODO: @wildboar/asn1-parser: fix this
             /* It seems that the built-in OID root arc values can be mistaken
             for the `DefinedValue` prefix. We check for these values here and
             convert them to numbers. */
@@ -245,6 +244,7 @@ export async function resolveOIDComponent(
     currentModule: Module,
     currentDocUri: vscode.Uri,
     recursionTTL: number = 10,
+    isFirst: boolean = false,
 ): Promise<NameAndOrNumber | NameAndOrNumber[] | undefined> {
     if (recursionTTL <= 0) {
         log.appendLine("recursion limit exceeded in resolveOIDComponent()");
@@ -277,8 +277,7 @@ export async function resolveOIDComponent(
     }
     if ("reference" in arc) {
         // NOTE: This reference may ONLY point to a RELATIVE-OID. NOT an INTEGER.
-        // TODO: Ensure this code only runs for the first arc.
-        if (builtinRootArcNamesToNumber.has(arc.reference)) {
+        if (isFirst && builtinRootArcNamesToNumber.has(arc.reference)) {
             const num = builtinRootArcNamesToNumber.get(arc.reference)!;
             return { name: arc.reference, number: num };
         }
@@ -320,7 +319,6 @@ export async function resolveOIDComponent(
             number: arc.number,
         };
     } else {
-        // TODO: Do you need to handle resolving names here?
         delete arc.production; // Just so this doesn't become huge.
         log.appendLine(`error resolving oid component ${JSON.stringify(arc)}`);
         return undefined;
@@ -333,9 +331,10 @@ export async function resolveOIDComponents(
     currentModule: Module,
     currentDocUri: vscode.Uri,
     recursionTTL: number = 10,
+    suppressBuiltInArcs: boolean = false,
 ): Promise<NameAndOrNumber[] | undefined> {
     const resolvedComponents: NameAndOrNumber[] = [];
-    for (const arc of arcs) {
+    for (const [i, arc] of arcs.entries()) {
         if (cancel.isCancellationRequested) {
             return undefined;
         }
@@ -345,6 +344,7 @@ export async function resolveOIDComponents(
             currentModule,
             currentDocUri,
             recursionTTL,
+            !suppressBuiltInArcs && (i === 0),
         );
         if (!resolved) {
             return undefined;
@@ -358,7 +358,6 @@ export async function resolveOIDComponents(
     return resolvedComponents;
 }
 
-// TODO: Allow document to be passed in as well.
 // NOTE: You do not have to worry about resolving things like ValueFromObject,
 // because the BNF specifically only allows DefinedValue as a prefix.
 // ObjectIdentifierValue ::=
@@ -421,6 +420,7 @@ export async function resolveOID(
                 nextmod,
                 nextdoc,
                 recursionTTL - 1,
+                true,
             );
             if (!resolvedComponents) {
                 log.appendLine(`components of object identifier ${identifier} could not be resolved (#1)`);
@@ -451,6 +451,7 @@ export async function resolveOID(
             nextmod,
             nextdoc,
             recursionTTL - 1,
+            !!oid.prefix,
         );
         if (!resolvedComponents) {
             log.appendLine(`components of object identifier ${identifier} could not be resolved (#2)`);
@@ -492,12 +493,13 @@ function resolveDefinedInstantly(
     if (defined.computedModule !== currentModule.name) {
         return undefined;
     }
-    // TODO: Recurse.
     return currentModule.assignments[defined.reference];
 }
 
-function failExport(): never {
-    // TODO: Do something better than this.
+function failExport(identifier?: string): never {
+    if (identifier) {
+        throw new Error(`Resolving OID value ${identifier} failed`);
+    }
     throw new Error("Resolving an OID value failed");
 }
 
@@ -511,7 +513,6 @@ async function resolveOidValue(
     let oid: NameAndOrNumber[] | undefined;
     if (val.prefix) {
         const prefix = val.prefix;
-        // TODO: @wildboar/asn1-parser: fix this
         /* It seems that the built-in OID root arc values can be mistaken
         for the `DefinedValue` prefix. We check for these values here and
         convert them to numbers. */
@@ -527,7 +528,7 @@ async function resolveOidValue(
                 document.uri,
             );
             if (!oid) {
-                return failExport();
+                return failExport(prefix.reference);
             }
         }
     }

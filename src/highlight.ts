@@ -7,13 +7,16 @@ import {
 } from "./utils.js";
 import { getParserOutputsWithLogging } from "./parsing.js";
 import { log } from "./logging.js";
-import { type NameAndOrNumber } from "@wildboar/asn1-parser";
+import type {
+    Production,
+    TerminalProductionType,
+    NameAndOrNumber,
+} from "@wildboar/asn1-parser";
 import { resolveAssignedIdentifier } from "./resolve.js";
 import {
     getSymbolReferencesWithinFile,
     getReferencesWithinModule,
 } from "./findallref.js";
-import type { LexedTokens } from "./types.js";
 
 /**
  * @description
@@ -38,7 +41,7 @@ async function provideModuleNameHighlights(
     document: vscode.TextDocument,
     cancel: vscode.CancellationToken,
     ident: string,
-    lexicalTokens: LexedTokens,
+    lexicalTokens: Production<TerminalProductionType>[],
 ): Promise<vscode.DocumentHighlight[]> {
     const text = document.getText();
     const ret: vscode.DocumentHighlight[] = [];

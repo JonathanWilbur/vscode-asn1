@@ -10,6 +10,8 @@ import {
     type TokenOrGroupSpec,
     TypeType,
     type Module,
+    type Production,
+    type TerminalProductionType,
 } from "@wildboar/asn1-parser";
 import {
     TYPE_IDENTIFIER_DEFINITION,
@@ -21,7 +23,6 @@ import {
     PRIVATE_DEFINITION,
 } from "./definitions/classes.js";
 import { typeTypesThatCouldBeAnything } from "./utils.js";
-import type { LexedTokens } from "./types.js";
 
 const COMPLETION_ITEM_TYPE_IDENTIFIER = new vscode.CompletionItem(
     "TYPE-IDENTIFIER",
@@ -711,7 +712,7 @@ function suggestAfterCurlyOpen(
         return []; // Two ::= in the same line. Not sure WTF is going on here.
     }
 
-    let lexemes: LexedTokens;
+    let lexemes: Production<TerminalProductionType>[];
     try {
         lexemes = Array.from(lex(lhs));
     } catch {

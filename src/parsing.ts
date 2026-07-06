@@ -6,8 +6,10 @@ import {
 	correct,
 	type Module,
     type ParseContext,
+    type Production,
+    type TerminalProductionType,
 } from '@wildboar/asn1-parser';
-import type { YieldType, Result, VersionNumbered } from "./types.js";
+import type { Result, VersionNumbered } from "./types.js";
 import { log } from "./logging.js";
 
 export type ParserStopAt =
@@ -16,14 +18,13 @@ export type ParserStopAt =
     ;
 
 export interface ParserOutputs {
-    // TODO: Change this to a different type signature when you fix the missing export
-    lexicalTokens?: Result<YieldType<ReturnType<typeof lex>>[], Error>,
+    lexicalTokens?: Result<Production<TerminalProductionType>[], Error>,
     parserEndState?: Result<ParseContext, Error>,
     parsedModules?: Result<Module[], Error>,
 }
 
 export interface ParsingSuccess {
-    lexicalTokens: YieldType<ReturnType<typeof lex>>[],
+    lexicalTokens: Production<TerminalProductionType>[],
     parserEndState: ParseContext,
     parsedModules: Module[],
 }

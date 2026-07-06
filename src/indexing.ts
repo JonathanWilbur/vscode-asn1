@@ -8,7 +8,6 @@ import * as vscode from 'vscode';
 import type {
     FileURIStr,
     ASN1ModuleName,
-    LexedTokens,
     VersionNumber,
     VersionNumbered,
     ImportKey,
@@ -18,6 +17,10 @@ import { getParserOutputs } from './parsing.js';
 import { setImmediate } from "node:timers";
 import { log } from "./logging.js";
 import { getAsn1Files } from './utils.js';
+import type {
+    Production,
+    TerminalProductionType,
+} from '@wildboar/asn1-parser';
 
 // TODO: Test this.
 /**
@@ -27,7 +30,7 @@ import { getAsn1Files } from './utils.js';
  * @returns 
  */
 export function* getModuleNamesAndImportsFromTokenStream(
-    tokens: LexedTokens,
+    tokens: Production<TerminalProductionType>[],
     text: string,
 ): IterableIterator<ModuleInfo> {
     let i = 0;

@@ -422,7 +422,6 @@ async function provideOidHover(
         const val = value.value;
         if (val.prefix) {
             const prefix = val.prefix;
-            // TODO: @wildboar/asn1-parser: fix this
             /* It seems that the built-in OID root arc values can be mistaken
             for the `DefinedValue` prefix. We check for these values here and
             convert them to numbers. */

@@ -1,14 +1,9 @@
-import { lex, type NameAndOrNumber } from "@wildboar/asn1-parser";
+import type { NameAndOrNumber } from "@wildboar/asn1-parser";
 
 export type FileURIStr = string;
 export type VersionNumber = number;
 export type ASN1ModuleName = string;
 export type ASN1Reference = string;
-
-export type YieldType<T> =
-    T extends IterableIterator<infer Y> ? Y : never;
-
-export type LexedTokens = YieldType<ReturnType<typeof lex>>[];
 
 // Inspired by Rust
 export type Result<T, E = unknown> =

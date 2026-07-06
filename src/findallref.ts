@@ -4,7 +4,9 @@ import {
     type SelectionOption,
     type SymbolsFromModule,
     type Module,
-    asn1ModuleOidMatch, 
+    asn1ModuleOidMatch,
+    type Production,
+    type TerminalProductionType, 
 } from '@wildboar/asn1-parser';
 import {
     getDefinedThingAtPosition,
@@ -25,7 +27,6 @@ import type {
     ASN1ModuleName,
     ASN1Reference,
     FileURIStr,
-    LexedTokens,
 } from './types.js';
 import { resolveAssignedIdentifier } from "./resolve.js";
 
@@ -51,7 +52,7 @@ async function getReferencesWithinModule(
     document: vscode.TextDocument,
     modref: string | undefined,
     ident: string,
-    tokens: LexedTokens,
+    tokens: Production<TerminalProductionType>[],
     skipModulesCount: number = 0,
     ignoreImportsExports: boolean = false,
 ): Promise<[vscode.Location[], number]> { // Last element is tokens read
