@@ -10,6 +10,12 @@ import { getParserOutputsWithLogging } from "./parsing.js";
 import { getRangeFromLocation } from "./utils.js";
 import { getOidNodesFromModuleIdentifier } from "./utils.js";
 
+/**
+ * @summary Get symbol details for an ASN.1 module
+ * @param mod The ASN.1 module
+ * @returns Symbol details as a string
+ * @function
+ */
 function getDocumentSymbolDetailsFromAsn1Module(mod: Module): string {
 	const details: string[] = [];
 	if (mod.oid) {
@@ -29,6 +35,13 @@ function getDocumentSymbolDetailsFromAsn1Module(mod: Module): string {
 	return details.join(" ");
 }
 
+/**
+ * @summary Get a module name range from a `Module` CST node
+ * @param prod The Concrete Syntax Tree (CST) node of type `Module`
+ * @param document The text document
+ * @returns The range within the document where the module reference appears,
+ *  or `null` if it could not be resolved.
+ */
 function getModuleNameRangeFromModuleProduction(
 	prod: Production,
 	document: vscode.TextDocument,
@@ -43,6 +56,12 @@ function getModuleNameRangeFromModuleProduction(
 	return getRangeFromLocation(document, curr.location);
 }
 
+/**
+ * @summary Map ASN.1 assignment types to VS code symbol kinds
+ * @param ass The assignment type
+ * @returns The VS code symbol kind
+ * @function
+ */
 export
 function getSymbolKindFromAssignment(ass: AssignmentType): vscode.SymbolKind {
 	switch (ass) {
@@ -70,6 +89,12 @@ function getSymbolKindFromAssignment(ass: AssignmentType): vscode.SymbolKind {
 	}
 }
 
+/**
+ * @summary Get symbol information for an assignment
+ * @param ass The assignment from which to get symbol information
+ * @returns Textual symbol information
+ * @function
+ */
 function getSymbolInfoFromAssignment(ass: Assignment): string {
 	switch (ass.assignmentType) {
 		case (AssignmentType.ObjectAssignment):
@@ -82,6 +107,15 @@ function getSymbolInfoFromAssignment(ass: Assignment): string {
 	}
 }
 
+/**
+ * @summary Produce a `DocumentSymbol` from an ASN.1 assignment
+ * @param document The current document
+ * @param name The assignment name
+ * @param ass The assignment itself
+ * @returns A document symbol as a `vscode.DocumentSymbol`, or `null`
+ *  if one could not be resolved.
+ * @function
+ */
 function getDocumentSymbolFromAssignment(
 	document: vscode.TextDocument,
 	name: string,
@@ -112,6 +146,15 @@ function getDocumentSymbolFromAssignment(
 	);
 }
 
+/**
+ * @summary Provide document symbols (to populate the outline and local go-to)
+ * @param document The document for which to provide symbols
+ * @param token The cancellation token
+ * @returns A promise that resolves to an array of document symbols.
+ *  This may be empty if the document is grammatically invalid.
+ * @async
+ * @function
+ */
 async function provideDocumentSymbols(
     document: vscode.TextDocument,
     token: vscode.CancellationToken,

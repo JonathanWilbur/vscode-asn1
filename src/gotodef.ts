@@ -15,6 +15,17 @@ import {
 } from "@wildboar/asn1-parser";
 import { getFilesContainingModule } from "./indexing.js";
 
+/**
+ * @summary Provide a definition for a symbol used in "Go to Definition"
+ * @param cancel The cancellation token
+ * @param document The current text document
+ * @param sfmmod The current ASN.1 module
+ * @param sfm The `SymbolsFromModule` for which the user invoked "Go to
+ *  Definition" on the module name
+ * @returns A promise that resolves to the location of the definition in the workspace
+ * @async
+ * @function
+ */
 async function provideModuleDefinition(
     cancel: vscode.CancellationToken,
     document: vscode.TextDocument,
@@ -89,6 +100,15 @@ async function provideModuleDefinition(
     return Promise.reject(null); // Nothing matched.
 }
 
+/**
+ * @summary Provide a definition for a symbol used in "Go to Definition"
+ * @param document The current text document
+ * @param position The cursor position
+ * @param cancel The cancellation token
+ * @returns A promise that resolves to the location of the definition in the workspace
+ * @async
+ * @function
+ */
 async function provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,

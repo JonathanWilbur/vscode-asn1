@@ -10,6 +10,23 @@ import {
 } from "@wildboar/asn1-parser";
 import { log } from "./logging.js";
 
+/**
+ * @summary Try to re-parse an ASN.1 value as something else
+ * @description
+ * 
+ * Due to shortcomings of `@wildboar/asn1-parser` as well as the ASN.1 language
+ * itself, some value grammars are identical to the grammars of others.
+ * This function exists so you can attempt to re-parse a value of one type as a
+ * value of another if you think the value type you have is wrong.
+ * 
+ * @param value The ASN.1 value to be re-parsed
+ * @param parser The `Parser` (from `@wildboar/asn1-parser` to use)
+ * @param groker The "groking" function that converts the resulting
+ *  Concrete Syntax Tree (CST) from parsing into the thing of type `T`
+ * @returns The thing of type `T`, or `null` if there were errors
+ *  when parsing it.
+ * @function
+ */
 export
 function maybeReparse<T>(
     value: Value,

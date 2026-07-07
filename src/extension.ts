@@ -127,6 +127,9 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerTypeDefinitionProvider(ASN1_MODE, new Asn1TypeDefinitionProvider()));
 	context.subscriptions.push(
 		vscode.languages.registerWorkspaceSymbolProvider(new Asn1WorkspaceSymbolProvider()));
+	context.subscriptions.push(
+        vscode.languages.registerDocumentHighlightProvider(ASN1_MODE, new Asn1HighlightProvider()));
+	context.subscriptions.push(diagnosticCollection);
 
 	// APIs evaluated, but decided against:
 	// vscode.languages.registerCodeLensProvider: no use case
@@ -143,10 +146,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// vscode.languages.registerOnTypeFormattingEditProvider: computationally expensive, annoying, overly opinionated, etc.
 	// vscode.languages.registerTypeHierarchyProvider: could be useful for X.500 object classes, but otherwise narrow use case
 
-	context.subscriptions.push(
-        vscode.languages.registerDocumentHighlightProvider(ASN1_MODE, new Asn1HighlightProvider()));
-	context.subscriptions.push(diagnosticCollection);
-
+	// FIXME: Make the watcher use the configured extensions.
 	/* We have to do the most minimal indexing so we know what files have what
 	modules and what modules are in what files. This might not even really be
 	necessary, but I need to experiment to see if it is terribly slow or not. */

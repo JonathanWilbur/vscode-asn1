@@ -9,32 +9,76 @@ import {
     type Production,
     type TerminalProductionType,
 } from '@wildboar/asn1-parser';
-import type { Result, VersionNumbered } from "./types.js";
+import type { FileURIStr, Result, VersionNumbered } from "./types.js";
 import { log } from "./logging.js";
 
+/**
+ * The stage of parsing to stop at. This is used when subsequent stages are
+ * not needed.
+ */
 export type ParserStopAt =
     | "lexing"
     | "parsing"
     ;
 
 export interface ParserOutputs {
+    /**
+     * The lexical tokens of the file, an error if lexing failed, or will
+     * be unset if explicitly unwanted.
+     */
     lexicalTokens?: Result<Production<TerminalProductionType>[], Error>,
+    /**
+     * The ending parser state of the file, an error if lexing failed, or will
+     * be unset if explicitly unwanted.
+     * 
+     * This contains, among other things, the Concrete Syntax Tree (CST) for
+     * the file.
+     */
     parserEndState?: Result<ParseContext, Error>,
+    /**
+     * The parsed modules of the file, which together constitute an Abstract
+     * Syntax Tree (AST) for the file, or an error if lexing failed, or will
+     * be unset if explicitly unwanted.
+     */
     parsedModules?: Result<Module[], Error>,
 }
 
 export interface ParsingSuccess {
+    /**
+     * The lexical tokens of the file.
+     */
     lexicalTokens: Production<TerminalProductionType>[],
+    /**
+     * The ending parser state of the file.
+     * 
+     * This contains, among other things, the Concrete Syntax Tree (CST) for
+     * the file.
+     */
     parserEndState: ParseContext,
+    /**
+     * The parsed modules of the file, which together constitute an Abstract
+     * Syntax Tree (AST) for the file.
+     */
     parsedModules: Module[],
 }
 
-const cache = new Map<string, VersionNumbered<ParserOutputs>>();
-
-const lastValidCache = new Map<string, ParserOutputs>();
+/**
+ * Cache of the parser outputs of the last parsing of a document by the
+ * file URI string.
+ */
+const cache = new Map<FileURIStr, VersionNumbered<ParserOutputs>>();
 
 /**
- * Iterates over all files that parsed successfully.
+ * Cache of the parser outputs of the last valid parsing of a document by the
+ * file URI string.
+ */
+const lastValidCache = new Map<FileURIStr, ParserOutputs>();
+
+/**
+ * @summary Iterate over successfully parsed modules
+ * @generator
+ * @function
+ * @yields A tuple of the file URI and all the ASN.1 modules within it
  */
 export function* getParsedModules(): IterableIterator<[vscode.Uri, Module[]]> {
     for (const [uristr, { item }] of cache.entries()) {
@@ -51,6 +95,17 @@ export function* getParsedModules(): IterableIterator<[vscode.Uri, Module[]]> {
     }
 }
 
+/**
+ * @summary Convert something to an error
+ * @description
+ * 
+ * This just exists for type safety: if something we expect to be an error is
+ * not, we try to convert it to one.
+ * 
+ * @param e Something to be turned into an erro
+ * @returns An error
+ * @function
+ */
 function coerceToError(e: unknown): Error {
     if (e instanceof Error) {
         return e;
@@ -58,6 +113,21 @@ function coerceToError(e: unknown): Error {
     return new Error(String(e));
 }
 
+/**
+ * @summary Get parser outputs for a given document
+ * @description
+ * 
+ * This function returns parser outputs for a given document at a given point
+ * in time (determined by the version number) from a cache, or performs the
+ * parsing and caches the result.
+ * 
+ * @param docOrUri The text document or its URI
+ * @param stopAt The stage of parsing to stop at
+ * @param cancel The cancellation token
+ * @returns A promise that resolves to the parser outputs
+ * @async
+ * @function
+ */
 export async function getParserOutputs(
     docOrUri: vscode.Uri | vscode.TextDocument,
     stopAt?: ParserStopAt,
@@ -127,6 +197,14 @@ export async function getParserOutputs(
     return outputs;
 }
 
+/**
+ * @summary Get parser outputs successfully, or log errors
+ * @param docOrUri The text document or its URI
+ * @param cancel The cancellation token
+ * @returns Parser outputs, or `null` if parsing failed
+ * @async
+ * @function
+ */
 export async function getParserOutputsWithLogging(
     docOrUri: vscode.Uri | vscode.TextDocument,
     cancel?: vscode.CancellationToken,
@@ -163,6 +241,23 @@ export async function getParserOutputsWithLogging(
     };
 }
 
+/**
+ * @summary Get the last valid parser outputs for this module
+ * @description
+ * 
+ * As a user types, the ASN.1 file could temporarily be invalid, but for the
+ * purposes of completion suggestions (among possible other uses), we need
+ * some idea of what symbols to suggest. The best idea is to suggest
+ * productions from the last valid parsing of the file.
+ * 
+ * In the future, this could compare document versions to determine if the
+ * last valid version is too old, or perhaps compare sizes to determine if
+ * they are too different.
+ * 
+ * @param docOrUri The text document or its URI
+ * @returns Parser outputs, or `undefined` if never parsed or never valid
+ * @function
+ */
 export function getLastValidParserOutputs(
     docOrUri: vscode.Uri | vscode.TextDocument,
 ): ParserOutputs | undefined {
@@ -173,6 +268,14 @@ export function getLastValidParserOutputs(
     return lastValidCache.get(key);
 }
 
+/**
+ * @summary Clear parser output caches
+ * @description
+ * 
+ * This is intended to be called upon deactivation of this extension.
+ * 
+ * @function
+ */
 export function clearParserOutputCaches(): void {
     cache.clear();
     lastValidCache.clear();

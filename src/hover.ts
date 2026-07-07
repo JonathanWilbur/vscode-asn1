@@ -83,46 +83,48 @@ const wordBitStringRegex = /'[01\s]*'B/;
  */
 const wordOctetStringRegex = /'[0-9A-F\s]*'H/;
 
-/*
-ITU-T Rec. X.681, Section 10.6, says that these words MUST NOT appear as word literals in objects:
-
-- `ABSTRACT-SYNTAX`
-- `BIT`
-- `BOOLEAN`
-- `CHARACTER`
-- `CHOICE`
-- `CONTAINING`
-- `DATE`
-- `DATE-TIME`
-- `DURATION`
-- `EMBEDDED`
-- `END`
-- `ENUMERATED`
-- `EXTERNAL`
-- `FALSE`
-- `INSTANCE`
-- `INTEGER`
-- `MINUS-INFINITY`
-- `NOT-A-NUMBER`
-- `NULL`
-- `OBJECT`
-- `OCTET`
-- `OID-IRI`
-- `PLUS-INFINITY`
-- `REAL`
-- `RELATIVE-OID`
-- `RELATIVE-OID-IRI`
-- `SEQUENCE`
-- `SET`
-- `TIME`
-- `TIME-OF-DAY`
-- `TRUE`
-- `TYPE-IDENTIFIER`
-
-So those are fine for unconditional vscode.Hovers, except in comments and strings.
-
-This also means that I can identify the end of modules by searching for the
-first END literal that comes after the first BEGIN literal.
+/**
+ * @summary Mapping of ASN.1 keywords to hover markdown strings
+ * @description
+ * ITU-T Rec. X.681, Section 10.6, says that these words MUST NOT appear as word literals in objects:
+ * 
+ * - `ABSTRACT-SYNTAX`
+ * - `BIT`
+ * - `BOOLEAN`
+ * - `CHARACTER`
+ * - `CHOICE`
+ * - `CONTAINING`
+ * - `DATE`
+ * - `DATE-TIME`
+ * - `DURATION`
+ * - `EMBEDDED`
+ * - `END`
+ * - `ENUMERATED`
+ * - `EXTERNAL`
+ * - `FALSE`
+ * - `INSTANCE`
+ * - `INTEGER`
+ * - `MINUS-INFINITY`
+ * - `NOT-A-NUMBER`
+ * - `NULL`
+ * - `OBJECT`
+ * - `OCTET`
+ * - `OID-IRI`
+ * - `PLUS-INFINITY`
+ * - `REAL`
+ * - `RELATIVE-OID`
+ * - `RELATIVE-OID-IRI`
+ * - `SEQUENCE`
+ * - `SET`
+ * - `TIME`
+ * - `TIME-OF-DAY`
+ * - `TRUE`
+ * - `TYPE-IDENTIFIER`
+ * 
+ * So those are fine for unconditional vscode.Hovers, except in comments and strings.
+ * 
+ * This also means that I can identify the end of modules by searching for the
+ * first END literal that comes after the first BEGIN literal.
 */
 const keywordHovers: Map<string, vscode.MarkdownString> = new Map([
     // Booleans
@@ -226,6 +228,20 @@ const keywordHovers: Map<string, vscode.MarkdownString> = new Map([
     [ "ABSTRACT-SYNTAX", definitions.ABSTRACT_SYNTAX_DEFINITION ],
 ]);
 
+/**
+ * @summary Provide hover that doesn't rely on parsing the document
+ * @description
+ * 
+ * This function can be thought of as a sort of "fallback." It is designed for
+ * use when the ASN.1 is syntactically invalid to provide some modicum of hover
+ * information anyway.
+ *
+ * @param document The current text document
+ * @param position The current cursor position
+ * @returns Hover information as a `vscode.Hover`, or `undefined` if none could
+ *  be returned.
+ * @function
+ */
 function provideDumbHover(
     document: vscode.TextDocument,
     position: vscode.Position,
@@ -241,6 +257,18 @@ function provideDumbHover(
 
 const FAIL_MD = new vscode.MarkdownString("Symbol could not be resolved");
 
+/**
+ * @summary Provide hover information for a `Defined*` production
+ * @param document The current text document
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @param modref The module reference in the `Defined*`
+ * @param ident The identifier in the `Defined*` for which to provide hover info
+ * @param definedRange The range of the entire `Defined*` production
+ * @returns A promise that resolves to hover information as a `vscode.Hover`
+ * @async
+ * @function
+ */
 async function provideDefinedHover(
     document: vscode.TextDocument,
     cancel: vscode.CancellationToken,
@@ -287,6 +315,14 @@ async function provideDefinedHover(
     return new vscode.Hover(FAIL_MD, definedRange);
 }
 
+/**
+ * @summary Create hover information for an `OBJECT IDENTIFIER` value
+ * @param document The current text document
+ * @param arcs Arcs of the `OBJECT IDENTIFIER`
+ * @param cstnode The Concrete Syntax Tree (CST) node for the value
+ * @returns Hover information as a `vscode.Hover`
+ * @function
+ */
 function constructOidHover(
     document: vscode.TextDocument,
     arcs: NameAndOrNumber[],
@@ -321,6 +357,14 @@ function constructOidHover(
     return new vscode.Hover(md, range);
 }
 
+/**
+ * @summary Create hover information for a `RELATIVE-OID` value
+ * @param document The current text document
+ * @param arcs Arcs of the `RELATIVE-OID`
+ * @param cstnode The Concrete Syntax Tree (CST) node for the value
+ * @returns Hover information as a `vscode.Hover`
+ * @function
+ */
 function constructRelativeOidHover(
     document: vscode.TextDocument,
     arcs: NameAndOrNumber[],
@@ -353,15 +397,19 @@ function constructRelativeOidHover(
 }
 
 /**
+ * @summary Provide hover information for an `OBJECT IDENTIFIER` or `RELATIVE-OID`
  * @description
  *
  * NOTE: This handles both absolute and relative OIDs.
  *
- * @param document
- * @param cancel
- * @param currentModule
- * @param assn
- * @returns
+ * @param document The current text document
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @param assn The current ASN.1 assignment
+ * @param typeType The ASN.1 type type of the current assignment
+ * @returns A promise that resolves to hover information as a `vscode.Hover`
+ * @async
+ * @function
  */
 async function provideOidHover(
     document: vscode.TextDocument,
@@ -467,8 +515,17 @@ const ECN_MD = new vscode.MarkdownString(
     + "to an assignment or just a literal.",
 );
 
+/**
+ * @summary Provide hover information for a `DATE-TIME` value
+ * @param typeName The name of the type
+ * @param range The range within the document of the `tstring`
+ * @param dt The `DATE-TIME` string, decoded as a Javascript `Date` object
+ * @param s The `tstring`, EXCLUDING the quotes
+ * @returns Hover information as a `vscode.Hover`
+ * @function
+ */
 function provideDateTimeHover(
-    typeName: string,
+    typeName: "UTCTime" | "GeneralizedTime" | "DATE-TIME",
     range: vscode.Range,
     dt: Date,
     s: string,
@@ -507,6 +564,13 @@ function provideDateTimeHover(
     return new vscode.Hover(md, range);
 }
 
+/**
+ * @summary Provide hover information for a `DATE` value
+ * @param range The range within the document of the `tstring`
+ * @param dt The `DATE` string, decoded as a Javascript `Date` object
+ * @returns Hover information as a `vscode.Hover`
+ * @function
+ */
 function provideDateHover(
     range: vscode.Range,
     dt: Date,
@@ -536,6 +600,14 @@ function provideDateHover(
     return new vscode.Hover(md, range);
 }
 
+/**
+ * @summary Provide hover information for a `DURATION` value
+ * @param range The range within the document of the `bstring`
+ * @param d The `DURATION` value, decoded into a `DURATION_EQUIVALENT`
+ * @param s The text of the value including the quotes
+ * @returns Hover information as a `vscode.Hover`
+ * @function
+ */
 function provideDurationHover(
     range: vscode.Range,
     d: DURATION_EQUIVALENT,
@@ -595,6 +667,13 @@ function provideDurationHover(
     return new vscode.Hover(md, range);
 }
 
+/**
+ * @summary Provide hover information for a `BIT STRING` value
+ * @param range The range within the document of the `bstring`
+ * @param s The text of the `bstring`, including single quotes and `B`
+ * @returns Hover information as a `vscode.Hover`
+ * @function
+ */
 function provideBitStringHover(
     range: vscode.Range,
     s: string,
@@ -623,6 +702,13 @@ function provideBitStringHover(
     return new vscode.Hover(md, range);
 }
 
+/**
+ * @summary Provide hover information for an `OCTET STRING` value
+ * @param range The range within the document of the `hstring`
+ * @param s The text of the `hstring`, including single quotes and `H`
+ * @returns Hover information as a `vscode.Hover`
+ * @function
+ */
 function provideOctetStringHover(
     range: vscode.Range,
     s: string,
@@ -643,6 +729,15 @@ function provideOctetStringHover(
     return new vscode.Hover(md, range);
 }
 
+/**
+ * @summary Provide information on hover
+ * @param document The current text document
+ * @param position The cursor position
+ * @param cancel The cancellation token
+ * @returns A promise that resolves to hover information
+ * @async
+ * @function
+ */
 async function provideHover(
     document: vscode.TextDocument,
     position: vscode.Position,

@@ -19,6 +19,9 @@ export const moduleReferenceTokens: Set<string> = new Set([
     "typereference",
 ]);
 
+/**
+ * ASN.1 type types that could refer to any other type.
+ */
 export const typeTypesThatCouldBeAnything: Set<TypeType> = new Set([
     TypeType.AnyType,
     TypeType.DefinedType,
@@ -27,6 +30,15 @@ export const typeTypesThatCouldBeAnything: Set<TypeType> = new Set([
     TypeType.SelectionType,
 ]);
 
+/**
+ * @summary Determine if a cursor position falls within a particular CST node
+ * @param document The text document to which the position applies
+ * @param position The position within the text document
+ * @param cstnode The Concrete Syntax Tree (CST) node
+ * @returns `true` if the position falls within the Concrete Syntax
+ *  Tree Node, `cstnode`
+ * @function
+ */
 export
 function positionFallsWithin(
     document: vscode.TextDocument,
@@ -39,6 +51,19 @@ function positionFallsWithin(
     return (start.isBeforeOrEqual(position) && end.isAfterOrEqual(position));
 }
 
+/**
+ * @summary Find a `Defined*` or other reference-like production within the CST at the position
+ * @param cancel The cancellation token
+ * @param document The current document
+ * @param position The current cursor position
+ * @param cstnode The Concrete Syntax Tree (CST) node
+ * @param recursionTTL The recursion time-to-live (TTL)
+ * @param definedOnly If `true`, only `Defined*` resolves, not `identifier`,
+ *  `typereference` or other similar lexical production types.
+ * @returns Another CST node, or `undefined` if no `Defined*` or other
+ *  reference-like production could not be discerned at the given position.
+ * @function
+ */
 export
 function drillIntoDefinedInCST(
     cancel: vscode.CancellationToken,
@@ -89,6 +114,20 @@ function drillIntoDefinedInCST(
     return undefined;
 }
 
+/**
+ * @summary Get whatever `Defined*` can be found at the current `position`
+ * @param cancel The cancellation token
+ * @param document The current text document
+ * @param position The position within the text document
+ * @param cstnode The Concrete Syntax Tree (CST) node into which to recurse
+ * @param recursionTTL The recursion time-to-live (TTL)
+ * @param definedOnly If `true`, only `Defined*` resolves, not `identifier`,
+ *  `typereference` or other similar lexical production types.
+ * @returns `undefined` if there is no reference-like production at `position`,
+ *  or a tuple of an ASN.1 module name (optional), identifier, and CST node
+ *  otherwise.
+ * @function
+ */
 export
 function getDefinedThingAtPosition(
     cancel: vscode.CancellationToken,
@@ -133,6 +172,13 @@ function getDefinedThingAtPosition(
     return [ moduleref, identifier, defined ];
 }
 
+/**
+ * @summary Convert a CST node location to an equivalent VS Code range
+ * @param document The current text document
+ * @param loc The ASN.1 production location
+ * @returns A `vscode.Range` derived from the CST node location
+ * @function
+ */
 export function getRangeFromLocation(
     document: vscode.TextDocument,
     loc: Location,
@@ -142,6 +188,13 @@ export function getRangeFromLocation(
     return new vscode.Range(start, end);
 }
 
+/**
+ * @summary Convert name-and-number arcs of an object identifier to just numbers
+ * @param mid The module identifier
+ * @returns The numbers of the object identifier as an array, or `null`
+ *  if they could not be resolved from the given arcs.
+ * @function
+ */
 export
 function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | null {
 	if (!(mid.slice(1).every((m) => "number" in m))) {
@@ -163,13 +216,42 @@ function getOidNodesFromModuleIdentifier(mid: NameAndOrNumber[]): number[] | nul
 	return null;
 }
 
+/**
+ * @summary Determine if a string `s` starts with an upper-cased letter
+ * @param s A string
+ * @returns `true` if the string starts with a capital letter
+ * @function
+ */
 export
 function startsWithCapitalLetter(s: string): boolean {
     return (s.slice(0, 1).toUpperCase() === s.slice(0, 1));
 }
 
+/**
+ * @summary Determine if the cursor position probably falls within open-syntax
+ * @description
+ * 
+ * Certain regions of ASN.1 text, such as in comments or strings, may contain
+ * arbitrary or near-arbitrary text. This function checks the line of text
+ * before the cursor for signs of being in one of these regions.
+ * 
+ * This is a sloppy heuristic. I don't have a good, fast algorithm for
+ * determining if the user is within a block comment, other than by iterating
+ * over all lexical tokens for a document and checking if the user falls within
+ * them. This also does not bother to check if the line comment is closed off
+ * by another `--` or if the quotations are closed off. This is used for low
+ * sensitivity situations anyway.
+ * 
+ * TODO: _Maybe_ I could do a bisecting search for the user position within the
+ * lexical token stream. This should be pretty fast.
+ * 
+ * @param lineBeforeCursor The line before the cursor
+ * @returns `true` if the line before suggests the user is in an open-syntax
+ *  region of the document
+ * @function
+ */
 export
-function inOpenSyntaxRegion (lineBeforeCursor: string) {
+function inOpenSyntaxRegion (lineBeforeCursor: string): boolean {
     return /(--|\/\*|"|')/.test(lineBeforeCursor);
     // const lineCommentIndex = lineBeforeCursor.indexOf("--");
     // if (lineCommentIndex > -1 || token.isCancellationRequested) {
@@ -189,6 +271,17 @@ function inOpenSyntaxRegion (lineBeforeCursor: string) {
     // }
 }
 
+/**
+ * @summary Convert a `NameAndOrNumber`, such as an OID arc, to a string
+ * @description
+ * 
+ * This produces a string that looks like ASN.1 syntax for an OID arc,
+ * such as `name(123)`, or `?` if no name or number is present.
+ * 
+ * @param nn The name and or number
+ * @returns A string
+ * @function
+ */
 export
 function nameAndOrNumberToString(nn: NameAndOrNumber): string {
     if ("name" in nn && typeof nn.name === "string") {
@@ -204,6 +297,19 @@ function nameAndOrNumberToString(nn: NameAndOrNumber): string {
     }
 }
 
+/**
+ * @summary Convert a `NameAndOrNumber`, such as an OID arc, to an IRI component string
+ * @description
+ * 
+ * This produces a string that looks like ASN.1 syntax for an OID-IRI arc,
+ * such as `name` or `123`, or `?` if no name or number is present.
+ * 
+ * These do **NOT** include the leading forward slash.
+ * 
+ * @param nn The name and or number
+ * @returns A string
+ * @function
+ */
 export
 function nameAndOrNumberToIriString(nn: NameAndOrNumber): string {
     if (("name" in nn) && (typeof nn.name === "string") && nn.name.length) {
@@ -214,13 +320,40 @@ function nameAndOrNumberToIriString(nn: NameAndOrNumber): string {
     return "?";
 }
 
+/**
+ * @summary Get URIs of all ASN.1 files in the workspace
+ * @description
+ * 
+ * This uses the user's configuration of what are file globs are considered
+ * ASN.1 files, as configured by the `includeFiles` and `excludeFiles`
+ * settings.
+ * 
+ * @returns A `Thenable` that resolves to file URIs for all ASN.1 files in the
+ *  workspace.
+ */
 export function getAsn1Files(): Thenable<vscode.Uri[]> {
     const config = vscode.workspace.getConfiguration("asn1");
     const includeFiles = config.get<string>("includeFiles", "**/*.{asn,asn1}");
+    // TODO: I think you should let this default to `undefined`, because I think VS code uses some built-in defaults.
     const excludeFiles = config.get<string>("excludeFiles", "**/{node_modules,dist,out,build,.git}/**");
     return vscode.workspace.findFiles(includeFiles, excludeFiles);
 }
 
+/**
+ * @summary Determine if the cursor position falls within an Encoding Control Notation (ECN) section
+ * @description
+ * 
+ * This is important because ECN has a basically open syntax. Anything can
+ * appear anywhere, so some language features, like inline completions,
+ * probably should not apply when a user is typing within an ECN section.
+ * 
+ * @param document A text document
+ * @param currentModule The current module within the text document
+ * @param position The cursor position within the document
+ * @returns `true` if the cursor falls within the Encoding Control Notation
+ *  (ECN) section of the ASN.1 module.
+ * @function
+ */
 export function isInECN(
     document: vscode.TextDocument,
     currentModule: Module,

@@ -25,6 +25,18 @@ import { maybeReparse } from "./reparse.js";
 import { log } from "./logging.js";
 import * as vscode from "vscode";
 
+/**
+ * @summary Resolve an `AssignedIdentifier`
+ * @param cancel The cancellation token
+ * @param assid The `AssignedIdentifier`
+ * @param currentModule The current ASN.1 module
+ * @param currentDocUri The current text document URI
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @returns A Promise resolving to an array of OID arcs or `undefined` if
+ *  it cannot be resolved
+ * @async
+ * @function
+ */
 export async function resolveAssignedIdentifier(
     cancel: vscode.CancellationToken,
     assid: NonNullable<AssignedIdentifier>,
@@ -86,6 +98,20 @@ export async function resolveAssignedIdentifier(
     return oid;
 }
 
+/**
+ * @summary Resolve a `Defined*` thing, such as a `DefinedValue`
+ * @param cancel The cancellation token
+ * @param moduleref The module reference
+ * @param identifier The identifier to be resolved
+ * @param currentModule The current ASN.1 module
+ * @param currentDocUri The current text document URI
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @returns A promise that resolves to a tuple of the Assignment, the ASN.1
+ *  module, and the file URI of the file where it is defined, or `undefined` if
+ *  resolution failed.
+ * @async
+ * @function
+ */
 export async function resolveDefined(
     cancel: vscode.CancellationToken,
     moduleref: string | undefined,
@@ -201,6 +227,19 @@ export async function resolveDefined(
     return undefined;
 }
 
+/**
+ * @summary Resolve a `DefinedValue` to an `INTEGER` value
+ * @param cancel The cancellation token
+ * @param moduleref The module reference
+ * @param identifier The identifier to be resolved
+ * @param currentModule The current ASN.1 module
+ * @param currentDocUri The current text document URI
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @returns A promise resolving to the integer value or `undefined` if
+ *  resolution failed.
+ * @async
+ * @function
+ */
 export async function resolveInteger(
     cancel: vscode.CancellationToken,
     moduleref: string | undefined,
@@ -238,6 +277,31 @@ export async function resolveInteger(
     return int;
 }
 
+/**
+ * @summary Resolve object identifier components to the arcs as names and numbers
+ * @description
+ * 
+ * This function exists because `OBJECT IDENTIFIER` values can begin with
+ * prefixes, such as `{ id-at 4 }`, which must be resolved to other
+ * `OBJECT IDENTIFIER` values, or include `DefinedValue`s throughout, which
+ * must resolve to `RELATIVE-OID` values, or include `DefinedValue` for the
+ * numbers of an individual arc, e.g. `{2 5 4 commonName(num-commonName)}`.
+ * 
+ * All of those must be resolved to obtain the complete list of arcs that
+ * comprise the object identifier.
+ * 
+ * @param cancel The cancellation token
+ * @param arc The object identifier arc to resolve
+ * @param currentModule The current ASN.1 module
+ * @param currentDocUri The current text document URI
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @param isFirst Whether this is the first OID component, and therefore, if it
+ *  could be one of the root arc names, such as `iso` or `joint-iso-itu-t`, etc.
+ * @returns A promise that resolves to a single `NameAndOrNumber` or an array
+ *  of them, or `undefined` if resolution failed.
+ * @async
+ * @function
+ */
 export async function resolveOIDComponent(
     cancel: vscode.CancellationToken,
     arc: ObjIdComponents,
@@ -325,6 +389,31 @@ export async function resolveOIDComponent(
     }
 }
 
+/**
+ * @summary Resolve object identifier components to their arcs as names and numbers
+ * @description
+ * 
+ * This function exists because `OBJECT IDENTIFIER` values can begin with
+ * prefixes, such as `{ id-at 4 }`, which must be resolved to other
+ * `OBJECT IDENTIFIER` values, or include `DefinedValue`s throughout, which
+ * must resolve to `RELATIVE-OID` values, or include `DefinedValue` for the
+ * numbers of an individual arc, e.g. `{2 5 4 commonName(num-commonName)}`.
+ * 
+ * All of those must be resolved to obtain the complete list of arcs that
+ * comprise the object identifier.
+ *
+ * @param cancel The cancellation token
+ * @param arcs The object identifier arcs to resolve
+ * @param currentModule The current ASN.1 module
+ * @param currentDocUri The current text document URI
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @param suppressBuiltInArcs Whether to ignore built-in root arc names. This is
+ *  used if these components do not include the first component of the OID.
+ * @returns A promise that resolves to the arcs or `undefined` if any could not
+ *  be resolved.
+ * @async
+ * @function
+ */
 export async function resolveOIDComponents(
     cancel: vscode.CancellationToken,
     arcs: ObjIdComponents[],
@@ -363,6 +452,31 @@ export async function resolveOIDComponents(
 // ObjectIdentifierValue ::=
 //    "{" ObjIdComponentsList "}"
 // 	| "{" DefinedValue ObjIdComponentsList "}"
+
+/**
+ * @summary Resolve a `DefinedValue` that should point to an `OBJECT IDENTIFIER` value to its arcs
+ * @description
+ * 
+ * This function exists because `OBJECT IDENTIFIER` values can begin with
+ * prefixes, such as `{ id-at 4 }`, which must be resolved to other
+ * `OBJECT IDENTIFIER` values, or include `DefinedValue`s throughout, which
+ * must resolve to `RELATIVE-OID` values, or include `DefinedValue` for the
+ * numbers of an individual arc, e.g. `{2 5 4 commonName(num-commonName)}`.
+ * 
+ * All of those must be resolved to obtain the complete list of arcs that
+ * comprise the object identifier.
+ * 
+ * @param cancel The cancellation token
+ * @param moduleref The module reference of the identifier to resolve
+ * @param identifier The identifier to resolve
+ * @param currentModule The current ASN.1 module
+ * @param currentDocUri The current text document URI
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @returns A promise that resolves to either a `NameAndOrNumber` array or
+ *  `undefined` if the OID could not be resolved
+ * @async
+ * @function
+ */
 export async function resolveOID(
     cancel: vscode.CancellationToken,
     moduleref: string | undefined,
@@ -478,6 +592,19 @@ export async function resolveOID(
     return undefined;
 }
 
+/**
+ * @summary Attempt to resolve a `Defined*` to an assignment usually only immediately available data
+ * @description
+ * 
+ * This exists to provide for near instantaneous non-async lookups of symbols
+ * for use cases that require low latency, such as completions.
+ * 
+ * @param currentModule The current ASN.1 module
+ * @param defined The `Defined*`, such as a `DefinedValue`
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @returns An `Assignment` or `undefined` if it could not be resolved
+ * @function
+ */
 export
 function resolveDefinedInstantly(
     currentModule: Module,
@@ -496,6 +623,12 @@ function resolveDefinedInstantly(
     return currentModule.assignments[defined.reference];
 }
 
+/**
+ * @summary Throw a user-facing error indicating failure to resolve an OID
+ * @param identifier The identifier of the OID being resolved, if known
+ * @throws Unconditionally
+ * @function
+ */
 function failExport(identifier?: string): never {
     if (identifier) {
         throw new Error(`Resolving OID value ${identifier} failed`);
@@ -503,6 +636,28 @@ function failExport(identifier?: string): never {
     throw new Error("Resolving an OID value failed");
 }
 
+/**
+ * @summary Resolve an `ObjectIdentifierValue` to all of its arcs
+ * @description
+ * 
+ * This function exists because `OBJECT IDENTIFIER` values can begin with
+ * prefixes, such as `{ id-at 4 }`, which must be resolved to other
+ * `OBJECT IDENTIFIER` values, or include `DefinedValue`s throughout, which
+ * must resolve to `RELATIVE-OID` values, or include `DefinedValue` for the
+ * numbers of an individual arc, e.g. `{2 5 4 commonName(num-commonName)}`.
+ * 
+ * All of those must be resolved to obtain the complete list of arcs that
+ * comprise the object identifier.
+ * 
+ * @param document The current text document
+ * @param val The `ObjectIdentifierValue` to be fully resolved
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @returns A promise that resolves to either a `NameAndOrNumber` array or
+ *  `undefined` if the OID could not be resolved
+ * @async
+ * @function
+ */
 export
 async function resolveOidValue(
     document: vscode.TextDocument,
@@ -550,6 +705,18 @@ async function resolveOidValue(
 }
 
 // export type Object_ = DefinedObject | ObjectDefn | ObjectFromObject;
+/**
+ * @summary Resolve an ASN.1 information object to an `ObjectDefn`
+ * @param cancel The cancellation token
+ * @param object The ASN.1 information object to be resolved
+ * @param currentModule The current ASN.1 module
+ * @param currentDocUri The current text document URI
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @returns A promise that resolves to either an `ObjectDefn` or `undefined`
+ *  if it could not be resolved
+ * @async
+ * @function
+ */
 export async function resolveObjectDefn(
     cancel: vscode.CancellationToken,
     object: Object_,

@@ -19,6 +19,7 @@ import {
 } from "./findallref.js";
 
 /**
+ * @summary Provide module name highlights
  * @description
  * 
  * Note: this has no intelligence. It assumes that every appearance of this
@@ -31,11 +32,13 @@ import {
  * expect and demand all occurrences of the module name to be highlighted, even
  * if they differ by module object identifier.
  * 
- * @param document 
- * @param cancel 
- * @param ident 
- * @param lexicalTokens 
- * @returns 
+ * @param document The current text document
+ * @param cancel The cancellation token
+ * @param ident The module name
+ * @param lexicalTokens The lexical tokens array for the current text document
+ * @returns A promise that resolves to an array of highlights
+ * @async
+ * @function
  */
 async function provideModuleNameHighlights(
     document: vscode.TextDocument,
@@ -66,6 +69,15 @@ async function provideModuleNameHighlights(
     return ret;
 }
 
+/**
+ * @summary Provide document highlights
+ * @param document The current text document
+ * @param position The cursor position
+ * @param cancel The cancellation token
+ * @returns A promise that resolves to an array of highlights
+ * @async
+ * @function
+ */
 async function provideDocumentHighlights(
     document: vscode.TextDocument,
     position: vscode.Position,

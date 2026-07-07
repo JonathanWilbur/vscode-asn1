@@ -20,12 +20,20 @@ const keywordFollowupCompletions: ReadonlyMap<string, string> = new Map([
     ["IDENTIFIED", "BY"],
 ]);
 
+/**
+ * @summary Provide inline completion items, based on position within a document
+ * @param document The current text document
+ * @param position The cursor position within the document
+ * @param token The cancellation token
+ * @returns A promise that resolves an array of inline completion items
+ * @async
+ * @function
+ */
 async function provideInlineCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
-    _context: vscode.InlineCompletionContext,
     token: vscode.CancellationToken,
-): Promise<vscode.InlineCompletionItem[] | vscode.InlineCompletionList> {
+): Promise<vscode.InlineCompletionItem[]> {
     const line = document.lineAt(position.line);
     const lineBeforeCursor = line.text.slice(0, position.character);
     if (inOpenSyntaxRegion(lineBeforeCursor)) {
@@ -118,9 +126,9 @@ export class Asn1InlineCompletionItemProvider implements vscode.InlineCompletion
     provideInlineCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
-        context: vscode.InlineCompletionContext,
+        _context: vscode.InlineCompletionContext,
         token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.InlineCompletionItem[] | vscode.InlineCompletionList> {
-        return provideInlineCompletionItems(document, position, context, token);
+        return provideInlineCompletionItems(document, position, token);
     }
 }

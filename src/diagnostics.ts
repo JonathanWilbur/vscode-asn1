@@ -3,7 +3,6 @@ import { getParserOutputs } from "./parsing.js";
 import {
     getRangeFromLocation,
     isDefinedThing,
-    positionFallsWithin,
     typeTypesThatCouldBeAnything,
 } from "./utils.js";
 import {
@@ -42,6 +41,9 @@ import type { ASN1ModuleName } from "./types.js";
 
 const LANGUAGE: string = "asn1";
 
+/**
+ * The diagnostic collection for ASN.1.
+ */
 export let diagnosticCollection = vscode.languages.createDiagnosticCollection(LANGUAGE);
 
 export const DIAG_CODE_IMPORT_SYMBOL_DUP: string = "E0001";
@@ -77,6 +79,12 @@ export const DIAG_CODE_IMPORT_MODULE_DUP: string = "E0030";
 
 const AT_INDEX = "at index ";
 
+/**
+ * @summary Get the start and end positions for the entire text document
+ * @param document The text document whose entire range is to be returned
+ * @returns The start and end positions for the whole text document, as a tuple of two `Position`s
+ * @function
+ */
 function getRangeForWholeDocument(document: vscode.TextDocument): [vscode.Position, vscode.Position] {
     let start = new vscode.Position(0, 0);
     const lastLine = document.lineAt(document.lineCount - 1);
@@ -84,7 +92,15 @@ function getRangeForWholeDocument(document: vscode.TextDocument): [vscode.Positi
     return [start, end];
 }
 
-// Checks for duplicate or unnecessary imported symbols
+/**
+ * @summary Check for duplicate or unnecessary imported symbols
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param diags The output diagnostics as an array
+ * @param usedSymbols A `Set` of `string`s representing the symbols used in
+ *  this ASN.1 module.
+ * @function
+ */
 function provideImportDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -157,6 +173,13 @@ function provideImportDiagnostics(
     }
 }
 
+/**
+ * @summary Provide diagnostics for duplicate assignments
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideDuplicateAssignmentDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -191,6 +214,14 @@ function provideDuplicateAssignmentDiagnostics(
     }
 }
 
+/**
+ * @summary Return a VS Code diagnostic for a problematic named number
+ * @param document The current text document
+ * @param assn The current ASN.1 assignment
+ * @param loc The location of the problematic named number
+ * @param firstloc The location of the first named number in the event of a duplicate
+ * @returns A VS Code diagnostic, or `null` if we cannot construct it
+ */
 function returnNamedNumberError(
     document: vscode.TextDocument,
     assn: Assignment,
@@ -234,6 +265,21 @@ function returnNamedNumberError(
     return diag;
 }
 
+/**
+ * @summary Provide diagnostics related to named numbers, such as in an `INTEGER`, `BIT STRING`, or `ENUMERATED` type
+ * @description
+ * 
+ * This function checks for duplicate values and negatives in types that do not
+ * allow it.
+ * 
+ * @param document The current text document
+ * @param assn The current type assignment
+ * @param namednums The list of named numbers
+ * @param diags The output diagnostics as an array
+ * @param typeType The ASN.1 type of this assignment
+ * @param startOfAdditionals The index after which the extension numbers begin
+ * @function
+ */
 function provideNamedNumbersDiagnostics(
     document: vscode.TextDocument,
     assn: Assignment,
@@ -315,12 +361,27 @@ function provideNamedNumbersDiagnostics(
     }
 }
 
+/**
+ * ASN.1 type to a string representation
+ */
 const typeTypeToString: Map<TypeType, string> = new Map([
     [TypeType.SequenceType, "SEQUENCE"],
     [TypeType.SetType, "SET"],
     [TypeType.ChoiceType, "CHOICE"],
 ]);
 
+/**
+ * 
+ * @param document The current document
+ * @param mod The current ASN.1 module
+ * @param def The current `DefinedType` used in a `COMPONENTS OF` component
+ * @param diags The output diagnostics as an array
+ * @param expectedType The expected ASN.1 type (`SET`, `SEQUENCE`, or `CHOICE`)
+ * @param recursionTTL The recursion TTL: number of recursions until this function
+ *  returns immediately.
+ * @returns The component types in an array, or `null` if there was a problem
+ *  resolving them.
+ */
 function resolveComponentsOf(
     document: vscode.TextDocument,
     mod: Module,
@@ -405,6 +466,14 @@ function resolveComponentsOf(
     return ret;
 }
 
+/**
+ * @summary Provide diagnostics related to an ASN.1 `SET` or `SEQUENCE` type assignment
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param assn The current type assignment
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideSetOrSeqTypeAssnDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -479,6 +548,14 @@ function provideSetOrSeqTypeAssnDiagnostics(
     }
 }
 
+/**
+ * @summary Provide diagnostics related to an ASN.1 type assignment
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param assn The current type assignment
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideTypeAssignmentDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -595,6 +672,23 @@ function provideTypeAssignmentDiagnostics(
     }
 }
 
+/**
+ * @summary Provide diagnostics related to an object identifier value
+ * @description
+ * 
+ * Checks if:
+ * 
+ * - The object identifier is only one or zero arcs long
+ * - The object identifier has an unrecognized first arc by name
+ * - The object identifier has an invalid first arc number
+ * - The object identifier has a mismatching first arc name and number
+ * - The object identifier has a second arc > 39 if the first is 0 or 1
+ * 
+ * @param document The current text document
+ * @param value The object identifier value
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideOIDValueDiagnostics(
     document: vscode.TextDocument,
     value: ObjectIdentifierValue,
@@ -693,6 +787,9 @@ function provideOIDValueDiagnostics(
     }
 }
 
+/**
+ * The number of days in a month, assuming it is a leap year.
+ */
 const daysInMonth: Map<string, number> = new Map([
     ["01", 31],
     ["02", 29],
@@ -708,6 +805,13 @@ const daysInMonth: Map<string, number> = new Map([
     ["12", 31],
 ]);
 
+/**
+ * @summary Provide diagnostics for a `DATE` string
+ * @param s The `DATE` string, such as "2020-01-31"
+ * @param range The range of the string in the document
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideDateDiagnostics(
     s: string,
     range: vscode.Range,
@@ -742,6 +846,13 @@ function provideDateDiagnostics(
     }
 }
 
+/**
+ * @summary Provide diagnostics for a `TIME-OF-DAY` string
+ * @param s The `TIME-OF-DAY` string, such as "12:29:43"
+ * @param range The range of the string in the document
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideTimeOfDayDiagnostics(
     s: string,
     range: vscode.Range,
@@ -760,6 +871,24 @@ function provideTimeOfDayDiagnostics(
     // No further validation needed. The regex is sufficient.
 }
 
+/**
+ * @summary Use a `BERElement` from `@wildboar/asn1` to validate a string-like type
+ * @description
+ * 
+ * Instead of writing all the code to validate ASN.1 values again, I can just
+ * use the code that's already in `@wildboar/asn1`: this function just encodes
+ * your string into the content octets of a Basic Encoding Rules value encoding
+ * and you provide a `test` function that takes that element and checks if it
+ * is valid (usually by invoking a getter / accessor).
+ * 
+ * @param s The string to encode
+ * @param range The range of the string
+ * @param tagnum The `UNIVERSAL` tag number corresponding to the type of the string
+ * @param test A function to test whether encoding worked, which takes a BER-encoded tag-length-value `BERElement`
+ * @param diags The output diagnostics as an array
+ * @param code The error code
+ * @function
+ */
 function useDecodingToProvideDiagnostics(
     s: string,
     range: vscode.Range,
@@ -794,6 +923,31 @@ function useDecodingToProvideDiagnostics(
     }
 }
 
+/**
+ * @summary Provide diagnostics for a string-like type
+ * @description
+ * 
+ * This provides diagnostics for:
+ * 
+ * - `DATE`
+ * - `TIME-OF-DAY`
+ * - `DATE-TIME`
+ * - `DURATION`
+ * - `UTCTime`
+ * - `GeneralizedTime`
+ * - `OID-IRI`
+ * - `RELATIVE-OID-IRI`
+ * - `PrintableString`
+ * - `NumericString`
+ * - `ISO646String` / `IA5String`
+ * 
+ * @param document The current text document
+ * @param s The string to diagnose
+ * @param value The value
+ * @param typeType The ASN.1 type type
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideStringDiagnostics(
     document: vscode.TextDocument,
     s: string,
@@ -921,6 +1075,14 @@ function provideStringDiagnostics(
     }
 }
 
+/**
+ * @summary Provide diagnostics related to an ASN.1 value assignment
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param assn The current value assignment
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideValueAssignmentDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -1007,6 +1169,14 @@ function provideValueAssignmentDiagnostics(
     }
 }
 
+/**
+ * @summary Provide diagnostics related to an ASN.1 assignment
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param assn The current assignment
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideAssignmentDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -1021,6 +1191,13 @@ function provideAssignmentDiagnostics(
     }
 }
 
+/**
+ * @summary Provide diagnostics related to the assignments of a module
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param diags The output diagnostics as an array
+ * @function
+ */
 function provideAssignmentListDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -1115,13 +1292,27 @@ const selfContainedProductions: Set<string> = new Set([
 
 const SYMBOL_NOT_DEFINED: string = "symbol not assigned in this module, nor imported";
 
-/*
-NOTE: You do not have to check that the import includes the "{}" if it is
-parameterized. That is optional, per ITU-T Recommendation X.683 (2021), Section 9.1.
-
-A non-parameterized import is NOT allowed to use the "{}", but we are not going to
-check this scenario, because it would be rare and computationally expensive.
-*/
+/**
+ * @summary Drill into the Concrete Syntax Tree (CST) to find undefined symbols
+ * @description
+ * 
+ * NOTE: You do not have to check that the import includes the "{}" if it is
+ * parameterized. That is optional, per ITU-T Recommendation X.683 (2021), Section 9.1.
+ * 
+ * A non-parameterized import is NOT allowed to use the "{}", but we are not going to
+ * check this scenario, because it would be rare and computationally expensive.
+ * 
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param diags The output diagnostics as an array
+ * @param cstnode The current Concrete Syntax Tree (CST) node into which to recurse
+ * @param usedSymbols The set of used symbols to insert encountered symbols into
+ * @param enumItemsDefined Any `ENUMERATED` variants defined
+ * @param assignment The current assignment
+ * @param recursionTTL The recursion TTL: recursion limit, after which this function
+ *  immediately returns without doing anything.
+ * @function
+ */
 function drillForUndefinedSymbols(
     document: vscode.TextDocument,
     mod: Module,
@@ -1219,6 +1410,15 @@ function drillForUndefinedSymbols(
     }
 }
 
+/**
+ * @summary Provide missing symbol-related diagnostics
+ * @param document The current text document
+ * @param mod The current ASN.1 module
+ * @param diags The output diagnostics as an array
+ * @param usedSymbols A set into which encountered used symbols are inserted as strings
+ * @param enumItemsDefined A set of `ENUMERATED` values defined
+ * @function
+ */
 function provideMissingSymbolDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
@@ -1285,6 +1485,8 @@ function provideMissingSymbolDiagnostics(
         drillForUndefinedSymbols(document, mod, diags, assn.production, usedSymbols, enumItemsDefined, assn);
         const params = (assn.parameters ?? []);
         for (const param of params) {
+            // FIXME: I think this will consider any parameter with this same name used.
+            // Maybe remove the parameter names when you are done?
             if (!usedSymbols.has(param.dummyReference)) {
                 const ploc = param.production?.location ?? assn.production.location;
                 const range = getRangeFromLocation(document, ploc);
@@ -1303,6 +1505,11 @@ function provideMissingSymbolDiagnostics(
     }
 }
 
+/**
+ * @summary Determine whether a line of text has the effect of disabling diagnostics for the file
+ * @param line A line of text from the document
+ * @returns `true` if this line disables diagnostics for the document
+ */
 function lineDisablesDiagnostics(line: string): boolean {
     return (
         /^\s*--\s*no_diagnose/.test(line)
@@ -1310,6 +1517,15 @@ function lineDisablesDiagnostics(line: string): boolean {
     );
 }
 
+/**
+ * @summry Convert an `ASN1SyntaxError` to a VS Code `Diagnostic`
+ * @param document The current text document
+ * @param e The error to convert to a diagnostic
+ * @param malformedThing The string describing the thing that is malformed
+ * @param code The diagnostic code (as a string)
+ * @returns A VS Code diagnostic
+ * @function
+ */
 function syntaxErrorToDiag(
     document: vscode.TextDocument,
     e: ASN1SyntaxError,
@@ -1328,6 +1544,15 @@ function syntaxErrorToDiag(
     return diag;
 }
 
+/**
+ * @summry Convert an ASN.1-related non-syntax error to a VS Code `Diagnostic`
+ * @param document The current text document
+ * @param e The error to convert to a diagnostic
+ * @param malformedThing The string describing the thing that is malformed
+ * @param code The diagnostic code (as a string)
+ * @returns A VS Code diagnostic
+ * @function
+ */
 function asn1NonSyntaxErrorToDiag(
     document: vscode.TextDocument,
     e: ASN1SemanticError | ASN1ParserExpectationError,
@@ -1355,15 +1580,33 @@ function asn1NonSyntaxErrorToDiag(
     return diag;
 }
 
+/**
+ * @summry Convert an `ASN1SemanticError` to a VS Code `Diagnostic`
+ * @param document The current text document
+ * @param e The error to convert to a diagnostic
+ * @param malformedThing The string describing the thing that is malformed
+ * @param code The diagnostic code (as a string)
+ * @returns A VS Code diagnostic
+ * @function
+ */
 function semanticErrorToDiag(
     document: vscode.TextDocument,
-    e: ASN1ParserExpectationError,
+    e: ASN1SemanticError,
     malformedThing: string,
     code: string,
 ): vscode.Diagnostic {
     return asn1NonSyntaxErrorToDiag(document, e, malformedThing, code, "semantic error");
 }
 
+/**
+ * @summry Convert an `ASN1ParserExpectationError` to a VS Code `Diagnostic`
+ * @param document The current text document
+ * @param e The error to convert to a diagnostic
+ * @param malformedThing The string describing the thing that is malformed
+ * @param code The diagnostic code (as a string)
+ * @returns A VS Code diagnostic
+ * @function
+ */
 function expectationErrorToDiag(
     document: vscode.TextDocument,
     e: ASN1ParserExpectationError,
@@ -1373,6 +1616,14 @@ function expectationErrorToDiag(
     return asn1NonSyntaxErrorToDiag(document, e, malformedThing, code, "assertion failure");
 }
 
+/**
+ * @summary Update diagnostics for a given text document
+ * @param document The current text document
+ * @param diagnosticCollection The diagnostics collection
+ * @returns A promise that resolves to nothing
+ * @async
+ * @function
+ */
 export
 async function updateDiagnostics(
     document: vscode.TextDocument,

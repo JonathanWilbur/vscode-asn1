@@ -9,6 +9,12 @@ import {
     type Module,
 } from "@wildboar/asn1-parser";
 
+/**
+ * @summary Determine if an assignment is a type assignment or type like it
+ * @param assntype The ASN.1 assignment type
+ * @returns `true` if the assignment is "type-like" for type definition resolution
+ * @function
+ */
 function isTypeLikeAssignment(assntype: AssignmentType): boolean {
     return (
         assntype === AssignmentType.TypeAssignment
@@ -17,6 +23,17 @@ function isTypeLikeAssignment(assntype: AssignmentType): boolean {
     );
 }
 
+/**
+ * @summary Provide a type definition for a given `Defined*` reference
+ * @param cancel The cancellation token
+ * @param def The `Defined*`, such as a `DefinedValue`
+ * @param currentModule The current ASN.1 module
+ * @param uri The current text document URI
+ * @param objClassExpected Whether an object class assignment is expected
+ * @returns A promise that resolves ot a definition as a `vscode.Definition`
+ * @async
+ * @function
+ */
 async function typeDefFromDefinedThing(
     cancel: vscode.CancellationToken,
     def: Defined,
@@ -55,11 +72,20 @@ async function typeDefFromDefinedThing(
     return new vscode.Location(uri2, range);
 }
 
+/**
+ * @summary Provides type definitions for a given ASN.1 value or information object
+ * @param document The text document within which to provide type definition resolution
+ * @param position The cursor position within the document
+ * @param cancel The cancellation token
+ * @returns A promise resolving to a definition as a `vscode.Definition`
+ * @async
+ * @function
+ */
 async function provideTypeDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
     cancel: vscode.CancellationToken,
-): Promise<vscode.Definition | vscode.DefinitionLink[]> {
+): Promise<vscode.Definition> {
     const p = await getParserOutputsWithLogging(document.uri, cancel);
     if (!p) {
         return Promise.reject(null);

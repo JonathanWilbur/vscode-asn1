@@ -20,6 +20,12 @@ import {
     typeTypesThatCouldBeAnything,
 } from "./utils.js";
 
+/**
+ * @summary Get the line ending to use for CSV exports
+ * @param document The text document
+ * @returns The line ending to use
+ * @function
+ */
 export function getExportEol(document?: vscode.TextDocument): "\r\n" | "\n" {
     if (document) {
         const eol = (document.eol === vscode.EndOfLine.CRLF)
@@ -36,6 +42,11 @@ export function getExportEol(document?: vscode.TextDocument): "\r\n" | "\n" {
     }
 }
 
+/**
+ * @summary Throw an error that shows the user that the export failed
+ * @param document The text document
+ * @function
+ */
 function failExport(document?: vscode.TextDocument): never {
     if (document) {
         const path = vscode.workspace.asRelativePath(document.uri);
@@ -44,17 +55,51 @@ function failExport(document?: vscode.TextDocument): never {
     throw new Error("Export failed");
 }
 
+/**
+ * Information about an `OBJECT IDENTIFIER`
+ */
 interface OidInfo {
+    /**
+     * The module name where this object identifier was found
+     */
     moduleName: string;
+    /**
+     * The object identifier for the ASN.1 module in which this object
+     * identifier was defined.
+     */
     moduleOid?: NameAndOrNumber[];
+    /**
+     * The internationalized resource identifier (IRI) for the ASN.1 module in
+     * which this object identifier was defined.
+     */
     moduleIRI?: string;
+    /**
+     * The assignment name in which this object identifier was defined
+     */
     assignmentName?: string;
+    /**
+     * The zero-based index of the assignment in the `AssignmentList` in which
+     * this object identifier was defined
+     */
     assignmentIndex?: number;
+    /**
+     * The arcs of the object identifier
+     */
     arcs: NameAndOrNumber[];
+    /**
+     * URI of the source file
+     */
     sourceFile: vscode.Uri;
+    /**
+     * Location of the assignment within the file where this object identifier
+     * was defined
+     */
     location?: Location,
 }
 
+/**
+ * CSV headers row as a string for a CSV export of object identifiers
+ */
 const OID_CSV_HEADER: string = [
     "OID_SOURCE",
     "MODULE_NAME",
@@ -76,6 +121,9 @@ const OID_CSV_HEADER: string = [
     "ASSIGNMENT_INDEX",
 ].join(",");
 
+/**
+ * CSV headers row as a string for a CSV export of ASN.1 imports and exports
+ */
 const DEPS_CSV_HEADER: string = [
     "MODULE_NAME",
     "MODULE_OID",
@@ -94,6 +142,9 @@ const DEPS_CSV_HEADER: string = [
     "FILE_PATH",
 ].join(",");
 
+/**
+ * CSV headers row as a string for a CSV export of ASN.1 modules
+ */
 const MODS_CSV_HEADER: string = [
     "MODULE_NAME",
     "MODULE_OID",
@@ -112,6 +163,9 @@ const MODS_CSV_HEADER: string = [
     "FILE_PATH",
 ].join(",");
 
+/**
+ * CSV headers row as a string for a CSV export of ASN.1 assignments
+ */
 const ASSNS_CSV_HEADER: string = [
     "MODULE_NAME",
     "MODULE_OID",
@@ -137,6 +191,12 @@ const ASSNS_CSV_HEADER: string = [
     "FILE_PATH",
 ].join(",");
 
+/**
+ * @summary Convert object identifier information to a CSV row
+ * @param info Object identifier information
+ * @returns The CSV row as a string
+ * @function
+ */
 function oidInfoToCSVRow(info: OidInfo): string {
     const oidnums = getOidNodesFromModuleIdentifier(info.arcs);
     const modnums = info.moduleOid
@@ -187,6 +247,15 @@ function oidInfoToCSVRow(info: OidInfo): string {
     ].join(",");
 }
 
+/**
+ * @summary Get CSV rows for each object identifier
+ * @param document The text document
+ * @param token The cancellation token
+ * @param rows The exported CSV rows
+ * @returns A promise that resolves to nothing
+ * @async
+ * @function
+ */
 export
 async function get_oid_csv_rows_from_doc(
     document: vscode.TextDocument,
@@ -258,6 +327,15 @@ async function get_oid_csv_rows_from_doc(
     }
 }
 
+/**
+ * @summary Get CSV rows for each import or export
+ * @param document The text document
+ * @param token The cancellation token
+ * @param rows The exported CSV rows
+ * @returns A promise that resolves to nothing
+ * @async
+ * @function
+ */
 export
 async function get_dep_csv_rows_from_doc(
     document: vscode.TextDocument,
@@ -351,6 +429,15 @@ async function get_dep_csv_rows_from_doc(
     }
 }
 
+/**
+ * @summary Get CSV rows for each module
+ * @param document The text document
+ * @param token The cancellation token
+ * @param rows The exported CSV rows
+ * @returns A promise that resolves to nothing
+ * @async
+ * @function
+ */
 export
 async function get_module_csv_rows_from_doc(
     document: vscode.TextDocument,
@@ -411,6 +498,15 @@ async function get_module_csv_rows_from_doc(
     }
 }
 
+/**
+ * @summary Get CSV rows for each assignment
+ * @param document The text document
+ * @param token The cancellation token
+ * @param rows The exported CSV rows
+ * @returns A promise that resolves to nothing
+ * @async
+ * @function
+ */
 export
 async function get_assignment_csv_rows_from_doc(
     document: vscode.TextDocument,
@@ -496,6 +592,9 @@ async function get_assignment_csv_rows_from_doc(
     }
 }
 
+/**
+ * Replacer function to be used in `JSON.stringify()`.
+ */
 function replacer(this: any, _: string, value: any): any {
     if (
         value &&
@@ -513,6 +612,20 @@ function replacer(this: any, _: string, value: any): any {
     return value;
 }
 
+/**
+ * @summary Export all ASN.1 modules in the current document to JSON
+ * @description
+ * 
+ * This opens up the resulting JSON in a new tab. Note that there is no
+ * equivalent of this for the whole workspace, because the resulting JSON is
+ * enormous. I could implement this if you really want.
+ * 
+ * @param document The text document
+ * @param token The cancellation token
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function get_modules_json_from_doc(
     document: vscode.TextDocument,
@@ -530,6 +643,18 @@ async function get_modules_json_from_doc(
     return JSON.stringify(obj, replacer, 4);
 }
 
+/**
+ * @summary Export all object identifiers from the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * @param document The text document
+ * @param token The cancellation token
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function export_oid_csv_from_doc(
     document: vscode.TextDocument,
@@ -546,6 +671,16 @@ async function export_oid_csv_from_doc(
     await vscode.window.showTextDocument(csvDocument);
 }
 
+/**
+ * @summary Export all object identifiers from the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function export_oid_csv_from_workspace(
     token: vscode.CancellationToken,
@@ -569,6 +704,18 @@ async function export_oid_csv_from_workspace(
     await vscode.window.showTextDocument(csvDocument);
 }
 
+/**
+ * @summary Export all ASN.1 imports and exports in the current document as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ *
+ * @param document The text document
+ * @param token The cancellation token
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function export_deps_csv_from_doc(
     document: vscode.TextDocument,
@@ -585,6 +732,17 @@ async function export_deps_csv_from_doc(
     await vscode.window.showTextDocument(csvDocument);
 }
 
+/**
+ * @summary Export all ASN.1 imports and exports in the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ *
+ * @param token The cancellation token
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function export_deps_csv_from_workspace(
     token: vscode.CancellationToken,
@@ -608,6 +766,18 @@ async function export_deps_csv_from_workspace(
     await vscode.window.showTextDocument(csvDocument);
 }
 
+/**
+ * @summary Export all ASN.1 modules from the current document as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * @param document The text document
+ * @param token The cancellation token
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function export_modules_csv_from_doc(
     document: vscode.TextDocument,
@@ -624,6 +794,17 @@ async function export_modules_csv_from_doc(
     await vscode.window.showTextDocument(csvDocument);
 }
 
+/**
+ * @summary Export all ASN.1 modules from the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ *
+ * @param token The cancellation token
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function export_modules_csv_from_workspace(
     token: vscode.CancellationToken,
@@ -647,6 +828,18 @@ async function export_modules_csv_from_workspace(
     await vscode.window.showTextDocument(csvDocument);
 }
 
+/**
+ * @summary Export all ASN.1 assignments from the current document as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * @param document The text document
+ * @param token The cancellation token
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function export_assignments_csv_from_doc(
     document: vscode.TextDocument,
@@ -665,6 +858,17 @@ async function export_assignments_csv_from_doc(
 
 const NO_DOC_OPEN = "No document open. This command requires an open ASN.1 file.";
 
+/**
+ * @summary Export all ASN.1 assignments from the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ *
+ * @param token The cancellation token
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export
 async function export_assignments_csv_from_workspace(
     token: vscode.CancellationToken,
@@ -688,6 +892,18 @@ async function export_assignments_csv_from_workspace(
     await vscode.window.showTextDocument(csvDocument);
 }
 
+/**
+ * @summary VS Code command to export all ASN.1 imports and exports in the current document as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * This operation may be cancelled in a popup.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_deps_csv_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
@@ -707,6 +923,18 @@ export async function export_deps_csv_from_doc_cmd(): Promise<void> {
     );
 }
 
+/**
+ * @summary VS Code command to export all ASN.1 imports and exports in the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * This operation may be cancelled in a popup.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_deps_csv_from_workspace_cmd(): Promise<void> {
     await vscode.window.withProgress(
         {
@@ -720,6 +948,18 @@ export async function export_deps_csv_from_workspace_cmd(): Promise<void> {
     );
 }
 
+/**
+ * @summary VS Code command to export all object identifiers from the current document as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * This operation may be cancelled in a popup.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_oid_csv_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
@@ -739,6 +979,18 @@ export async function export_oid_csv_from_doc_cmd(): Promise<void> {
     );
 }
 
+/**
+ * @summary VS Code command to export all object identifiers from the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * This operation may be cancelled in a popup.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_oid_csv_from_workspace_cmd(): Promise<void> {
     await vscode.window.withProgress(
         {
@@ -752,6 +1004,18 @@ export async function export_oid_csv_from_workspace_cmd(): Promise<void> {
     );
 }
 
+/**
+ * @summary VS Code command to export all ASN.1 modules from the current document as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * This operation may be cancelled in a popup.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_modules_csv_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
@@ -771,6 +1035,18 @@ export async function export_modules_csv_from_doc_cmd(): Promise<void> {
     );
 }
 
+/**
+ * @summary VS Code command to export all ASN.1 modules from the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * This operation may be cancelled in a popup.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_modules_csv_from_workspace_cmd(): Promise<void> {
     await vscode.window.withProgress(
         {
@@ -784,6 +1060,18 @@ export async function export_modules_csv_from_workspace_cmd(): Promise<void> {
     );
 }
 
+/**
+ * @summary VS Code command to export all ASN.1 assignments from the current document as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * This operation may be cancelled in a popup.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_assignments_csv_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;
@@ -803,6 +1091,18 @@ export async function export_assignments_csv_from_doc_cmd(): Promise<void> {
     );
 }
 
+/**
+ * @summary VS Code command to export all ASN.1 assignments from the workspace as CSV
+ * @description
+ * 
+ * This opens up the resulting CSV in a new tab.
+ * 
+ * This operation may be cancelled in a popup.
+ *
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_assignments_csv_from_workspace_cmd(): Promise<void> {
     await vscode.window.withProgress(
         {
@@ -816,6 +1116,20 @@ export async function export_assignments_csv_from_workspace_cmd(): Promise<void>
     );
 }
 
+/**
+ * @summary VS Code command to export all ASN.1 modules in the current document to JSON
+ * @description
+ * 
+ * This opens up the resulting JSON in a new tab. Note that there is no
+ * equivalent of this for the whole workspace, because the resulting JSON is
+ * enormous. I could implement this if you really want.
+ * 
+ * This operation may be cancelled in a popup.
+ * 
+ * @returns A promise resolving to nothing
+ * @async
+ * @function
+ */
 export async function export_modules_json_from_doc_cmd(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     const document = editor?.document;

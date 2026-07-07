@@ -3,6 +3,13 @@ import type { Location } from "@wildboar/asn1-parser";
 import { getParserOutputsWithLogging } from "./parsing.js";
 import { getRangeFromLocation } from "./utils.js";
 
+/**
+ * @summary Convert an ASN.1 parser `Location` to a VS Code folding range
+ * @param document The current text document
+ * @param loc The ASN.1 parser location
+ * @returns A folding range, or `null` if one cannot be constructed
+ * @function
+ */
 function foldingRangeFromLocation(
     document: vscode.TextDocument,
     loc: Location,
@@ -14,9 +21,16 @@ function foldingRangeFromLocation(
     return new vscode.FoldingRange(range.start.line, range.end.line);
 }
 
+/**
+ * @summary Get folding ranges within a document
+ * @param document The current text document
+ * @param token The cancellation token
+ * @returns A promise that resolves to an array of folding ranges
+ * @async
+ * @function
+ */
 async function provideFoldingRanges(
     document: vscode.TextDocument,
-    _context: vscode.FoldingContext,
     token: vscode.CancellationToken,
 ): Promise<vscode.FoldingRange[]> {
     const p = await getParserOutputsWithLogging(document.uri, token);
@@ -66,9 +80,9 @@ async function provideFoldingRanges(
 export class Asn1FoldingRangeProvider implements vscode.FoldingRangeProvider {
     provideFoldingRanges(
         document: vscode.TextDocument,
-        context: vscode.FoldingContext,
+        _context: vscode.FoldingContext,
         token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.FoldingRange[]> {
-        return provideFoldingRanges(document, context, token);
+        return provideFoldingRanges(document, token);
     }
 }

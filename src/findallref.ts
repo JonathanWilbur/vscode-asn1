@@ -30,22 +30,49 @@ import type {
 } from './types.js';
 import { resolveAssignedIdentifier } from "./resolve.js";
 
+/**
+ * Tokens we can ignore because they can appear almost anywhere.
+ */
 const ignoredTokenTypes: Set<string> = new Set([
     "newlineWhitespace",
     "nonNewlineWhitespace",
     "comment",
 ]);
 
+/**
+ * Parser state just for identifying references in a lexical token stream.
+ */
 type DefinedThingParsingState = 
     | "module"
     | "period"
     | "identifier"
     ;
 
-/* NOTE: Even when searching for a reference that is supposedly defined in this file,
-there is no need to skip over the imports, since the identifier could be re-exported
-from another module. If an imported identifier is duplicated with one defined
-locally, it is simply a defect. */
+/**
+ * @summary Get all references within a module
+ * @description
+ * 
+ * Instead of fully parsing every single file, this works by only lexing the
+ * file (which is significantly faster / computationally cheaper), then
+ * iterating over the tokens to find what should be matches.
+ * 
+ * NOTE: Even when searching for a reference that is supposedly defined in this
+ * file, there is no need to skip over the imports, since the identifier could
+ * be re-exported from another module. If an imported identifier is duplicated
+ * with one defined locally, it is simply a defect.
+ * 
+ * @param cancel The cancellation token
+ * @param document The current text document
+ * @param modref The module reference for the symbol
+ * @param ident The symbol itself
+ * @param tokens The lexed tokens from the current text document
+ * @param skipModulesCount The number of modules to skip over
+ * @param ignoreImportsExports Whether to ignore symbols in imports or exports
+ * @returns A promise that resolves to a tuple of the array of locations in
+ *  the workspace and the number of tokens read
+ * @async
+ * @function
+ */
 export
 async function getReferencesWithinModule(
     cancel: vscode.CancellationToken,
@@ -166,6 +193,17 @@ async function getReferencesWithinModule(
     return [locations, endIndex ?? tokens.length];
 }
 
+/**
+ * @summary Get symbol references within a given file
+ * @param cancel The cancellation token
+ * @param docuri The current document URI
+ * @param ident The symbol to search for
+ * @param modref The module name in which the symbol is defined
+ * @param modoid The OID of the module in which the symbol is defined
+ * @returns A promise resolving to an array of locations in the workspace
+ * @async
+ * @function
+ */
 export
 async function getSymbolReferencesWithinFile(
     cancel: vscode.CancellationToken,
@@ -246,10 +284,22 @@ async function getSymbolReferencesWithinFile(
     return ret;
 }
 
-/*
-This differs from getSymbolReferencesWithinFile() by using the modoid to
-filter out 
-*/
+/**
+ * @summary Get the module references within a file
+ * @description
+ * 
+ * This differs from `getSymbolReferencesWithinFile()` by using the `seloid` to
+ * filter out modules that are not a match.
+ * 
+ * @param cancel The cancellation token
+ * @param docuri The text document URI
+ * @param ident The module name
+ * @param seloid The module object identifier
+ * @param selopt The module `SelectionOption`, if the reference comes from an import
+ * @returns A promise that resolves to an array of locations in the workspace
+ * @async
+ * @function
+ */
 async function getModuleReferencesWithinFile(
     cancel: vscode.CancellationToken,
     docuri: vscode.Uri,
@@ -374,6 +424,7 @@ async function getModuleReferencesWithinFile(
  *  where the sought identifier is defined and used within the modules where it
  *  is defined.
  * 
+ * @async
  * @function
  */
 async function getReferencesFromAssigningModules(
@@ -437,6 +488,7 @@ async function getReferencesFromAssigningModules(
  * @returns Locations, including in imports and in assignments, where this
  *  identifier is used.
  * 
+ * @async
  * @function
  */
 export
@@ -546,6 +598,7 @@ async function provideReferencesForSymbol(
 }
 
 /**
+ * @summary Provide references for a module name, optionally matching by object identifier
  * @description
  * 
  * Module identifiers can appear in three places, as far as I can tell:
@@ -554,14 +607,13 @@ async function provideReferencesForSymbol(
  * 2. As the module name within an import
  * 3. As a qualifier in a `Defined*` thing, such as a `DefinedValue`
  * 
- * These three cases, respectively, are identified as follows:
- * 
- * 1. Check if the index has that 
- * 
- * @param document 
- * @param position 
- * @param options 
- * @param token 
+ * @param document The current text document
+ * @param position The cursor position
+ * @param cancel The cancellation token
+ * @param modoid The module object identifier
+ * @param selopt The selection option, if the module name was used in an import that used one
+ * @async
+ * @function
  */
 export
 async function provideReferencesForModuleName(
@@ -608,6 +660,7 @@ async function provideReferencesForModuleName(
 }
 
 /**
+ * @summary Determine if a module reference is used at the current location
  * @description
  * 
  * Module identifiers can appear in three places, as far as I can tell:
@@ -616,10 +669,14 @@ async function provideReferencesForModuleName(
  * 2. As the module name within an import
  * 3. As a qualifier in a `Defined*` thing, such as a `DefinedValue`
  * 
- * @param document 
- * @param position 
- * @param options 
- * @param token 
+ * @param document The current text document
+ * @param position The cursor position
+ * @param token The cancellation token
+ * @returns A promise that resolves to a tuple of the current ASN.1 module, the
+ *  module OID, and the `SelectionOption`, or `null` if there was an error or
+ *  if it looks like a non-module identifier
+ * @async
+ * @function
  */
 export
 async function isModuleReference(
@@ -635,7 +692,7 @@ async function isModuleReference(
 
     const p = await getParserOutputsWithLogging(document.uri, cancel);
     if (!p) {
-        return Promise.reject(null);
+        return null;
     }
     const cst = p.parserEndState.cst;
     const modules = p.parsedModules;
@@ -697,6 +754,19 @@ async function isModuleReference(
     return null;
 }
 
+/**
+ * @summary Provide references for "Find All References"
+ * @description
+ * 
+ * This works for references that refer to assignments as well as modules.
+ * 
+ * @param document The current text document
+ * @param position The cursor position
+ * @param token The cancellation token
+ * @returns A promise resolving to an array of reference locations
+ * @async
+ * @function
+ */
 export
 async function provideReferences(
     document: vscode.TextDocument,

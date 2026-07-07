@@ -3,10 +3,22 @@ import { type Production, type Module } from "@wildboar/asn1-parser";
 import { getParserOutputsWithLogging } from "./parsing.js";
 import { getRangeFromLocation } from "./utils.js";
 
+/**
+ * @summary Determine if a CST node is zero-length
+ * @param prod Production whose emptiness is to be determined
+ * @returns `true` if the CST node is zero-length
+ * @function
+ */
 function isEmptyProduction(prod: Production): boolean {
     return (prod.location.endIndex <= prod.location.startIndex);
 }
 
+/**
+ * @summary Get the first and last child CST nodes for a given CST node
+ * @param prod The production whose first and last child are to be obtained
+ * @returns The first and last child CST node that falls under `prod`
+ * @function
+ */
 function firstAndLast(prod?: Production): [ Production, Production ] | null {
     if (
         !prod
@@ -20,11 +32,27 @@ function firstAndLast(prod?: Production): [ Production, Production ] | null {
     return [first, last];
 }
 
-const ignoredTokenTypes: Set<string> = new Set([
-    "newlineWhitespace",
-    "nonNewlineWhitespace",
-]);
-
+/**
+ * @summary Separate two productions by a separator
+ * @description
+ * 
+ * This function does nothing if there is anything other than whitespace
+ * between CST nodes. This is mainly to preserve commas, but also to avoid bugs
+ * in which meaningful ASN.1 text is deleted or modified.
+ * 
+ * One exception is if `commasep` is `true`, then a single comma between the
+ * two CST nodes is tolerated.
+ * 
+ * @param document The current text document
+ * @param cstnode1 The first Concrete Syntax Tree (CST) node
+ * @param cstnode2 The second Concrete Syntax Tree (CST) node
+ * @param sep The separator string
+ * @param commasep Whether the two nodes are expected to be separated by commas 
+ * @returns A single `TextEdit`, or `null` if any non-whitespace (unless
+ *  `commasep` is `true` and there is a comma) is present between `cstnode1`
+ *  and `cstnode2`
+ * @function
+ */
 function separateBy(
     document: vscode.TextDocument,
     cstnode1: Production,
@@ -52,6 +80,20 @@ function separateBy(
     return new vscode.TextEdit(spaceBetween, sep);
 }
 
+/**
+ * @summary Separate CST nodes by a separator string
+ * @description
+ * 
+ * Whitespace productions that are in `cstnodes` are ignored.
+ * 
+ * @param document The current text document
+ * @param cstnodes The Concrete Syntax Tree (CST) nodes to separate, which are
+ *  expected to appear in the array in the same order that they appear in the
+ *  text document.
+ * @param sep The separator string
+ * @param edits The output array of text edits to apply
+ * @function
+ */
 function separateAllBy(
     document: vscode.TextDocument,
     cstnodes: Production[],
@@ -70,6 +112,15 @@ function separateAllBy(
     }
 }
 
+/**
+ * @summary Provide formatting for `DefinitiveObjIdComponent`
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `DefinitiveObjIdComponent`
+ * @returns The resulting length of the production in characters, after edits
+ *  are applied.
+ * @function
+ */
 function formatDefinitiveOidComponent(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -93,6 +144,15 @@ function formatDefinitiveOidComponent(
     return identlen + numlen + 2; // +2 for the parens
 }
 
+/**
+ * @summary Provide formatting for `DefinitiveOID`
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `DefinitiveOID`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @function
+ */
 function formatDefinitiveOid(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -144,6 +204,15 @@ function formatDefinitiveOid(
     }
 }
 
+/**
+ * @summary Provide formatting for `DefinitiveIdentification`
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `DefinitiveIdentification`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @function
+ */
 function formatDefinitiveIdentification(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -174,6 +243,15 @@ function formatDefinitiveIdentification(
     }
 }
 
+/**
+ * @summary Provide formatting for `ModuleIdentifier`
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `ModuleIdentifier`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @function
+ */
 function formatModuleIdentifier(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -194,6 +272,18 @@ function formatModuleIdentifier(
     sepnl && edits.push(sepnl);
 }
 
+/**
+ * @summary Provide formatting for `Symbol` (used in imports and exports)
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `Symbol`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @returns The resulting length of the production in characters, after edits
+ *  are applied.
+ * @function
+ */
 function formatSymbol(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -213,7 +303,20 @@ function formatSymbol(
     return ref.getLength() + 2;
 }
 
-// This always uses a single indent
+/**
+ * @summary Provide formatting for `SymbolList` (used in imports and exports)
+ * @description
+ * 
+ * This always uses a single indent and handles wrapping lines to `linemax`.
+ * 
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `SymbolList`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @function
+ */
 function formatSymbolList(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -269,6 +372,19 @@ function malformedProdLength(cstnode: Production): number {
     return cstnode.getLength();
 }
 
+/**
+ * @summary Provide formatting for `ActualParameterList` when used in an object identifier
+ * @description
+ * 
+ * For use **only** in Object Identifiers
+ * 
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `ActualParameterList`
+ * @returns The resulting length of the production in characters, after edits
+ *  are applied.
+ * @function
+ */
 function formatActualParameterList(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -301,7 +417,19 @@ function formatActualParameterList(
         ;
 }
 
-// For use only in Object Identifiers
+/**
+ * @summary Provide formatting for `DefinedValue` when used in an object identifier
+ * @description
+ * 
+ * For use **only** in Object Identifiers
+ * 
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `DefinedValue`
+ * @returns The resulting length of the production in characters, after edits
+ *  are applied.
+ * @function
+ */
 function formatDefinedValue(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -348,6 +476,15 @@ function formatDefinedValue(
     return cstnode.getLength();
 }
 
+/**
+ * @summary Provide formatting for `ObjIdComponentsList` (used in imports)
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `ObjIdComponents`
+ * @returns The resulting length of the production in characters, after edits
+ *  are applied.
+ * @function
+ */
 function formatObjIdComponents(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -379,6 +516,18 @@ function formatObjIdComponents(
     return (ident.getLength() + numlen + 2); // +2 for parens
 }
 
+/**
+ * @summary Provide formatting for `ObjIdComponentsList` (used in imports)
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `ObjIdComponentsList`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @param startcol The column number that this formatting is starting on
+ * @param indentnum The indentation level
+ * @function
+ */
 function formatObjIdComponentsList(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -420,6 +569,16 @@ function formatObjIdComponentsList(
     }
 }
 
+/**
+ * @summary Provide formatting for `AssignedIdentifier` (used in imports)
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `AssignedIdentifier`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @function
+ */
 function formatAssignedIdentifier(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -468,6 +627,16 @@ function formatAssignedIdentifier(
     }
 }
 
+/**
+ * @summary Provide formatting for `GlobalModuleReference` (used in imports)
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `GlobalModuleReference`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @function
+ */
 function formatGlobalModuleRef(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -491,8 +660,22 @@ function formatGlobalModuleRef(
     formatAssignedIdentifier(document, edits, assid, eol, linemax, indent);
 }
 
-// Puts the semicolon on the same line. EXPORTS is typically not present,
-// or ALL if present, or fairly short if present.
+
+/**
+ * @summary Provide formatting for the exports
+ * @description
+ * 
+ * Puts the semicolon on the same line. `EXPORTS` is typically not present,
+ * or ALL if present, or fairly short if present.
+ * 
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `Exports`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @function
+ */
 function formatExports(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -527,6 +710,16 @@ function formatExports(
     sep2 && edits.push(sep2);
 }
 
+/**
+ * @summary Provide formatting for `SymbolsFromModule` (used in imports)
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `SymbolsFromModule`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @function
+ */
 function formatSymbolsFromModule(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -578,6 +771,16 @@ function formatSymbolsFromModule(
     formatGlobalModuleRef(document, edits, GlobalModuleReference, eol, linemax, indent);
 }
 
+/**
+ * @summary Provide formatting for `SymbolsImported`
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `SymbolsImported`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @function
+ */
 function formatSymbolsImported(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -640,6 +843,16 @@ function formatSymbolsImported(
     }
 }
 
+/**
+ * @summary Provide formatting for the imports
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param cstnode The Concrete Syntax Tree (CST) node of type `Imports`
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @function
+ */
 function formatImports(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -670,6 +883,16 @@ function formatImports(
     sep2 && edits.push(sep2);
 }
 
+/**
+ * @summary Provide formatting for an ASN.1 module
+ * @param document The current text document
+ * @param edits The output array of text edits to apply
+ * @param module The current ASN.1 module
+ * @param eol The End of Line (EOL) character string
+ * @param linemax The maximum line length, in characters
+ * @param indent The indentation string for one indent level
+ * @function
+ */
 function formatModule(
     document: vscode.TextDocument,
     edits: vscode.TextEdit[],
@@ -796,6 +1019,15 @@ function formatModule(
     return;
 }
 
+/**
+ * @summary Provide formatting edits for an ASN.1 text document
+ * @param document The current text document
+ * @param options Formatting options
+ * @param cancel The cancellation token
+ * @returns A promise that resolves to an array of text edits to apply
+ * @async
+ * @function
+ */
 async function provideDocumentFormattingEdits(
     document: vscode.TextDocument,
     options: vscode.FormattingOptions,
@@ -815,7 +1047,6 @@ async function provideDocumentFormattingEdits(
     const indent = options.insertSpaces
         ? " ".repeat(options.tabSize)
         : "\t";
-
     const p = await getParserOutputsWithLogging(document.uri, cancel);
     if (!p) {
         return Promise.reject(null);
@@ -825,7 +1056,6 @@ async function provideDocumentFormattingEdits(
     for (const module of modules) {
         formatModule(document, edits, module, eol, linemax, indent);
     }
-
     return edits;
 }
 

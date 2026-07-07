@@ -13,8 +13,9 @@ import { provideReferencesForSymbol } from "./findallref.js";
  *  invoked "rename" (and therefore what symbol is to be renamed).
  * @param newName The new name of the symbol
  * @param token A cancellation token
- * @returns A complete VS Code workspace edit
+ * @returns A promise resolving to a complete VS Code workspace edit
  * 
+ * @async
  * @function
  */
 async function provideRenameForSymbol(

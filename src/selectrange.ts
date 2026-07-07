@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import {
     type Production,
+    NonTerminalProductionType,
 } from "@wildboar/asn1-parser";
 import { getRangeFromLocation, isInECN, positionFallsWithin } from "./utils.js";
 import { getParserOutputsWithLogging } from "./parsing.js";
@@ -13,45 +14,59 @@ function addParent(sr: vscode.SelectionRange, parent: vscode.SelectionRange): vo
     curr.parent = parent;
 }
 
-const productionsOfInterest: Set<string> = new Set([
-    "Value",
-    "XMLValue",
-    "Type",
-    "Object",
-    "ObjectSet",
-    "ValueSet",
-    "ObjectClass",
-    "ComponentType",
-    "NamedType",
-    "DefinitiveIdentification",
-    "DefinitiveObjIdComponent",
-    "SymbolsFromModule",
-    "AssignedIdentifier",
-    "NamedNumber",
-    "NamedBit",
-    "XMLObjIdComponent",
-    "FirstArcIdentifier",
-    "SubsequentArcIdentifier",
-    "Quadruple",
-    "Tuple",
-    "CharsDefn",
-    "Constraint",
-    "TypeWithConstraint",
-    "Elements",
-    "EncodingControlSection",
-    "EncodingControlSections",
-    "FieldSpec",
-    "WithSyntaxSpec",
-    "FieldName",
-    "AtNotation",
-    "ComponentIdList",
-    "Level",
-    "ActualParameterList",
-    "Exports",
-    "Imports",
-    "AssignmentList",
+/**
+ * The production types in the CST for which to produce a selection range.
+ */
+const productionsOfInterest: Set<NonTerminalProductionType> = new Set([
+    NonTerminalProductionType.Value,
+    NonTerminalProductionType.XMLValue,
+    NonTerminalProductionType.Type,
+    NonTerminalProductionType.Object,
+    NonTerminalProductionType.ObjectSet,
+    NonTerminalProductionType.ValueSet,
+    NonTerminalProductionType.ObjectClass,
+    NonTerminalProductionType.ComponentType,
+    NonTerminalProductionType.NamedType,
+    NonTerminalProductionType.DefinitiveIdentification,
+    NonTerminalProductionType.DefinitiveObjIdComponent,
+    NonTerminalProductionType.SymbolsFromModule,
+    NonTerminalProductionType.AssignedIdentifier,
+    NonTerminalProductionType.NamedNumber,
+    NonTerminalProductionType.NamedBit,
+    NonTerminalProductionType.XMLObjIdComponent,
+    NonTerminalProductionType.FirstArcIdentifier,
+    NonTerminalProductionType.SubsequentArcIdentifier,
+    NonTerminalProductionType.Quadruple,
+    NonTerminalProductionType.Tuple,
+    NonTerminalProductionType.CharsDefn,
+    NonTerminalProductionType.Constraint,
+    NonTerminalProductionType.TypeWithConstraint,
+    NonTerminalProductionType.Elements,
+    NonTerminalProductionType.EncodingControlSection,
+    NonTerminalProductionType.EncodingControlSections,
+    NonTerminalProductionType.FieldSpec,
+    NonTerminalProductionType.WithSyntaxSpec,
+    NonTerminalProductionType.FieldName,
+    NonTerminalProductionType.AtNotation,
+    NonTerminalProductionType.ComponentIdList,
+    NonTerminalProductionType.Level,
+    NonTerminalProductionType.ActualParameterList,
+    NonTerminalProductionType.Exports,
+    NonTerminalProductionType.Imports,
+    NonTerminalProductionType.AssignmentList,
 ]);
 
+/**
+ * @summary Return selection ranges for a given cursor position
+ * @param cancel The cancellation token
+ * @param document The text document
+ * @param position The cursor position
+ * @param cstnode The Concrete Syntax Tree (CST) node
+ * @param recursionTTL The recursion Time-to-Live (TTL)
+ * @returns A selection range as a `vscode.SelectionRange`, or `undefined` if
+ *  recursion was exceeded or in other error cases.
+ * @function
+ */
 function drillSelectionRangesForPosition(
     cancel: vscode.CancellationToken,
     document: vscode.TextDocument,
@@ -88,7 +103,7 @@ function drillSelectionRangesForPosition(
                 || child.type.endsWith("Assignment")
                 || child.type.endsWith("FromObject")
                 || child.type.endsWith("FromObjects")
-                || productionsOfInterest.has(child.type)
+                || productionsOfInterest.has(child.type as NonTerminalProductionType)
             );
             if (!isChildNewRange) {
                 return ret;
@@ -105,9 +120,21 @@ function drillSelectionRangesForPosition(
             return ret;
         }
     }
+    // TODO: Is this right? Shouldn't you just return the CST node?
+    // This only happens if the CST node has no children, I think.
     return undefined;
 }
 
+/**
+ * @summary Provide selection ranges for cursor positions in a document
+ * @param document The current text document
+ * @param positions The current cursor positions
+ * @param token The cancellation token
+ * @returns A promise that resolves to an array of selection ranges for each
+ *  cursor position
+ * @async
+ * @function
+ */
 async function provideSelectionRanges(
     document: vscode.TextDocument, 
     positions: readonly vscode.Position[],

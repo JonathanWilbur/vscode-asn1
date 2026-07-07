@@ -4,6 +4,19 @@ import { getLastValidParserOutputs } from "./parsing.js";
 import { resolveDefined } from "./resolve.js";
 import { type Module } from "@wildboar/asn1-parser";
 
+/**
+ * @summary Obtain signature help for a given symbol
+ * @param document The text document for which signature help is sought
+ * @param token The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @param defpos The position of the `Defined*` thing before the cursor (the
+ *  identifier of the parameterized assignment whose parameters will be used
+ *  to provide signature help)
+ * @param paramIndex The index of the current parameter
+ * @returns A promise that resolves to signature help as a `vscode.SignatureHelp`
+ * @async
+ * @function
+ */
 async function makeSigHelpForSymbol(
     document: vscode.TextDocument,
     token: vscode.CancellationToken,
@@ -103,6 +116,27 @@ async function makeSigHelpForSymbol(
     return ret;
 }
 
+/**
+ * @summary Get signature help, given a cursor position within a document
+ * @description
+ * 
+ * In this implementation, signature help is provided only for `Defined*` that
+ * refers to a parameterized assignment. So for example, if there is an
+ * assignment that is like
+ * 
+ * ```asn1
+ * NamedType{T} ::= SEQUENCE { name UTF8String, type T }
+ * ```
+ * 
+ * and the user types `NamedType{`, they will get signature help for `{T}`.
+ * 
+ * @param document The document in which to provide signature help
+ * @param position The cursor position in the document
+ * @param token The cancellation token
+ * @returns A promise that resolves to signature help as a `vscode.SignatureHelp`
+ * @async
+ * @function
+ */
 async function provideSignatureHelp(
     document: vscode.TextDocument,
     position: vscode.Position,

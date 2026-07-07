@@ -186,7 +186,14 @@ const TAG_CLASS_COMPLETION_ITEMS: vscode.CompletionItem[] = [
     COMPLETION_ITEM_PRIVATE,
 ];
 
-function assignmentTypeToCompletionItemKind(assntype: AssignmentType): vscode.CompletionItemKind {
+/**
+ * @summary Map ASN.1 assignment type to VS Code completion item kind
+ * @param assntype The ASN.1 assignment type
+ * @returns The VS Code completion item kind
+ */
+function assignmentTypeToCompletionItemKind(
+    assntype: AssignmentType,
+): vscode.CompletionItemKind {
     switch (assntype) {
         case (AssignmentType.ValueAssignment):
         case (AssignmentType.ParameterizedValueAssignment):
@@ -210,6 +217,16 @@ function assignmentTypeToCompletionItemKind(assntype: AssignmentType): vscode.Co
     }
 }
 
+/**
+ * @summary Suggest all (or some) of the assigned and imported symbols in a module
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @param firstCharUppercase Whether the first character was uppercased (and
+ *  therefore which assigned identifiers to filter out based on assignment type)
+ * @param assignmentType The assignment type to expect
+ * @returns VS Code completion items as an array
+ * @function
+ */
 function provideDefinedSymbolsAsCompletionItems(
     cancel: vscode.CancellationToken,
     currentModule: Module,
@@ -275,7 +292,13 @@ function provideDefinedSymbolsAsCompletionItems(
     return ret;
 }
 
-// Only for use with INSTANCE OF autocomplete
+/**
+ * @summary Suggest object classes that may be used with `INSTANCE OF`
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @returns VS Code completions as an array
+ * @function
+ */
 function provideDefinedObjectClasses(
     cancel: vscode.CancellationToken,
     currentModule: Module,
@@ -339,6 +362,13 @@ function provideDefinedObjectClasses(
     ];
 }
 
+/**
+ * @summary Suggest the field names found in all information object classes in the current ASN.1 module
+ * @param currentModule The current ASN.1 module
+ * @param trimLeadingAmpersand Whether to trim the leading ampersand from the suggestions
+ * @returns VS Code completion items as an array
+ * @function
+ */
 function provideAllDefinedObjectClassFields(
     currentModule: Module,
     trimLeadingAmpersand: boolean = false,
@@ -363,6 +393,14 @@ function provideAllDefinedObjectClassFields(
         .map((fs) => new vscode.CompletionItem(fs, vscode.CompletionItemKind.Field));
 }
 
+/**
+ * @summary Suggest the field names from an information object of a specific object class
+ * @param currentModule The current ASN.1 module
+ * @param objectClassName The information object class name as a string
+ * @param trimLeadingAmpersand Whether to trim the leading ampersand from the suggestions
+ * @returns VS Code completion items as an array
+ * @function
+ */
 function provideSpecificDefinedObjectClassFields(
     currentModule: Module,
     objectClassName: string,
@@ -383,6 +421,13 @@ function provideSpecificDefinedObjectClassFields(
         ));
 }
 
+/**
+ * @summary Suggest object identifier prefixes
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @returns VS Code completion items as an array
+ * @function
+ */
 function suggestOidPrefixes(
     cancel: vscode.CancellationToken,
     currentModule: Module,
@@ -401,6 +446,13 @@ function suggestOidPrefixes(
     ];
 }
 
+/**
+ * @summary Get the literal tokens that may appear first in an information object
+ * @param cancel The cancellation token
+ * @param t The token or token group spec
+ * @returns The strings to suggest
+ * @function
+ */
 function getFirstLiterals(
     cancel: vscode.CancellationToken,
     t: TokenOrGroupSpec,
@@ -426,7 +478,20 @@ function getFirstLiterals(
     }
 }
 
-// Only suitable for the first token.
+/**
+ * @summary Get completion items for the first thing to appear in an object definition
+ * @description
+ * 
+ * This only returns the first token in the object, which can be a `Literal`, a
+ * `Setting`, or a `PrimitiveFieldName`. This only works for the first thing
+ * that appears after the curly bracket.
+ * 
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @param oca The object class assignment
+ * @returns VS code completion items
+ * @function
+ */
 function suggestObjectFirstLiteralTokens(
     cancel: vscode.CancellationToken,
     currentModule: Module,
@@ -466,6 +531,13 @@ function suggestObjectFirstLiteralTokens(
     return ret;
 }
 
+/**
+ * @summary Suggest information objects to go in an object set
+ * @param currentModule The current ASN.1 module
+ * @param objectClassRef The object class name
+ * @returns VS code completion items in an array
+ * @function
+ */
 function suggestObjectsForSet(
     currentModule: Module,
     objectClassRef: string,
@@ -505,6 +577,12 @@ function suggestObjectsForSet(
     ];
 }
 
+/**
+ * @summary Suggest values to go in a value set
+ * @param currentModule The current ASN.1 module
+ * @returns VS code completion items in an array
+ * @function
+ */
 function suggestValuesForSet(currentModule: Module): vscode.CompletionItem[] {
     const unqualifiedItems: vscode.CompletionItem[] = [];
     const qualifiedItems: vscode.CompletionItem[] = [];
@@ -542,11 +620,24 @@ function suggestValuesForSet(currentModule: Module): vscode.CompletionItem[] {
     ];
 }
 
+/**
+ * @summary Suggest values after the user types an opening curly bracket
+ * @description
+ * 
+ * This function uses the type to inform the suggestions for values.
+ * 
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @param typeName The type name
+ * @returns Completion items as an array
+ * @function
+ */
 function suggestValueAfterCurlyOpen(
     cancel: vscode.CancellationToken,
     currentModule: Module,
     typeName: string,
 ): vscode.CompletionItem[] {
+    // TODO: Look up built-in type names too.
     const typeassn = currentModule.assignments[typeName];
     if (typeassn.assignmentType !== AssignmentType.TypeAssignment) {
         return [];
@@ -622,6 +713,16 @@ function suggestValueAfterCurlyOpen(
     return [];
 }
 
+/**
+ * @summary Suggest completion items after the user typed in an opening curly bracket
+ * @param cancel The cancellation token
+ * @param document The text document
+ * @param position The cursor position
+ * @param currentModule The current ASN.1 module
+ * @param lineTextBeforeCursor The text of the line before the cursor
+ * @returns Completion items in an array
+ * @function
+ */
 function suggestAfterCurlyOpen(
     cancel: vscode.CancellationToken,
     document: vscode.TextDocument,
@@ -785,6 +886,22 @@ function suggestAfterCurlyOpen(
     }
 }
 
+/**
+ * @summary Look up the object class by name
+ * @description
+ * 
+ * This function extracts the object class name from
+ * `lineEndingWithObjectClassName`, and assumes that
+ * `lineEndingWithObjectClassName` ends with a period.
+ * 
+ * @param document The text document
+ * @param position The position of the cursor
+ * @param currentModule The current ASN.1 module
+ * @param lineEndingWithObjectClassName Text line before the cursor that ends with the object class name
+ * @param trimLeadingAmpersand Whether to trim the leading ampersand from the suggestion
+ * @returns VS code completion items in an array or `null` if this cannot be provided
+ * @function
+ */
 function lookupObjectClassNameBeforePeriod(
     document: vscode.TextDocument,
     position: vscode.Position,
@@ -814,6 +931,7 @@ function lookupObjectClassNameBeforePeriod(
 }
 
 /**
+ * @summary Get default VS code completions
  * @description
  * 
  * This function was written just for clarity as to what rejecting with `null`
@@ -829,9 +947,24 @@ function getVSCodeDefaultCompletions(): Promise<vscode.CompletionItem[]> {
     return Promise.reject(null);
 }
 
-/* Unfortunately, this implementation does not detect if the user is in a block
-comment very well. I haven't found an algorithm for checking this that is
-acceptably fast enough. */
+/**
+ * @summary Provide completion items
+ * @description 
+ * 
+ * Unfortunately, this implementation does not detect if the user is in a block
+ * comment very well. I haven't found an algorithm for checking this that is
+ * acceptably fast enough. So completions can still sometimes be triggered when
+ * the user is typing in a block comment.
+ * 
+ * @param document The text document
+ * @param position The position of the cursor
+ * @param token The cancellation token
+ * @param context The completion request context
+ * @returns A promise that resolves to an array of completion items or a
+ *  completion list.
+ * @async
+ * @function
+ */
 async function provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
