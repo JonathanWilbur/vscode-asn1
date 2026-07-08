@@ -37,7 +37,7 @@ implementation.
   - `COMPONENTS OF` referring to an invalid type
 - Commands
   - Refresh ASN.1 Diagnostics
-  - Export Object Identifiers in Current File to CSV
+  - Export All Object Identifiers in Current File to CSV
   - Export All Object Identifiers in Entire Workspace to CSV
   - Export All ASN.1 Imports and Exports in Current File to CSV
   - Export All ASN.1 Imports and Exports in Entire Workspace to CSV
@@ -150,10 +150,61 @@ truly.
 ## Future To Dos
 
 - [ ] Check for duplicate parameter names
+- [ ] Only suggest suitable types after `COMPONENTS OF`
+- [ ] Code action to remove entire `SymbolsFromModule` if no symbols are used
 - [x] JSDoc
 - [ ] Screenshots
 - [ ] Provenance
 - [ ] Unit Tests
+  - [ ] Formatting
+    - [ ] Import symbols never exceed linemax
+    - [ ] No imports, exports, or other things are ever changed. Only whitespace changes.
+  - [ ] Code Actions
+    - [ ] Removing import symbols
+      - [ ] Removes leading comma 
+      - [ ] Removes trailing comma
+      - [ ] Removes internal comma
+      - [ ] Leaves no trailing whitespace
+      - [ ] Removes entire `SymbolsFromModule` if last symbol is deleted
+    - [ ] Removing assignments
+      - [ ] Removes the assignment and nothing else
+  - [ ] Commands
+    - [ ] Export All Object Identifiers in Current File to CSV
+    - [ ] Export All Object Identifiers in Entire Workspace to CSV
+    - [ ] Export All ASN.1 Imports and Exports in Current File to CSV
+    - [ ] Export All ASN.1 Imports and Exports in Entire Workspace to CSV
+    - [ ] Export All ASN.1 Modules in Current File to CSV
+    - [ ] Export All ASN.1 Modules in Entire Workspace to CSV
+    - [ ] Export All ASN.1 Assignments in Current File to CSV
+    - [ ] Export All ASN.1 Assignments in Entire Workspace to CSV
+  - [ ] Completions
+    - [ ] Does not provide completions in an "open syntax region" (comma, string, etc.)
+    - [ ] Only suggests suitable object classes for `INSTANCE OF`
+    - [ ] Suggests only valid fields for an object class that appears in the same module
+  - [ ] All diagnostics (can test with a single very bad ASN.1 file)
+  - [ ] Find All References
+    - [ ] Symbol References
+    - [ ] Module References
+    - [ ] Strictly matches module object identifier
+    - [ ] Test `isModuleReference`
+  - [ ] Folding Ranges: just check that there is N assignments + 1 for the module
+  - [ ] Go to Definition
+    - [ ] Symbol
+    - [ ] Module
+    - [ ] Module without strict OID matching
+  - [ ] Highlights (just do a snapshot test with this)
+  - [ ] Hover (you can just do this with a single file)
+  - [ ] Rename: forward and reverse gives you the exact same original file
+  - [ ] Reparsing
+  - [ ] Selection Range: for every selection range produced anywhere in the doc, parent is a broader range
+  - [ ] Signature Help
+    - [ ] Single parameter
+    - [ ] Multiple parameters
+    - [ ] Parameter with governor
+  - [ ] Symbols: just check that there is one for each assignment, at least.
+  - [ ] Type Definition Resolution: just a basic check
+  - [ ] Workspace Symbols: just check that there are some, at least for the open document and one other
+
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.

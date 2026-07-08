@@ -253,22 +253,6 @@ function startsWithCapitalLetter(s: string): boolean {
 export
 function inOpenSyntaxRegion (lineBeforeCursor: string): boolean {
     return /(--|\/\*|"|')/.test(lineBeforeCursor);
-    // const lineCommentIndex = lineBeforeCursor.indexOf("--");
-    // if (lineCommentIndex > -1 || token.isCancellationRequested) {
-    //     return []; // Assume that we are in a comment.
-    // }
-    // const blockCommentIndex = lineBeforeCursor.indexOf("/*");
-    // if (blockCommentIndex > -1 || token.isCancellationRequested) {
-    //     return []; // Assume that we are in a comment.
-    // }
-    // const doubleQuoteIndex = lineBeforeCursor.indexOf('"');
-    // if (doubleQuoteIndex > -1 || token.isCancellationRequested) {
-    //     return []; // Assume that we are in a string.
-    // }
-    // const singleQuoteIndex = lineBeforeCursor.indexOf("'");
-    // if (singleQuoteIndex > -1 || token.isCancellationRequested) {
-    //     return []; // Assume that we are in a string.
-    // }
 }
 
 /**
@@ -367,6 +351,12 @@ export function isInECN(
     return positionFallsWithin(document, position, ecnprod);
 }
 
+/**
+ * @summary Determine if `cstnode` is a `Defined*` thing, such as a `DefinedValue`
+ * @param cstnode The Concrete Syntax Tree (CST) node
+ * @returns `true` if it is a `Defined*` thing, such as a `DefinedValue`
+ * @function
+ */
 export function isDefinedThing(cstnode: Production) {
     return (
         cstnode.type.startsWith('Defined')

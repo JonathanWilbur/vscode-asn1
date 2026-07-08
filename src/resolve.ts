@@ -196,11 +196,11 @@ export async function resolveDefined(
                     const impoid = getOidNodesFromModuleIdentifier(oid);
                     if (!modoid) {
                         log.appendLine(`could not resolve module definition object identifier to integers`);
-                        return undefined;
+                        continue;
                     }
                     if (!impoid) {
                         log.appendLine(`could not resolve imported module object identifier to integers`);
-                        return undefined;
+                        continue;
                     }
                     if (!asn1ModuleOidMatch(modoid, impoid, sfm.selectionOption)) {
                         log.appendLine(`module ${moduleref} in ${file} didn't match import oid`);
@@ -322,7 +322,6 @@ export async function resolveOIDComponent(
         !("number" in arc)
         && ("name" in arc)
         && arc.name
-        && !builtinRootArcNamesToNumber.has(arc.name)
     ) {
         const name = arc.name;
         return resolveOIDComponent(
@@ -337,6 +336,7 @@ export async function resolveOIDComponent(
             currentModule,
             currentDocUri,
             recursionTTL, // We don't decrement. This shouldn't count.
+            isFirst,
         );
     }
     if ("reference" in arc) {
@@ -677,7 +677,7 @@ async function resolveOidValue(
         } else {
             oid = await resolveOID(
                 cancel,
-                prefix.module,
+                prefix.module ?? prefix.computedModule,
                 prefix.reference,
                 currentModule,
                 document.uri,
@@ -692,6 +692,8 @@ async function resolveOidValue(
         val.components,
         currentModule,
         document.uri,
+        undefined,
+        !!val.prefix,
     );
     if (!resolvedComponents) {
         return failExport();

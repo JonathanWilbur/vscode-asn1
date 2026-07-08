@@ -3,7 +3,7 @@
   "type": "module",
   "displayName": "ASN.1",
   "description": "ASN.1 syntax, snippets, formatting, and more.",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.116.0"
   },
@@ -62,7 +62,7 @@
       },
       {
         "command": "asn1.oid-to-csv.opendoc",
-        "title": "Export Object Identifiers in Current File to CSV"
+        "title": "Export All Object Identifiers in Current File to CSV"
       },
       {
         "command": "asn1.oid-to-csv.workspace",
@@ -101,6 +101,8 @@
       {
         "id": "asn1",
         "aliases": [
+          "ASN.1",
+          "ASN",
           "asn"
         ],
         "extensions": [

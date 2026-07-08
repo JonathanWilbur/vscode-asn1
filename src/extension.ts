@@ -190,8 +190,10 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	log.appendLine(`${new Date()}: asn.1 providers initialized / starting indexing of files`);
-	indexAsn1Files()
-		.catch((e) => log.appendLine(e.toString()));
+    return {
+        indexingPromise: indexAsn1Files()
+			.catch((e) => log.appendLine(e.toString())),
+    };
 }
 
 export function deactivate() {
