@@ -100,7 +100,7 @@ interface OidInfo {
 /**
  * CSV headers row as a string for a CSV export of object identifiers
  */
-const OID_CSV_HEADER: string = [
+export const OID_CSV_HEADERS: string[] = [
     "OID_SOURCE",
     "MODULE_NAME",
     "MODULE_OID",
@@ -119,12 +119,12 @@ const OID_CSV_HEADER: string = [
     "START_LINE",
     "START_COLUMN",
     "ASSIGNMENT_INDEX",
-].join(",");
+];
 
 /**
  * CSV headers row as a string for a CSV export of ASN.1 imports and exports
  */
-const DEPS_CSV_HEADER: string = [
+export const DEPS_CSV_HEADERS: string[] = [
     "MODULE_NAME",
     "MODULE_OID",
     "MODULE_IRI",
@@ -140,12 +140,12 @@ const DEPS_CSV_HEADER: string = [
     "START_LINE",
     "START_COLUMN",
     "FILE_PATH",
-].join(",");
+];
 
 /**
  * CSV headers row as a string for a CSV export of ASN.1 modules
  */
-const MODS_CSV_HEADER: string = [
+export const MODS_CSV_HEADERS: string[] = [
     "MODULE_NAME",
     "MODULE_OID",
     "MODULE_IRI",
@@ -161,12 +161,12 @@ const MODS_CSV_HEADER: string = [
     "START_LINE",
     "START_COLUMN",
     "FILE_PATH",
-].join(",");
+];
 
 /**
  * CSV headers row as a string for a CSV export of ASN.1 assignments
  */
-const ASSNS_CSV_HEADER: string = [
+export const ASSNS_CSV_HEADERS: string[] = [
     "MODULE_NAME",
     "MODULE_OID",
     "MODULE_IRI",
@@ -189,7 +189,7 @@ const ASSNS_CSV_HEADER: string = [
     "START_LINE",
     "START_COLUMN",
     "FILE_PATH",
-].join(",");
+];
 
 /**
  * @summary Convert object identifier information to a CSV row
@@ -665,7 +665,7 @@ async function export_oid_csv_from_doc(
     const eol = getExportEol(document);
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: OID_CSV_HEADER + eol + rows.join(eol),
+        content: OID_CSV_HEADERS.join(",") + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
@@ -698,7 +698,7 @@ async function export_oid_csv_from_workspace(
     const eol = getExportEol();
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: OID_CSV_HEADER + eol + rows.join(eol),
+        content: OID_CSV_HEADERS.join(",") + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
@@ -726,7 +726,7 @@ async function export_deps_csv_from_doc(
     const eol = getExportEol(document);
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: DEPS_CSV_HEADER + eol + rows.join(eol),
+        content: DEPS_CSV_HEADERS.join(",") + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
@@ -760,7 +760,7 @@ async function export_deps_csv_from_workspace(
     const eol = getExportEol();
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: OID_CSV_HEADER + eol + rows.join(eol),
+        content: DEPS_CSV_HEADERS.join(",") + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
@@ -788,7 +788,7 @@ async function export_modules_csv_from_doc(
     const eol = getExportEol(document);
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: MODS_CSV_HEADER + eol + rows.join(eol),
+        content: MODS_CSV_HEADERS.join(",") + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
@@ -822,7 +822,7 @@ async function export_modules_csv_from_workspace(
     const eol = getExportEol();
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: MODS_CSV_HEADER + eol + rows.join(eol),
+        content: MODS_CSV_HEADERS.join(",") + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
@@ -850,7 +850,7 @@ async function export_assignments_csv_from_doc(
     const eol = getExportEol(document);
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: ASSNS_CSV_HEADER + eol + rows.join(eol),
+        content: ASSNS_CSV_HEADERS.join(",") + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
@@ -886,7 +886,7 @@ async function export_assignments_csv_from_workspace(
     const eol = getExportEol();
     const csvDocument = await vscode.workspace.openTextDocument({
         language: "csv",
-        content: ASSNS_CSV_HEADER + eol + rows.join(eol),
+        content: ASSNS_CSV_HEADERS.join(",") + eol + rows.join(eol),
     });
 
     await vscode.window.showTextDocument(csvDocument);
