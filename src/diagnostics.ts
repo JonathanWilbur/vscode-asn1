@@ -395,7 +395,7 @@ function resolveComponentsOf(
     }
     recursionTTL--;
     if (
-        !def.module
+        def.module // If imported, don't bother checking.
         || !def.production?.location
         || !typeTypeToString.has(expectedType)
     ) {

@@ -168,20 +168,12 @@ truly.
       - [ ] Removes entire `SymbolsFromModule` if last symbol is deleted
     - [ ] Removing assignments
       - [ ] Removes the assignment and nothing else
-  - [ ] Commands
-    - [ ] Export All Object Identifiers in Current File to CSV
-    - [ ] Export All Object Identifiers in Entire Workspace to CSV
-    - [ ] Export All ASN.1 Imports and Exports in Current File to CSV
-    - [ ] Export All ASN.1 Imports and Exports in Entire Workspace to CSV
-    - [ ] Export All ASN.1 Modules in Current File to CSV
-    - [ ] Export All ASN.1 Modules in Entire Workspace to CSV
-    - [ ] Export All ASN.1 Assignments in Current File to CSV
-    - [ ] Export All ASN.1 Assignments in Entire Workspace to CSV
+  - [x] Commands
   - [ ] Completions
     - [ ] Does not provide completions in an "open syntax region" (comma, string, etc.)
     - [ ] Only suggests suitable object classes for `INSTANCE OF`
     - [ ] Suggests only valid fields for an object class that appears in the same module
-  - [ ] All diagnostics (can test with a single very bad ASN.1 file)
+  - [x] All diagnostics (can test with a single very bad ASN.1 file)
   - [ ] Find All References
     - [ ] Symbol References
     - [ ] Module References

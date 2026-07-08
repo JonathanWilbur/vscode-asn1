@@ -1,34 +1,198 @@
-ModuleThatProducesLotsOfDiagnostics DEFINITIONS ::= BEGIN
+DiagnosticsTest
+DEFINITIONS ::= BEGIN
 
--- DIAG_CODE_IMPORT_SYMBOL_DUP
--- DIAG_CODE_IMPORT_SYMBOL_UNUSED
+EXPORTS
+    -- DIAG_CODE_EXPORT_NOT_DEFINED
+    notDefinedExport;
+
+IMPORTS
+
+    directoryAbstractService, selectedAttributeTypes, serviceAdministration
+        FROM UsefulDefinitions
+        {joint-iso-itu-t ds(5) module(1) usefulDefinitions(0) 8}
+
+    -- Duplicate import symbol (DIAG_CODE_IMPORT_SYMBOL_DUP)
+    SearchRuleId, SearchRuleId
+        FROM ServiceAdministration
+        serviceAdministration
+
+    -- Unused import symbol (DIAG_CODE_IMPORT_SYMBOL_UNUSED)
+    TypeAndContextAssertion
+        FROM DirectoryAbstractService
+        directoryAbstractService
+
+    UnboundedDirectoryString
+        FROM SelectedAttributeTypes
+        selectedAttributeTypes
+
+    -- DIAG_CODE_IMPORT_MODULE_DUP
+    UnboundedDirectoryString
+        FROM SelectedAttributeTypes
+        selectedAttributeTypes
+    ;
+
 -- DIAG_CODE_ASSIGNMENT_DUP
--- DIAG_CODE_NAMED_NUM_OR_BIT_DUP
--- DIAG_CODE_NAMED_BIT_OR_ENUM_NEG
--- DIAG_CODE_ENUM_NUM_DUP
--- DIAG_CODE_COMPS_OF_NOT_TYPE
+id-asdf INTEGER ::= 1
+
+id-asdf INTEGER ::= 2
+
+-- This is just to make this used.
+sr1 SearchRuleId ::= 5
+
+-- This is just to make this used.
+ubs UnboundedDirectoryString ::= { printableString:"hi mom" }
+
+NOT-A-TYPE ::= TYPE-IDENTIFIER
+
+/*
+
+DupeyBitString ::= BIT STRING {
+    foo (0),
+    bar (1),
+    foo (2), -- DIAG_CODE_NAMED_NUM_OR_BIT_DUP
+    baz (3)
+}
+
+DupeyEnum ::= ENUMERATED {
+    foo (0),
+    bar (1),
+    foo (2), -- DIAG_CODE_NAMED_NUM_OR_BIT_DUP
+    baz (3),
+    ...
+}
+
+DupeyNums ::= INTEGER {
+    foo (0),
+    bar (1),
+    foo (2), -- DIAG_CODE_NAMED_NUM_OR_BIT_DUP
+    baz (3)
+}
+
+DupeyBitString2 ::= BIT STRING {
+    foo (0),
+    bar (1),
+    quux (0), -- DIAG_CODE_NAMED_NUM_OR_BIT_DUP
+    baz (3)
+}
+
+DupeyEnum2 ::= ENUMERATED {
+    foo (0),
+    bar (1),
+    quux (0), -- DIAG_CODE_NAMED_NUM_OR_BIT_DUP
+    baz (3),
+    ...
+}
+
+DupeyNums2 ::= INTEGER {
+    foo (0),
+    bar (1),
+    quux (0), -- DIAG_CODE_NAMED_NUM_OR_BIT_DUP
+    baz (3)
+}
+
+NegBitString ::= BIT STRING {
+    foo (0),
+    bar (1),
+    baz (-3)
+}
+
+NegEnum ::= ENUMERATED {
+    foo (0),
+    bar (1),
+    baz (-3)
+}
+*/
+
+-- TODO: DIAG_CODE_ENUM_NUM_DUP?
+
+Set1 ::= SET {
+    foo INTEGER
+}
+
+Seq1 ::= SEQUENCE {
+    foo INTEGER
+}
+
 -- DIAG_CODE_COMPS_OF_WRONG_TYPE
+Set2 ::= SET {
+    COMPONENTS OF Seq1,
+    bar INTEGER
+}
+
+-- DIAG_CODE_COMPS_OF_WRONG_TYPE
+Seq2 ::= SEQUENCE {
+    COMPONENTS OF Set1,
+    bar INTEGER
+}
+
+SomeValueSet INTEGER ::= {1 | 3 | 5}
+
+-- DIAG_CODE_COMPS_OF_NOT_TYPE
+Seq3 ::= SEQUENCE {
+    COMPONENTS OF SomeValueSet,
+    bar INTEGER
+}
+
 -- DIAG_CODE_SET_OR_SEQ_COMP_DUP
+Seq4 ::= SEQUENCE {
+    -- COMPONENTS OF Seq1,
+    foo INTEGER,
+    foo INTEGER
+}
+
 -- DIAG_CODE_CHOICE_ALT_DUP
+Choice1 ::= CHOICE {
+    foo INTEGER,
+    bar UTF8String,
+    foo INTEGER
+}
+
 -- DIAG_CODE_SHORT_OID
+-- id-oid1 OBJECT IDENTIFIER ::= { joint-iso-itu-t }
+
 -- DIAG_CODE_OID_ROOT_ARC_NUM
+id-oid2 OBJECT IDENTIFIER ::= { 3 5 }
+
 -- DIAG_CODE_OID_ROOT_ARC_NAME
+id-oid3 OBJECT IDENTIFIER ::= { goofyboi(1) 5 }
+
 -- DIAG_CODE_OID_ROOT_ARC_MISMATCH
+id-oid4 OBJECT IDENTIFIER ::= { joint-iso-itu-t(1) 5 }
+
 -- DIAG_CODE_OID_BIG_SECOND_ARC
+id-oid5 OBJECT IDENTIFIER ::= { iso 41 }
+
 -- DIAG_CODE_DATE_INVALID
+date1 DATE ::= "2020-01"
+
 -- DIAG_CODE_DATE_DAY_INVALID
+date2 DATE ::= "2020-01-32"
+
 -- DIAG_CODE_TIME_OF_DAY_INVALID
+tod1 TIME-OF-DAY ::= "24:59:61"
+
 -- DIAG_CODE_DATETIME_INVALID
+dt1 DATE-TIME ::= "2020-01T24:59:61"
+
 -- DIAG_CODE_DURATION_NO_P
+dur1 DURATION ::= "5Y"
+
 -- DIAG_CODE_VAL_ASSN_TYPE_NOT_TYPE
+-- val1 NOT-A-TYPE ::= 5
+
 -- DIAG_CODE_SYMBOL_NOT_DEFINED
--- DIAG_CODE_EXPORT_NOT_DEFINED
--- DIAG_CODE_LEX_ERROR
--- DIAG_CODE_PARSE_ERROR
--- DIAG_CODE_GROK_ERROR
--- DIAG_CODE_DIAG_DISABLED
+val2 INTEGER ::= notDefinedInteger
+
 -- DIAG_CODE_PROHIBITED_CHAR
+-- One of these is not permitted, I don't remember which though.
+ps1 PrintableString ::= "%*$@"
+
+-- DIAG_CODE_PROHIBITED_CHAR
+num1 NumericString ::= " 09A"
+
 -- DIAG_CODE_PARAM_SYMBOL_UNUSED
--- DIAG_CODE_IMPORT_MODULE_DUP
+UnusedParamSeq{T} ::= SEQUENCE {
+    timestamp   GeneralizedTime
+}
 
 END
