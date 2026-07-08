@@ -40,7 +40,10 @@ vscode.languages.setLanguageConfiguration(LANGUAGE, {
     wordPattern: /\b[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9]\b/
 });
 
-const ASN1_MODE: vscode.DocumentFilter = { language: LANGUAGE, scheme: 'file' };
+const ASN1_MODE: vscode.DocumentFilter[] = [
+    { language: LANGUAGE, scheme: "file" },
+    { language: LANGUAGE, scheme: "untitled" },
+];
 
 function isAsn1File(doc: vscode.TextDocument) {
 	return (

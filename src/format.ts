@@ -1034,13 +1034,16 @@ async function provideDocumentFormattingEdits(
     cancel: vscode.CancellationToken,
 ): Promise<vscode.TextEdit[]> {
     const config = vscode.workspace.getConfiguration("asn1");
+    /* NOTE: config.get() returns 0 if this is absent, even though I have
+    defined the minimum as 1 in the schema. Weird. That's why I have to
+    use the || operator. */
     const configLinemax = config.get<number>("maxLineLength");
     const linemax: number = configLinemax
-        ?? vscode.workspace
+        || vscode.workspace
             .getConfiguration("editor", document)
             .get<number[]>("rulers")
             ?.find((ruler) => (ruler >= 80))
-        ?? 80;
+        || 80;
     const eol = (document.eol === vscode.EndOfLine.CRLF)
         ? "\r\n"
         : "\n";

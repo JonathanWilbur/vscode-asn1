@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { parse as parseCSV } from "@std/csv/parse";
 import { ASSNS_CSV_HEADERS, DEPS_CSV_HEADERS, MODS_CSV_HEADERS, OID_CSV_HEADERS } from '../commands.js';
 
-suite('Command Test Suite', function () {
+suite('Commands', function () {
     // You have to use a regular function (not arrow) for `this` to be defined properly.
     this.timeout(10000);
     test('Export All Object Identifiers in Current File to CSV', async () => {

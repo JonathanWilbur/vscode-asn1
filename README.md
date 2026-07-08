@@ -156,9 +156,7 @@ truly.
 - [ ] Screenshots
 - [ ] Provenance
 - [ ] Unit Tests
-  - [ ] Formatting
-    - [ ] Import symbols never exceed linemax
-    - [ ] No imports, exports, or other things are ever changed. Only whitespace changes.
+  - [x] Formatting
   - [ ] Code Actions
     - [ ] Removing import symbols
       - [ ] Removes leading comma 
@@ -196,7 +194,6 @@ truly.
   - [ ] Symbols: just check that there is one for each assignment, at least.
   - [ ] Type Definition Resolution: just a basic check
   - [ ] Workspace Symbols: just check that there are some, at least for the open document and one other
-
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.

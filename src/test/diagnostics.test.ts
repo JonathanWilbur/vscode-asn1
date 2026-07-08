@@ -35,9 +35,9 @@ import {
 
 const DIAGNOSTICS_TEST_FILE: string = "DiagnosticsTest.asn1";
 
-suite('Diagnostics Test Suite', function () {
+suite('Diagnostics', function () {
     // You have to use a regular function (not arrow) for `this` to be defined properly.
-    this.timeout(10000);
+    // this.timeout(10000);
     test('Provides correct diagnostics for in DiagnosticsTest.asn1', async () => {
         const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
         const outcome = await ext.activate();
