@@ -31,7 +31,7 @@ import {
 	export_assignments_csv_from_workspace_cmd,
 	export_modules_json_from_doc_cmd,
 } from "./commands.js";
-import { clearParserOutputCaches } from './parsing.js';
+import { clearParserOutputCaches, get_last_parsed_doc_version_cmd } from './parsing.js';
 
 const LANGUAGE: string = "asn1";
 
@@ -89,6 +89,9 @@ export function activate(context: vscode.ExtensionContext) {
 	// anybody's computer, even has enough memory to test it.
 	vscode.commands.registerCommand("asn1.mods-to-json.opendoc", export_modules_json_from_doc_cmd);
 	// vscode.commands.registerCommand("asn1.x500-to-json.opendoc", export_x500_schema_json_from_doc_cmd);
+
+	// Internal only. Not exposed to users. Created so unit tests can poll until parsing is complete.
+	vscode.commands.registerCommand("asn1.parsed-version", get_last_parsed_doc_version_cmd);
 
 	context.subscriptions.push(
 		vscode.languages.registerDocumentSymbolProvider(ASN1_MODE, new Asn1SymbolProvider()));

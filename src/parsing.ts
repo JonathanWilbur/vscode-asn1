@@ -9,7 +9,12 @@ import {
     type Production,
     type TerminalProductionType,
 } from '@wildboar/asn1-parser';
-import type { FileURIStr, Result, VersionNumbered } from "./types.js";
+import type {
+    FileURIStr,
+    Result,
+    VersionNumbered,
+    VersionNumber,
+} from "./types.js";
 import { log } from "./logging.js";
 
 /**
@@ -172,6 +177,16 @@ export async function getParserOutputs(
         return outputs;
     }
 
+    // Sorry, it's kind of a two-part process determining if there was a parser error.
+    const parserState = outputs.parserEndState.ok;
+    if (
+        parserState.error
+        || (Object.keys(parserState.syntaxErrors).length > 0)
+    ) {
+        cache.set(key, { version: document.version, item: outputs });
+        return outputs;
+    }
+
     if (stopAt === "parsing" || cancel?.isCancellationRequested) {
         return outputs;
     }
@@ -179,6 +194,10 @@ export async function getParserOutputs(
     // Grok: convert the Concrete Syntax Tree (CST) into abstract modules
     try {
         const modules = grok(text, outputs.parserEndState.ok);
+        // TODO: Should you use setImmediate or something to yield to the scheduler?
+        if (cancel?.isCancellationRequested) {
+            return outputs;
+        }
         correct(modules);
         outputs.parsedModules = { ok: modules };
     } catch (e) {
@@ -188,12 +207,7 @@ export async function getParserOutputs(
     }
 
     cache.set(key, { version: document.version, item: outputs });
-    if (
-        !outputs.parserEndState.ok.error
-        && (Object.keys(outputs.parserEndState.ok.syntaxErrors).length === 0)
-    ) {
-        lastValidCache.set(key, outputs);
-    }
+    lastValidCache.set(key, outputs);
     return outputs;
 }
 
@@ -232,6 +246,9 @@ export async function getParserOutputsWithLogging(
                 : undefined)
             ;
         log.appendLine(`the current module seems to be malformed: ${e}`);
+        if (e?.stack) {
+            log.appendLine(e.stack);
+        }
         return Promise.reject(null);
     }
     return {
@@ -279,4 +296,16 @@ export function getLastValidParserOutputs(
 export function clearParserOutputCaches(): void {
     cache.clear();
     lastValidCache.clear();
+}
+
+/**
+ * @summary VS Code command to get the most recently parsed document version.
+ * @param uri Uniform Resource Identifier
+ * @returns The most recently parsed document version, valid or not.
+ * @function
+ */
+export function get_last_parsed_doc_version_cmd(
+    uri: vscode.Uri,
+): VersionNumber | undefined {
+    return cache.get(uri.toString())?.version;
 }

@@ -23,6 +23,7 @@ import {
     PRIVATE_DEFINITION,
 } from "./definitions/classes.js";
 import { typeTypesThatCouldBeAnything } from "./utils.js";
+import log from "./logging.js";
 
 const COMPLETION_ITEM_TYPE_IDENTIFIER = new vscode.CompletionItem(
     "TYPE-IDENTIFIER",
@@ -973,6 +974,7 @@ async function provideCompletionItems(
 ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
     const line = document.lineAt(position.line);
     const lineTextBeforeCursor = line.text.slice(0, position.character);
+    // TODO: Should you still provide completions if asked? (no trigger character)
     if (inOpenSyntaxRegion(lineTextBeforeCursor)) {
         // Don't provide completions, because we are in a comment
         // or string or something.
@@ -1017,6 +1019,7 @@ async function provideCompletionItems(
         || !outputs.parsedModules
         || ("err" in outputs.parsedModules)
     ) {
+        log.appendLine(`providing default completions because ${document.uri} was never valid`);
         return getVSCodeDefaultCompletions();
     }
     const modules = outputs.parsedModules.ok;

@@ -156,22 +156,10 @@ truly.
 - [ ] Screenshots
 - [ ] Provenance
 - [ ] Unit Tests
-  - [x] Formatting
-  - [x] Code Actions
-    - [x] Removing import symbols
-      - [x] Removes leading comma 
-      - [x] Removes trailing comma
-      - [x] Removes internal comma
-      - [x] Leaves no trailing whitespace
-      - [x] Removes entire `SymbolsFromModule` if last symbol is deleted
-    - [x] Removing assignments
-      - [x] Removes the assignment and nothing else
-  - [x] Commands
-  - [ ] Completions
-    - [ ] Does not provide completions in an "open syntax region" (comma, string, etc.)
-    - [ ] Only suggests suitable object classes for `INSTANCE OF`
-    - [ ] Suggests only valid fields for an object class that appears in the same module
-  - [x] All diagnostics (can test with a single very bad ASN.1 file)
+  - [x] Completions
+    - [x] Does not provide completions in an "open syntax region" (comma, string, etc.)
+    - [x] Only suggests suitable object classes for `INSTANCE OF`
+    - [x] Suggests only valid fields for an object class that appears in the same module
   - [ ] Find All References
     - [ ] Symbol References
     - [ ] Module References

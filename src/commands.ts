@@ -1153,4 +1153,3 @@ export async function export_modules_json_from_doc_cmd(): Promise<void> {
         },
     );
 }
-
