@@ -112,46 +112,53 @@ function provideRemoveImportSymbol(
             && positionFallsWithin(document, diag.range.start, sfm.production)
             && positionFallsWithin(document, diag.range.end, sfm.production)
         ));
-    const symbolList = sfm
-        ?.production
-        ?.children
-        .find((c) => c.type === "SymbolList");
-    if (symbolList) {
-        deleteSymEdit.delete(
-            document.uri,
-            getRemovalRangeForImportSymbol(document, symbolList!, diag.range),
-        );
+
+    if (!sfm?.production) {
+        return [];
     }
 
-    const deleteSymAction = new vscode.CodeAction(
-        "Remove this symbol",
-        vscode.CodeActionKind.QuickFix,
-    );
-    deleteSymAction.diagnostics = [ diag ];
-    deleteSymAction.isPreferred = true;
-    deleteSymAction.edit = deleteSymEdit;
-
-    if (!sfm?.production || Object.keys(sfm.symbolList).length !== 1) {
+    if (Object.keys(sfm.symbolList).length === 1) {
+        // If this is the last symbol, we can only recommend deleting the whole
+        // module import, because `SymbolsFromModule` requires a single symbol.
+        const deleteSfmEdit = new vscode.WorkspaceEdit();
+        deleteSfmEdit.delete(
+            document.uri, 
+            getRangeFromLocation(document, sfm.production.location),
+        );
+        const deleteSfmAction = new vscode.CodeAction(
+            "Remove the whole module import",
+            vscode.CodeActionKind.QuickFix,
+        );
+        deleteSfmAction.diagnostics = [ diag ];
+        deleteSfmAction.isPreferred = true;
+        deleteSfmAction.edit = deleteSfmEdit;
+        deleteSfmAction.command = createUpdateDiagnosticsCommand(document);
+        /* It is syntactically valid to have an empty IMPORTS like `IMPORTS ;`,
+        so we do not have to worry about deleting the whole `Imports` upon
+        deleting the last `SymbolsFromModule`. */
+        return [deleteSfmAction];
+    } else {
+        // If there is more than one symbol, we can delete just that one.
+        const symbolList = sfm
+            .production
+            ?.children
+            .find((c) => c.type === "SymbolList");
+        if (symbolList) {
+            deleteSymEdit.delete(
+                document.uri,
+                getRemovalRangeForImportSymbol(document, symbolList!, diag.range),
+            );
+        }
+        const deleteSymAction = new vscode.CodeAction(
+            "Remove this symbol",
+            vscode.CodeActionKind.QuickFix,
+        );
+        deleteSymAction.diagnostics = [ diag ];
+        deleteSymAction.isPreferred = true;
+        deleteSymAction.edit = deleteSymEdit;
+        deleteSymAction.command = createUpdateDiagnosticsCommand(document);
         return [deleteSymAction];
     }
-    // If there is only a single unused symbol in the SFM, suggest deleting
-    // the entire SFM.
-    const deleteSfmEdit = new vscode.WorkspaceEdit();
-    deleteSfmEdit.delete(
-        document.uri, 
-        getRangeFromLocation(document, sfm.production.location),
-    );
-    const deleteSfmAction = new vscode.CodeAction(
-        "Remove the whole module import",
-        vscode.CodeActionKind.QuickFix,
-    );
-    deleteSfmAction.diagnostics = [ diag ];
-    deleteSfmAction.isPreferred = true;
-    deleteSfmAction.edit = deleteSfmEdit;
-    // Mark the delete-just-the-symbol action as not preferred.
-    deleteSymAction.isPreferred = false;
-    deleteSfmAction.command = createUpdateDiagnosticsCommand(document);
-    return [deleteSymAction, deleteSfmAction];
 }
 
 // TODO: Test this. I am not sure it will correctly handle different EOLs or productions that span lines.
@@ -249,6 +256,7 @@ async function provideCodeActions(
         return Promise.reject(null);
     }
     const modules = p.parsedModules;
+    // TODO: Check if all symbols in a SFM are unused and suggest SFM deletion
     const actions: vscode.CodeAction[] = [];
     for (const diag of context.diagnostics) {
         if (cancel.isCancellationRequested) {

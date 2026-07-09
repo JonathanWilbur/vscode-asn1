@@ -157,15 +157,15 @@ truly.
 - [ ] Provenance
 - [ ] Unit Tests
   - [x] Formatting
-  - [ ] Code Actions
-    - [ ] Removing import symbols
-      - [ ] Removes leading comma 
-      - [ ] Removes trailing comma
-      - [ ] Removes internal comma
-      - [ ] Leaves no trailing whitespace
-      - [ ] Removes entire `SymbolsFromModule` if last symbol is deleted
-    - [ ] Removing assignments
-      - [ ] Removes the assignment and nothing else
+  - [x] Code Actions
+    - [x] Removing import symbols
+      - [x] Removes leading comma 
+      - [x] Removes trailing comma
+      - [x] Removes internal comma
+      - [x] Leaves no trailing whitespace
+      - [x] Removes entire `SymbolsFromModule` if last symbol is deleted
+    - [x] Removing assignments
+      - [x] Removes the assignment and nothing else
   - [x] Commands
   - [ ] Completions
     - [ ] Does not provide completions in an "open syntax region" (comma, string, etc.)
