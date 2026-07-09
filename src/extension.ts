@@ -157,6 +157,8 @@ export function activate(context: vscode.ExtensionContext) {
 	watcher.onDidCreate((uri) => indexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
 	watcher.onDidChange((uri) => reindexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
 	watcher.onDidDelete((uri) => deindexAsn1File(uri));
+	context.subscriptions.push(watcher);
+
 	vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (!editor) {
 			return;
@@ -179,6 +181,11 @@ export function activate(context: vscode.ExtensionContext) {
 			reindexAsn1File(document.uri).catch(() => {});
 		}
 	});
+	vscode.workspace.onDidCloseTextDocument((document) => {
+		if (document.isUntitled && isAsn1File(document)) {
+			deindexAsn1File(document.uri);
+		}
+	});
 	vscode.workspace.onDidSaveTextDocument(async (document) => {
 		if (!isAsn1File(document)) {
 			return;
@@ -186,7 +193,6 @@ export function activate(context: vscode.ExtensionContext) {
 		await reindexAsn1File(document.uri);
 		await updateDiagnostics(document, diagnosticCollection);
 	});
-	context.subscriptions.push(watcher);
 
 	// Update diagnostics for the open editor.
 	const editor = vscode.window.activeTextEditor;
