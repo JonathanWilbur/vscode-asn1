@@ -46,10 +46,7 @@ const ASN1_MODE: vscode.DocumentFilter[] = [
 ];
 
 function isAsn1File(doc: vscode.TextDocument) {
-	return (
-		doc.languageId === LANGUAGE
-		&& doc.uri.scheme === "file"
-	);
+	return (doc.languageId === LANGUAGE);
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -174,6 +171,12 @@ export function activate(context: vscode.ExtensionContext) {
 		// never taken before.
 		if (!diagnosticCollection.has(document.uri)) {
 			updateDiagnostics(document, diagnosticCollection);
+		}
+	});
+	/* Only untitled ASN.1 files get indexed upon opening. */
+	vscode.workspace.onDidOpenTextDocument((document) => {
+		if (document.isUntitled && isAsn1File(document)) {
+			reindexAsn1File(document.uri).catch(() => {});
 		}
 	});
 	vscode.workspace.onDidSaveTextDocument(async (document) => {
