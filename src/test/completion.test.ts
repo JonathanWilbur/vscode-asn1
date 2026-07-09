@@ -1,6 +1,6 @@
 import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
-import { pollUntilParsingIsDone } from './utils.test.js';
+import { pollUntilParsingIsDone, indexAfter } from './utils.test.js';
 
 const ASN1_MODULE_OPEN_SYNTAX: string = `
 ModuleName DEFINITIONS ::= BEGIN
@@ -46,14 +46,6 @@ asdf INTEGER ::= 5
 -- Boop ::= SOME-CLASS.
 END
 `;
-
-function indexAfter(haystack: string, needle: string): number {
-    const i = haystack.indexOf(needle);
-    if (i < 0) {
-        return i;
-    }
-    return i + needle.length;
-}
 
 function rangeOf(
     document: vscode.TextDocument,

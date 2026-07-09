@@ -28,3 +28,18 @@ export async function pollUntilParsingIsDone(
         now = (new Date()).valueOf();
     }
 }
+
+/**
+ * @summary Get the index _after_ `needle` in the `haystack` 
+ * @param haystack The string to search in
+ * @param needle The string sought after in `haystack`
+ * @returns The index _after_ `needle` in the `haystack`
+ * @function
+ */
+export function indexAfter(haystack: string, needle: string): number {
+    const i = haystack.indexOf(needle);
+    if (i < 0) {
+        return i;
+    }
+    return i + needle.length;
+}
