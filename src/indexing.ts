@@ -48,19 +48,25 @@ export function* getModuleNamesAndImportsFromTokenStream(
             continue;
         }
 
-        const importsStartIndex = tokens
+        const moduleEndIndex = tokens
             .slice(i)
+            .findIndex((t) => t.type === "END");
+        if (moduleEndIndex === -1) {
+            return; // No module end.
+        }
+        const importsStartIndex = tokens
+            .slice(i, moduleEndIndex)
             .findIndex((t) => t.type === "IMPORTS");
         if (importsStartIndex > -1) {
             i += importsStartIndex;
             let symbolsImported: string[] = [];
             let readingModuleName: boolean = false;
-            while (i < tokens.length) {
+            while (i < tokens.length) { // TODO: Make this end at END
                 const importToken = tokens[i++];
                 if (importToken.type === "semiColon") {
                     break;
                 }
-                if (importToken.type.endsWith("reference")) {
+                if (importToken.type.endsWith("reference") || importToken.type === "identifier") {
                     if (readingModuleName) {
                         const loc = importToken.location;
                         const modname = text.slice(loc.startIndex, loc.endIndex);
@@ -81,13 +87,6 @@ export function* getModuleNamesAndImportsFromTokenStream(
             }
         }
 
-        // Now loop until we find end.
-        const moduleEndIndex = tokens
-            .slice(i)
-            .findIndex((t) => t.type === "END");
-        if (moduleEndIndex === -1) {
-            return; // No module end.
-        }
         i += (moduleEndIndex + 1);
         const loc = token.location;
         yield {
@@ -127,12 +126,12 @@ export async function indexAsn1File(
     if (document.languageId !== "asn1") {
         return;
     }
-    const text = document.getText();
     const p = await getParserOutputs(document, "lexing");
     if (!p.lexicalTokens || "err" in p.lexicalTokens) {
         log.appendLine(`malformed asn.1 file ${document.uri} could not be indexed: ${p.lexicalTokens?.err ?? "<unknown lexing error>"}`);
         return;
     }
+    const text = document.getText();
     const tokens = p.lexicalTokens.ok;
     const uristr = document.uri.toString();
     const modulesFound: Map<ASN1ModuleName, ModuleInfo> = new Map();
