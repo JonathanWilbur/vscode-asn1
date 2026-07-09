@@ -116,6 +116,7 @@ async function getReferencesWithinModule(
         if (ignoredTokenTypes.has(token.type)) {
             continue;
         }
+
         /* There is nowhere in which a reference can occur before the
         `ModuleBody`, so we skip over everything until we reach BEGIN.
         This is just a small performance enhancement. */
@@ -179,7 +180,11 @@ async function getReferencesWithinModule(
         if (state === "period") {
             /* Without this condition, if you encounter the module name in the
             imports, the parser waits for a period to occur next. */
-            if (token.type === "FROM" || token.type === "comma") {
+            if (
+                token.type === "FROM"
+                || token.type === "comma"
+                || token.type === "semiColon"
+            ) {
                 state = "module";
                 continue;
             }
