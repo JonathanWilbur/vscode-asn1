@@ -425,9 +425,9 @@ async function getModuleReferencesWithinFile(
  * @param modoid The resolved object identifier of the module in which the reference is defined
  * @param ident The identifier whose assignment (and other uses) are to be found
  * @param selopt The selection option governing which ASN.1 module OIDs match
- * @returns A promise resolving the VS Code locations within the workspace
- *  where the sought identifier is defined and used within the modules where it
- *  is defined.
+ * @returns A promise resolving to a tuple of the VS Code locations within the
+ *  workspace where the sought identifier is defined and used within the
+ *  modules where it is defined, and a `Set` of explored file URIs.
  * 
  * @async
  * @function
@@ -438,7 +438,8 @@ async function getReferencesFromAssigningModules(
     modoid: NameAndOrNumber[] | undefined,
     ident: ASN1Reference,
     selopt?: SelectionOption,
-): Promise<vscode.Location[]> {
+): Promise<[ vscode.Location[], Set<FileURIStr> ]> {
+    const explored: Set<FileURIStr> = new Set();
     const ret: vscode.Location[] = [];
     const config = vscode.workspace.getConfiguration("asn1");
     const strict = config.get<boolean>("strictModuleOidMatch", true);
@@ -468,13 +469,15 @@ async function getReferencesFromAssigningModules(
                     continue;
                 }
             }
+            explored.add(docuri.toString());
             // At this point the module is a match: return references from the
             // assignments.
             const locs = await getSymbolReferencesWithinFile(cancel, docuri, ident);
             ret.push(...locs);
+            break; // No need to peruse the whole file over again.
         }
     }
-    return ret;
+    return [ret, explored];
 }
 
 /**
@@ -526,12 +529,15 @@ async function provideReferencesForSymbol(
         return Promise.reject(null);
     }
 
+    let explored: Set<FileURIStr> = new Set();
     const ret: vscode.Location[] = [];
     let modoid: NameAndOrNumber[] | undefined;
     if (!modref && (ident in currentModule.assignments)) {
         modref = currentModule.name;
         modoid = currentModule.oid;
-        ret.push(new vscode.Location(document.uri, position));
+        const [refs, x] = await getReferencesFromAssigningModules(cancel, modref, modoid, ident);
+        ret.push(...refs);
+        explored = x;
     }
 
     if (!modref) {
@@ -571,9 +577,13 @@ async function provideReferencesForSymbol(
         imports of this module and find all modules that satisfy the import,
         then query their `assignments`. */
         if (modref) { // If the symbol was imported...
-            const refs = await getReferencesFromAssigningModules(
+            log.appendLine(`sought reference ${ident} was imported`);
+            const [refs, explored2] = await getReferencesFromAssigningModules(
                 cancel, modref, modoid, ident, sfm?.selectionOption);
             ret.push(...refs);
+            for (const x of explored2) {
+                explored.add(x);
+            }
         }
     }
 
@@ -584,6 +594,9 @@ async function provideReferencesForSymbol(
 
     const refuris = findAllReferencesFallibly(modref, ident);
     for (const refuri of refuris) {
+        if (explored.has(refuri)) { // To avoid duplicate references.
+            continue;
+        }
         let docuri;
         try {
             docuri = vscode.Uri.parse(refuri, true);
