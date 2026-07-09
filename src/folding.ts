@@ -38,25 +38,19 @@ async function provideFoldingRanges(
         return [];
     }
     const modules = p.parsedModules;
-    const cst = p.parserEndState.cst;
-    const parseModules = cst.children
-        .find((c) => c.type === 'modules')
-        ?.children.filter((c) => c.type === 'ModuleDefinition')
-        ?? [];
-    if (modules.length !== parseModules.length) {
-        return [];
-    }
     const ranges: vscode.FoldingRange[] = [];
-    for (const [i, module] of modules.entries()) {
+    for (const module of modules) {
         if (token.isCancellationRequested) {
             break;
         }
-        const moduleRange = foldingRangeFromLocation(
-            document,
-            parseModules[i].location,
-        );
-        if (moduleRange) {
-            ranges.push(moduleRange);
+        if (module.production) {
+            const moduleRange = foldingRangeFromLocation(
+                document,
+                module.production.location,
+            );
+            if (moduleRange) {
+                ranges.push(moduleRange);
+            }
         }
         for (const ass of Object.values(module.assignments)) {
             if (token.isCancellationRequested) {
