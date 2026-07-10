@@ -4,9 +4,9 @@ import {
     type Parser,
     type GrokContext,
     Production,
-    type ProductionType,
     createGrokContext,
     LogLevel,
+    DefinedLexicalProductionType,
 } from "@wildboar/asn1-parser";
 import { log } from "./logging.js";
 
@@ -46,8 +46,7 @@ function maybeReparse<T>(
             log: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, level: LogLevel.silent },
             tokens: lexicalTokens,
             index: 0,
-            // FIXME: I don't know what is going on with the type here.
-            cst: new Production("empty" as ProductionType, [], {
+            cst: new Production(DefinedLexicalProductionType.empty, [], {
                 startIndex: startoffset,
                 endIndex: startoffset,
                 lineNumber: startline,
