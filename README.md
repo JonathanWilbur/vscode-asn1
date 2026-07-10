@@ -170,8 +170,7 @@ truly.
     - [ ] Symbol
     - [ ] Module
     - [ ] Module without strict OID matching
-  - [x] Highlights (just do a snapshot test with this)
-  - [ ] Hover (you can just do this with a single file)
+  - [x] Hover
   - [ ] Rename: forward and reverse gives you the exact same original file
   - [ ] Reparsing
   - [ ] Selection Range: for every selection range produced anywhere in the doc, parent is a broader range
@@ -179,9 +178,7 @@ truly.
     - [ ] Single parameter
     - [ ] Multiple parameters
     - [ ] Parameter with governor
-  - [ ] Symbols: just check that there is one for each assignment, at least.
   - [ ] Type Definition Resolution: just a basic check
-  - [x] Workspace Symbols: just check that there are some, at least for the open document and one other
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.
