@@ -339,8 +339,7 @@ function nameAndOrNumberToIriString(nn: NameAndOrNumber): string {
 export function getAsn1Files(): Thenable<vscode.Uri[]> {
     const config = vscode.workspace.getConfiguration("asn1");
     const includeFiles = config.get<string>("includeFiles", "**/*.{asn,asn1}");
-    // TODO: I think you should let this default to `undefined`, because I think VS code uses some built-in defaults.
-    const excludeFiles = config.get<string>("excludeFiles", "**/{node_modules,dist,out,build,.git}/**");
+    const excludeFiles: string | undefined = config.get<string>("excludeFiles");
     return vscode.workspace.findFiles(includeFiles, excludeFiles);
 }
 
