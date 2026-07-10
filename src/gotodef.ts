@@ -195,8 +195,10 @@ async function provideDefinition(
     }
     const assnloc = assn.production.location;
     const destdoc = await vscode.workspace.openTextDocument(docuri);
-    const gotopos = destdoc.positionAt(assnloc.startIndex);
-    const codeloc = new vscode.Location(docuri, gotopos);
+    const startpos = destdoc.positionAt(assnloc.startIndex);
+    const endpos = destdoc.positionAt(assnloc.endIndex);
+    const gotoRange = new vscode.Range(startpos, endpos);
+    const codeloc = new vscode.Location(docuri, gotoRange);
     return Promise.resolve(codeloc);
 }
 
