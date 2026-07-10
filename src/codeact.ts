@@ -3,6 +3,7 @@ import {
     DIAG_CODE_IMPORT_SYMBOL_DUP,
     DIAG_CODE_IMPORT_SYMBOL_UNUSED,
     DIAG_CODE_ASSIGNMENT_DUP,
+    DIAG_CODE_IMPORT_MODULE_UNUSED,
 } from "./diagnostics.js";
 import { getParserOutputsWithLogging } from "./parsing.js";
 import { getRangeFromLocation, positionFallsWithin } from "./utils.js";
@@ -230,6 +231,9 @@ async function provideCodeActionsForOneDiag(
             return;
         case (DIAG_CODE_ASSIGNMENT_DUP):
             actions.push(provideRemove(document, diag, "assignment"));
+            return;
+        case (DIAG_CODE_IMPORT_MODULE_UNUSED):
+            actions.push(provideRemove(document, diag, "module import"));
             return;
         default: return;
     }

@@ -77,6 +77,7 @@ export const DIAG_CODE_PROHIBITED_CHAR: string = "E0028";
 export const DIAG_CODE_PARAM_SYMBOL_UNUSED: string = "E0029";
 export const DIAG_CODE_IMPORT_MODULE_DUP: string = "E0030";
 export const DIAG_CODE_PARAMETER_DUP: string = "E0031";
+export const DIAG_CODE_IMPORT_MODULE_UNUSED: string = "E0032";
 
 const AT_INDEX = "at index ";
 
@@ -155,6 +156,7 @@ function provideImportDiagnostics(
             diag.code = DIAG_CODE_IMPORT_SYMBOL_DUP;
             diags.push(diag);
         }
+        let anySymbolUsed: boolean = false;
         for (const [symbol, prod] of Object.entries(sfm.symbolList)) {
             if (!prod) {
                 continue;
@@ -169,7 +171,20 @@ function provideImportDiagnostics(
                 diag.tags = [vscode.DiagnosticTag.Unnecessary];
                 diag.code = DIAG_CODE_IMPORT_SYMBOL_UNUSED;
                 diags.push(diag);
+            } else {
+                anySymbolUsed = true;
             }
+        }
+        if (!anySymbolUsed && sfm.production) {
+            const range = getRangeFromLocation(document, sfm.production.location);
+            const diag = new vscode.Diagnostic(
+                range,
+                "no symbol from this entire imported module is used anywhere",
+                vscode.DiagnosticSeverity.Warning,
+            );
+            diag.tags = [vscode.DiagnosticTag.Unnecessary];
+            diag.code = DIAG_CODE_IMPORT_MODULE_UNUSED;
+            diags.push(diag);
         }
     }
 }

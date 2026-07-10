@@ -160,7 +160,6 @@ truly.
 ## Future To Dos
 
 - [ ] Only suggest suitable types after `COMPONENTS OF`
-- [ ] Code action to remove entire `SymbolsFromModule` if no symbols are used
 - [ ] Screenshots
 - [ ] Provenance
 - [ ] Propose merging duplicate modules

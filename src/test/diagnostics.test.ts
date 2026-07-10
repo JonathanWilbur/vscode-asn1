@@ -31,7 +31,8 @@ import {
     DIAG_CODE_PROHIBITED_CHAR,
     DIAG_CODE_PARAM_SYMBOL_UNUSED,
     DIAG_CODE_IMPORT_MODULE_DUP,
-    DIAG_CODE_PARAMETER_DUP,
+    // DIAG_CODE_PARAMETER_DUP,
+    DIAG_CODE_IMPORT_MODULE_UNUSED,
 } from "../diagnostics.js";
 import { pollUntilParsingIsDone } from './utils.test.js';
 
@@ -81,6 +82,7 @@ suite('Diagnostics', function () {
             [ DIAG_CODE_PARAM_SYMBOL_UNUSED, 1 ],
             [ DIAG_CODE_IMPORT_MODULE_DUP, 1 ],
             // [ DIAG_CODE_PARAMETER_DUP, 1 ],
+            [ DIAG_CODE_IMPORT_MODULE_UNUSED, 1 ],
         ]);
         for (const diag of actualDiagnostics) {
             assert.ok(diag.code);
