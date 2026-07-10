@@ -102,6 +102,34 @@ async function provideTypeDefinition(
         return Promise.reject(null);
     }
 
+    // If the user clicks on the identifier of a value or object assignment,
+    // go to the corresponding type.
+    const wordRange = document.getWordRangeAtPosition(position);
+    const wordText = wordRange && document.getText(wordRange);
+    const assn = currentModule.assignments[wordText ?? "-"];
+    if (
+        assn?.production?.children[0]
+        // Position falls within the identifier
+        && positionFallsWithin(document, position, assn.production.children[0])
+    ) {
+        if (
+            (assn.assignmentType === AssignmentType.ValueAssignment)
+            || (assn.assignmentType === AssignmentType.ValueSetTypeAssignment)
+        ) {
+            const t = assn.type;
+            if (t.typeType === TypeType.DefinedType) {
+                const def = t.type;
+                return typeDefFromDefinedThing(cancel, def, currentModule, document.uri, false);
+            }
+        } else if (
+            (assn.assignmentType === AssignmentType.ObjectAssignment)
+            || (assn.assignmentType === AssignmentType.ObjectSetAssignment)
+        ) {
+            const def = assn.definedObjectClass;
+            return typeDefFromDefinedThing(cancel, def, currentModule, document.uri, true);
+        }
+    }
+
     const defined = getDefinedThingAtPosition(cancel, document, position, cst, undefined, true);
     if (!defined) {
         return Promise.reject(null);
@@ -130,12 +158,18 @@ async function provideTypeDefinition(
         return new vscode.Location(uri1, range);
     }
 
-    if (assn1.assignmentType === AssignmentType.ObjectAssignment) {
+    if (
+        (assn1.assignmentType === AssignmentType.ObjectAssignment)
+        || (assn1.assignmentType === AssignmentType.ObjectSetAssignment)
+    ) {
         const def = assn1.definedObjectClass;
         return typeDefFromDefinedThing(cancel, def, mod1, uri1, true);
     }
 
-    if (assn1.assignmentType !== AssignmentType.ValueAssignment) {
+    if (
+        (assn1.assignmentType !== AssignmentType.ValueAssignment)
+        && (assn1.assignmentType !== AssignmentType.ValueSetTypeAssignment)
+    ) {
         return Promise.reject(null);
     }
 

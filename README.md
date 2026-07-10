@@ -170,13 +170,12 @@ truly.
     - [ ] Symbol
     - [ ] Module
     - [ ] Module without strict OID matching
-  - [ ] Reparsing
   - [ ] Selection Range: for every selection range produced anywhere in the doc, parent is a broader range
   - [ ] Signature Help
     - [ ] Single parameter
     - [ ] Multiple parameters
     - [ ] Parameter with governor
-  - [ ] Type Definition Resolution: just a basic check
+  - [x] Type Definition Resolution: just a basic check
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.
