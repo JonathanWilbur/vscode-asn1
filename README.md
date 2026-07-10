@@ -170,8 +170,6 @@ truly.
     - [ ] Symbol
     - [ ] Module
     - [ ] Module without strict OID matching
-  - [x] Hover
-  - [ ] Rename: forward and reverse gives you the exact same original file
   - [ ] Reparsing
   - [ ] Selection Range: for every selection range produced anywhere in the doc, parent is a broader range
   - [ ] Signature Help
