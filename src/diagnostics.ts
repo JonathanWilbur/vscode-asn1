@@ -76,6 +76,7 @@ export const DIAG_CODE_DIAG_DISABLED: string = "E0027";
 export const DIAG_CODE_PROHIBITED_CHAR: string = "E0028";
 export const DIAG_CODE_PARAM_SYMBOL_UNUSED: string = "E0029";
 export const DIAG_CODE_IMPORT_MODULE_DUP: string = "E0030";
+export const DIAG_CODE_PARAMETER_DUP: string = "E0031";
 
 const AT_INDEX = "at index ";
 
@@ -1183,6 +1184,40 @@ function provideAssignmentDiagnostics(
     assn: Assignment,
     diags: vscode.Diagnostic[],
 ): void {
+    // Duplicate parameters are already detected by parsing / groking, currently.
+    // if (assn.parameters?.length) {
+    //     const params = assn.parameters;
+    //     const encountered: Map<string, Production | null> = new Map();
+    //     for (const param of params) {
+    //         const first = encountered.get(param.dummyReference);
+    //         if (typeof first !== "undefined") {
+    //             // The parameter is duplicate.
+    //             const loc = param.production?.location ?? assn.production?.location;
+    //             if (!loc) {
+    //                 continue;
+    //             }
+    //             const range = getRangeFromLocation(document, loc);
+    //             const diag = new vscode.Diagnostic(
+    //                 range,
+    //                 "duplicate parameter name",
+    //                 vscode.DiagnosticSeverity.Error,
+    //             );
+    //             diag.code = DIAG_CODE_PARAMETER_DUP;
+    //             if (first?.location) {
+    //                 const firstRange = getRangeFromLocation(document, first.location);
+    //                 diag.relatedInformation = [
+    //                     new vscode.DiagnosticRelatedInformation(
+    //                         new vscode.Location(document.uri, firstRange),
+    //                         "first defined here",
+    //                     ),
+    //                 ];
+    //             }
+    //             diags.push(diag);
+    //         } else {
+    //             encountered.set(param.dummyReference, param.production ?? null);
+    //         }
+    //     }
+    // }
     if (assn.assignmentType === AssignmentType.TypeAssignment) {
         provideTypeAssignmentDiagnostics(document, mod, assn, diags);
     }

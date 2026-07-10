@@ -195,4 +195,8 @@ UnusedParamSeq{T} ::= SEQUENCE {
     timestamp   GeneralizedTime
 }
 
+-- Actually, duplicate parameters are already detected by parsing / groking.
+-- DIAG_CODE_PARAMETER_DUP
+-- Bridge{T, T} ::= SEQUENCE { thing1 T, thing2 T }
+
 END

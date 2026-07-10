@@ -159,7 +159,6 @@ truly.
 
 ## Future To Dos
 
-- [ ] Check for duplicate parameter names
 - [ ] Only suggest suitable types after `COMPONENTS OF`
 - [ ] Code action to remove entire `SymbolsFromModule` if no symbols are used
 - [ ] Screenshots
