@@ -79,6 +79,27 @@ function drillIntoDefinedInCST(
     // All productions that are a symbol referring to some other assignment
     // are "Defined," such as `DefinedValue`, `DefinedType`, etc.
     if (isDefinedThing(cstnode)) {
+        /* If the user clicked on a `Defined*` that falls in the parameters
+        of another parameterized `Defined*`, we want to return that more
+        specific one in the parameters, rather than the broader one. */
+        if (cstnode.children[0]?.type.startsWith("Parameterized")) {
+            // ParameterizedValue ::= SimpleDefinedValue ActualParameterList
+            const alt = cstnode.children[0];
+            const paramlist = alt.children[alt.children.length - 1];
+            if (paramlist && positionFallsWithin(document, position, paramlist)) {
+                const ret = drillIntoDefinedInCST(
+                    cancel,
+                    document,
+                    position,
+                    paramlist,
+                    recursionTTL - 1,
+                    definedOnly,
+                );
+                if (ret) {
+                    return ret;
+                }
+            }
+        }
         return cstnode;
     }
     /* I think identifiers were supported because I also wanted to find
