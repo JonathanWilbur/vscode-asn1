@@ -32,6 +32,7 @@ import {
 	export_modules_json_from_doc_cmd,
 } from "./commands.js";
 import { clearParserOutputCaches, get_last_parsed_doc_version_cmd } from './parsing.js';
+import path from 'node:path';
 
 const LANGUAGE: string = "asn1";
 
@@ -47,6 +48,36 @@ const ASN1_MODE: vscode.DocumentFilter[] = [
 
 function isAsn1File(doc: vscode.TextDocument) {
 	return (doc.languageId === LANGUAGE);
+}
+
+function fsWatcherOnDidCreate(uri: vscode.Uri, excludeFiles?: string): void {
+	const relpath = vscode.workspace.asRelativePath(uri);
+	// I have to do this because the FS watcher does not support exclusion paths.
+	if (excludeFiles && path.matchesGlob(relpath, excludeFiles)) {
+		return;
+	}
+	indexAsn1File(uri).catch((e) => log.appendLine(e.toString()));
+	// watcher.onDidChange((uri) => reindexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
+	// watcher.onDidDelete((uri) => deindexAsn1File(uri));
+}
+
+function fsWatcherOnDidChange(uri: vscode.Uri, excludeFiles?: string): void {
+	const relpath = vscode.workspace.asRelativePath(uri);
+	// I have to do this because the FS watcher does not support exclusion paths.
+	if (excludeFiles && path.matchesGlob(relpath, excludeFiles)) {
+		return;
+	}
+	reindexAsn1File(uri).catch((e) => log.appendLine(e.toString()));
+	// watcher.onDidDelete((uri) => deindexAsn1File(uri));
+}
+
+function fsWatcherOnDidDelete(uri: vscode.Uri, excludeFiles?: string): void {
+	const relpath = vscode.workspace.asRelativePath(uri);
+	// I have to do this because the FS watcher does not support exclusion paths.
+	if (excludeFiles && path.matchesGlob(relpath, excludeFiles)) {
+		return;
+	}
+	deindexAsn1File(uri);
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -149,14 +180,18 @@ export function activate(context: vscode.ExtensionContext) {
 	// vscode.languages.registerOnTypeFormattingEditProvider: computationally expensive, annoying, overly opinionated, etc.
 	// vscode.languages.registerTypeHierarchyProvider: could be useful for X.500 object classes, but otherwise narrow use case
 
-	// FIXME: Make the watcher use the configured extensions.
 	/* We have to do the most minimal indexing so we know what files have what
 	modules and what modules are in what files. This might not even really be
 	necessary, but I need to experiment to see if it is terribly slow or not. */
-	const watcher = vscode.workspace.createFileSystemWatcher("**/*.{asn,asn1}");
-	watcher.onDidCreate((uri) => indexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
-	watcher.onDidChange((uri) => reindexAsn1File(uri).catch((e) => log.appendLine(e.toString())));
-	watcher.onDidDelete((uri) => deindexAsn1File(uri));
+	const config = vscode.workspace.getConfiguration("asn1");
+	const includeFiles = config.get<string>("includeFiles", "**/*.{asn,asn1}");
+	const excludeFiles: string | undefined = config.get<string>("excludeFiles");
+	// Unfortunately, it seems like there is no way for this to honor the excludeFiles.
+	// So the handlers themselves do it.
+	const watcher = vscode.workspace.createFileSystemWatcher(includeFiles);
+	watcher.onDidCreate((uri) => fsWatcherOnDidCreate(uri, excludeFiles));
+	watcher.onDidChange((uri) => fsWatcherOnDidChange(uri, excludeFiles));
+	watcher.onDidDelete((uri) => fsWatcherOnDidDelete(uri, excludeFiles));
 	context.subscriptions.push(watcher);
 
 	vscode.window.onDidChangeActiveTextEditor(editor => {
