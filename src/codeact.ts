@@ -7,7 +7,7 @@ import {
 } from "./diagnostics.js";
 import { getParserOutputsWithLogging } from "./parsing.js";
 import { getRangeFromLocation, positionFallsWithin } from "./utils.js";
-import { type Module, type Production } from "@wildboar/asn1-parser";
+import { type Module, type Production, type SymbolsFromModule } from "@wildboar/asn1-parser";
 
 /**
  * @summary Create a command to refresh diagnostics
@@ -37,6 +37,7 @@ function createUpdateDiagnosticsCommand(
  * `SymbolList` production remains grammatically valid.
  * 
  * @param document The text document
+ * @param sfm The `SymbolsFromModule` (used to suggest removing the whole module)
  * @param symbolList The SymbolList Concrete Syntax Tree (CST) Production
  * @param symbolRange The range spanning the symbol to be removed
  * @returns A new range, expanded to include the symbol to be removed as well
@@ -45,6 +46,7 @@ function createUpdateDiagnosticsCommand(
  */
 function getRemovalRangeForImportSymbol(
     document: vscode.TextDocument,
+    sfm: SymbolsFromModule,
     symbolList: Production,
     symbolRange: vscode.Range,
 ): vscode.Range {
@@ -52,7 +54,9 @@ function getRemovalRangeForImportSymbol(
     const symbolEnd = document.offsetAt(symbolRange.end);
     const symbols = symbolList.children.filter((c) => c.type === "Symbol");
     if (symbols.length <= 1) {
-        // FIXME: Remove the whole SFM production
+        if (sfm?.production) {
+            return getRangeFromLocation(document, sfm.production.location);
+        }
         return symbolRange;
     }
 
@@ -147,7 +151,7 @@ function provideRemoveImportSymbol(
         if (symbolList) {
             deleteSymEdit.delete(
                 document.uri,
-                getRemovalRangeForImportSymbol(document, symbolList!, diag.range),
+                getRemovalRangeForImportSymbol(document, sfm, symbolList!, diag.range),
             );
         }
         const deleteSymAction = new vscode.CodeAction(
