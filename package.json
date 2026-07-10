@@ -167,6 +167,24 @@
     "type": "git",
     "url": "https://github.com/JonathanWilbur/vscode-asn1.git"
   },
+  "bugs": {
+    "url": "https://github.com/JonathanWilbur/vscode-asn1/issues",
+    "email": "jonathan@wilbur.space"
+  },
+  "keywords": [
+    "asn.1",
+    "asn",
+    "abstract",
+    "ber",
+    "der",
+    "itu",
+    "x509"
+  ],
+  "galleryBanner": {
+    "color": "#FFFF00",
+    "theme": "dark"
+  },
+  "pricing": "Free",
   "dependencies": {
     "@wildboar/asn1": "npm:@jsr/wildboar__asn1@^11.1.0",
     "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.5.1"
