@@ -58,6 +58,7 @@ This VS code extension does **NOT**:
 - Completely validate your ASN.1 at a semantic level
 - Check that values match types and vice versa
 - Ensure valid defined syntax in information object assigments
+- Ensure valid field names in information object assignments
 - Validate Encoding Control Notation (ECN)
 - Validate that all imported symbols exist in the modules from whence they are imported
 - Perform perfectly thorough date and time validation: validation is "good
@@ -70,6 +71,15 @@ much other than by spending several months re-writing module (`P4 / WONTFIX`).
 
 There are probably other shortcomings I haven't listed above. I welcome PRs
 that aren't entirely AI slop.
+
+## Quality Issues
+
+You may encounter quality issues in the following scenarios:
+
+- Usage of `XMLValueAssignment`: this is not tested at all, in part because it
+  so rarely used. I have a "database" of about 2000 published ASN.1 modules,
+  and _none_ use XML value assignments, so I don't even have authoritative
+  examples to validate my implementation with.
 
 ## Configuration
 
@@ -160,7 +170,7 @@ truly.
     - [ ] Symbol
     - [ ] Module
     - [ ] Module without strict OID matching
-  - [ ] Highlights (just do a snapshot test with this)
+  - [x] Highlights (just do a snapshot test with this)
   - [ ] Hover (you can just do this with a single file)
   - [ ] Rename: forward and reverse gives you the exact same original file
   - [ ] Reparsing
@@ -171,7 +181,7 @@ truly.
     - [ ] Parameter with governor
   - [ ] Symbols: just check that there is one for each assignment, at least.
   - [ ] Type Definition Resolution: just a basic check
-  - [ ] Workspace Symbols: just check that there are some, at least for the open document and one other
+  - [x] Workspace Symbols: just check that there are some, at least for the open document and one other
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.

@@ -13,10 +13,7 @@ import type {
     NameAndOrNumber,
 } from "@wildboar/asn1-parser";
 import { resolveAssignedIdentifier } from "./resolve.js";
-import {
-    getSymbolReferencesWithinFile,
-    getReferencesWithinModule,
-} from "./findallref.js";
+import { getSymbolReferencesWithinFile } from "./findallref.js";
 
 /**
  * @summary Provide module name highlights
@@ -160,20 +157,8 @@ async function provideDocumentHighlights(
         }
     }
 
-    // Gets the unqualified references just within the current module.
-    const [locs] = await getReferencesWithinModule(
-        cancel,
-        document,
-        undefined,
-        ident,
-        tokens,
-        currentModuleIndex,
-        true,
-    );
-
-    // Gets references within other modules within this file.
     const morelocs = await getSymbolReferencesWithinFile(cancel, document.uri, ident, modref, modoid);
-    const ret = [...locs, ...morelocs].map((loc) => new vscode.DocumentHighlight(
+    const ret = morelocs.map((loc) => new vscode.DocumentHighlight(
         loc.range,
         vscode.DocumentHighlightKind.Text,
     ));

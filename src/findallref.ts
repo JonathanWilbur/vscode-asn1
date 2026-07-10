@@ -82,6 +82,7 @@ async function getReferencesWithinModule(
     tokens: Production<TerminalProductionType>[],
     skipModulesCount: number = 0,
     ignoreImportsExports: boolean = false,
+    onlyFullyQualified: boolean = false,
 ): Promise<[vscode.Location[], number]> { // Last element is tokens read
     // iterate over lexed tokens.
     // ignore ones that fall before or after the module. (maybe the caller should just slice tokens)
@@ -153,6 +154,8 @@ async function getReferencesWithinModule(
         if (
             state !== "period"
             && token.type === identTokenType
+            // If fully qualified only, we must have already read the module and period
+            && (!onlyFullyQualified || (state === "identifier"))
         ) {
             const loc = token.location;
             const tokenText = text.slice(loc.startIndex, loc.endIndex);
@@ -238,15 +241,22 @@ async function getSymbolReferencesWithinFile(
         if (cancel.isCancellationRequested) {
             break;
         }
+        let onlyFullyQualified: boolean = false;
         const mod = modules[i];
         if (modref) {
             const sfm = mod.imports.modules[modref];
-            if (!sfm || !(ident in sfm.symbolList)) {
+            if (modref === mod.name) {
+                if (modoid && modoidarcs && mod.oid) {
+                    const curarcs = getOidNodesFromModuleIdentifier(mod.oid);
+                    if (!curarcs || !asn1ModuleOidMatch(modoidarcs, curarcs)) {
+                        // Modules with same name, but differing OIDs.
+                        skipModulesCount++;
+                    }
+                }
+            } else if (!sfm || !(ident in sfm.symbolList)) {
                 log.appendLine(`module with index ${i} did not seem to import ${ident} within module ${mod.name} (index ${i}) in file ${docuri}`);
-                skipModulesCount++;
-                continue; // Try the next module.
-            }
-            if (modoidarcs && sfm.assignedIdentifier) {
+                onlyFullyQualified = true;
+            } else if (modoidarcs && sfm.assignedIdentifier && strict) {
                 const impoid = await resolveAssignedIdentifier(
                     cancel,
                     sfm.assignedIdentifier,
@@ -255,20 +265,23 @@ async function getSymbolReferencesWithinFile(
                 );
                 if (!impoid) {
                     log.appendLine(`could not resolve assigned identifier for module ${mod.name} in ${docuri}`);
+                    // We skip, rather than accepting fully-qualified references,
+                    // because the module was imported, but we can't tell if the
+                    // object identifiers match.
                     skipModulesCount++;
                     continue; // Skip: could not resolve assigned identifier.
                 }
-                if (strict) {
-                    const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
-                    if (!impoidarcs) {
-                        skipModulesCount++;
-                        continue;
-                    }
-                    if (!asn1ModuleOidMatch(modoidarcs, impoidarcs, sfm.selectionOption)) {
-                        log.appendLine(`non-matching oid used in import statement in module ${mod.name} in ${docuri}`);
-                        skipModulesCount++;
-                        continue; // Not a matching module.
-                    }
+                const impoidarcs = getOidNodesFromModuleIdentifier(impoid);
+                if (!impoidarcs) {
+                    // Same reasoning as above.
+                    skipModulesCount++;
+                    continue;
+                }
+                if (!asn1ModuleOidMatch(modoidarcs, impoidarcs, sfm.selectionOption)) {
+                    log.appendLine(`non-matching oid used in import statement in module ${mod.name} in ${docuri}`);
+                    // Same reasoning as above.
+                    skipModulesCount++;
+                    continue; // Not a matching module.
                 }
             }
         }
@@ -281,6 +294,8 @@ async function getSymbolReferencesWithinFile(
             ident,
             moduleTokens,
             skipModulesCount,
+            undefined,
+            onlyFullyQualified,
         );
         j += tokensRead;
         skipModulesCount = 0;
