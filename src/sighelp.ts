@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
-import { inOpenSyntaxRegion, isInECN, positionFallsWithin } from "./utils.js";
+import { inOpenSyntaxRegion, positionFallsWithin } from "./utils.js";
 import { getLastValidParserOutputs } from "./parsing.js";
 import { resolveDefined } from "./resolve.js";
 import { type Module } from "@wildboar/asn1-parser";
+import log from "./logging.js";
 
 /**
  * @summary Obtain signature help for a given symbol
@@ -31,6 +32,7 @@ async function makeSigHelpForSymbol(
     );
     const wordText = wordRange && document.getText(wordRange);
     if (!wordText) {
+        log.appendLine("could not discern a defined symbol for signature help");
         return Promise.reject(null);
     }
     const parts = wordText.split(".");
@@ -47,11 +49,13 @@ async function makeSigHelpForSymbol(
         document.uri,
     );
     if (!resolveResult) {
+        log.appendLine(`could not resolve reference ${ref} for signature help`);
         return Promise.reject(null);
     }
     const [ assn ] = resolveResult;
     if (!assn.parameters?.length || !assn.production) {
         // Not parameterized or no associated CST node.
+        log.appendLine(`could not produce signature help for non-parameterized reference ${ref} or assignment missing production`);
         return Promise.reject(null);
     }
 
@@ -74,6 +78,7 @@ async function makeSigHelpForSymbol(
     const params = assn.parameters ?? [];
     if (!params.every((p) => p.production)) {
         // No CST nodes. Cannot provide offsets into assignment.
+        log.appendLine(`could not produce signature help for reference ${ref} because the parameters were missing CST nodes`);
         return Promise.reject(null);
     }
 
@@ -109,7 +114,7 @@ async function makeSigHelpForSymbol(
             );
             return ret;
         });
-    siginfo.label = assn.leftHandSide;
+    siginfo.label = assn.leftHandSide; // TODO: Trim?
     ret.activeParameter = paramIndex;
     ret.activeSignature = 0;
     ret.signatures = [siginfo];
@@ -155,18 +160,18 @@ async function provideSignatureHelp(
         || !outputs.parsedModules
         || ("err" in outputs.parsedModules)
     ) {
+        log.appendLine(`could not provide signature help in ${document.uri} because it was never valid`);
         return Promise.reject(null);
     }
     const modules = outputs.parsedModules.ok;
-    const currentModule = modules
+    let currentModule = modules
         .find((mod) => (
             mod.production
             && positionFallsWithin(document, position, mod.production)
         ));
+    currentModule ??= ((modules.length === 1) ? modules[0] : undefined);
     if (!currentModule) {
-        return Promise.reject(null);
-    }
-    if (isInECN(document, currentModule, position)) {
+        log.appendLine("could not provide signature help outside of a module");
         return Promise.reject(null);
     }
 
