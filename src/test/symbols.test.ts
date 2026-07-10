@@ -1,5 +1,6 @@
 import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
+import { pollUntilParsingIsDone } from './utils.test.js';
 
 const ASN1_MODULE_A: string = `
 SymbolsTest DEFINITIONS ::= BEGIN
@@ -39,6 +40,9 @@ suite('Document Symbols', function () {
             language: "asn1",
             content: ASN1_MODULE_A,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
+        await pollUntilParsingIsDone(document);
         const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
             "vscode.executeDocumentSymbolProvider",
             document.uri,

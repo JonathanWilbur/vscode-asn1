@@ -1,6 +1,7 @@
 import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 import { fuzzyMatch } from "../wssymbols.js";
+import { pollUntilParsingIsDone } from './utils.test.js';
 
 // This was all written by Cursor AI.
 suite("fuzzyMatch", () => {
@@ -81,8 +82,11 @@ suite('Workspace Symbols', function () {
             language: "asn1",
             content: ASN1_MODULE_B,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
         await vscode.window.showTextDocument(doca);
         await vscode.window.showTextDocument(docb);
+        await pollUntilParsingIsDone(doca);
+        await pollUntilParsingIsDone(docb);
 
         const symbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
             "vscode.executeWorkspaceSymbolProvider",

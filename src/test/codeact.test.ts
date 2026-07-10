@@ -56,7 +56,8 @@ suite('Code Actions', function () {
                 language: "asn1",
                 content: ASN1_BEFORE_SYMBOL_REMOVAL,
             });
-            const editor = await vscode.window.showTextDocument(document);
+            // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+            await vscode.window.showTextDocument(document);
             // Trigger diagnostics. Quick fixes rely on this.
             await vscode.commands.executeCommand("asn1.diagnose");
             // Just in case this differs from ASN1_BEFORE_SYMBOL_REMOVAL
@@ -119,7 +120,8 @@ suite('Code Actions', function () {
             language: "asn1",
             content: ASN1_BEFORE_SFM_REMOVAL,
         });
-        const editor = await vscode.window.showTextDocument(document);
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         const symbolToDelete: string = "onlySymbol";
         // Trigger diagnostics. Quick fixes rely on this.
         await vscode.commands.executeCommand("asn1.diagnose");
@@ -163,7 +165,8 @@ suite('Code Actions', function () {
             language: "asn1",
             content: ASN1_WITH_DUP_ASSNS,
         });
-        const editor = await vscode.window.showTextDocument(document);
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         const symbolToDelete: string = "int INTEGER ::= 2";
         // Trigger diagnostics. Quick fixes rely on this.
         await vscode.commands.executeCommand("asn1.diagnose");

@@ -4,4 +4,7 @@ export default defineConfig({
 	files: 'out/test/**/*.test.js',
 	workspaceFolder: 'testroot',
 	srcDir: 'src',
+	mocha: {
+		timeout: 15000,
+	},
 });

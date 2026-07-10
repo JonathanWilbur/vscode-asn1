@@ -92,7 +92,8 @@ suite('Completions', function () {
             language: "asn1",
             content: ASN1_MODULE_OPEN_SYNTAX,
         });
-        const editor = await vscode.window.showTextDocument(document);
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         const initialText = document.getText();
         const noCompletionPositions: vscode.Position[] = [
             document.positionAt(indexAfter(initialText, "-- A comment")),
@@ -134,6 +135,7 @@ suite('Completions', function () {
             language: "asn1",
             content: ASN1_MODULE_INSTANCE_OF,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
         const editor = await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
 
@@ -176,6 +178,7 @@ suite('Completions', function () {
             language: "asn1",
             content: ASN1_MODULE_OBJ_CLASS_FIELDS,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
         const editor = await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
 

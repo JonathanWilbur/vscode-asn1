@@ -32,6 +32,7 @@ import {
     DIAG_CODE_PARAM_SYMBOL_UNUSED,
     DIAG_CODE_IMPORT_MODULE_DUP,
 } from "../diagnostics.js";
+import { pollUntilParsingIsDone } from './utils.test.js';
 
 const DIAGNOSTICS_TEST_FILE: string = "DiagnosticsTest.asn1";
 
@@ -46,7 +47,9 @@ suite('Diagnostics', function () {
         assert.ok(workspaceFolder);
         const fileUri = vscode.Uri.joinPath(workspaceFolder.uri, DIAGNOSTICS_TEST_FILE);
         const document = await vscode.workspace.openTextDocument(fileUri);
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
         await vscode.window.showTextDocument(document);
+        await pollUntilParsingIsDone(document);
         const actualDiagnostics = vscode.languages.getDiagnostics(fileUri);
         assert.ok(actualDiagnostics.length > 0);
         const diagCodesExpected: Map<string, number | null> = new Map([

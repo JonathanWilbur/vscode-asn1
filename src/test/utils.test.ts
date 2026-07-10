@@ -23,6 +23,7 @@ export async function pollUntilParsingIsDone(
         && (now < end)
     ) {
         parsedVersion = await vscode.commands.executeCommand<VersionNumber | undefined>("asn1.parsed-version", uri);
+        console.log(`for doc ${uri.toString()}: ${parsedVersion}`);
         // Sleep for a quarter-second to avoid overwhelming the extension host with commands.
         await new Promise((r) => setTimeout(r, 250));
         now = (new Date()).valueOf();

@@ -29,16 +29,14 @@ suite('Folding Ranges', function () {
             language: "asn1",
             content: ASN1_MODULE_A,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
         const ranges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
             "vscode.executeFoldingRangeProvider",
             document.uri,
         );
         assert.equal(ranges.length, 3);
-
-        // Cleanup
-        await vscode.window.showTextDocument(document);
-        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
     });
     // just check that there is N assignments + 1 for the module
 });

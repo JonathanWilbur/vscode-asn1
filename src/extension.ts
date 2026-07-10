@@ -178,7 +178,10 @@ export function activate(context: vscode.ExtensionContext) {
 	/* Only untitled ASN.1 files get indexed upon opening. */
 	vscode.workspace.onDidOpenTextDocument((document) => {
 		if (document.isUntitled && isAsn1File(document)) {
-			reindexAsn1File(document.uri).catch(() => {});
+			// indexAsn1File(document.uri)
+			// 	.catch((e) => log.appendLine(`failed to index document ${document.uri}: ${e}`));
+			reindexAsn1File(document.uri)
+				.catch((e) => log.appendLine(`failed to index document ${document.uri}: ${e}`));
 		}
 	});
 	vscode.workspace.onDidCloseTextDocument((document) => {

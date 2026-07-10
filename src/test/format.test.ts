@@ -128,6 +128,7 @@ suite('Formatting', function () {
             language: "asn1",
             content: ASN1_BEFORE_FORMATTING,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
         await vscode.window.showTextDocument(document);
         await vscode.commands.executeCommand("editor.action.formatDocument");
         await new Promise((r) => setTimeout(r, 1000));

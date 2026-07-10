@@ -2,6 +2,13 @@ import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 import { indexAfter, pollUntilParsingIsDone } from './utils.test.js';
 
+const GOTODEF_MODULE: string = `
+GoToDefModule DEFINITIONS ::= BEGIN
+int1 INTEGER ::= 5
+int2 INTEGER ::= int1
+END
+`;
+
 const DEFINING_MODULE: string = `
 GoToDefDefiningModule DEFINITIONS ::= BEGIN
 int1 INTEGER ::= 5
@@ -55,8 +62,10 @@ suite('Go to Definition', function () {
         await outcome.indexingPromise;
         const doca = await vscode.workspace.openTextDocument({
             language: "asn1",
-            content: DEFINING_MODULE,
+            content: GOTODEF_MODULE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(doca);
         await pollUntilParsingIsDone(doca);
         const texta = doca.getText();
         const offset = indexAfter(texta, "int2 INTEGER ::= int1") - 2;
@@ -79,7 +88,7 @@ suite('Go to Definition', function () {
         assert.ok(loc.range.isEqual(expectedRange));
     });
 
-    test('Go to definition for a symbol works across modules at an imported symbol', async () => {
+    test('Go to definition for a symbol works across modules', async () => {
         const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
         const outcome = await ext.activate();
         await outcome.indexingPromise;
@@ -91,12 +100,14 @@ suite('Go to Definition', function () {
             language: "asn1",
             content: REFERRING_MODULE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(definingDoc);
         await vscode.window.showTextDocument(referringDoc);
         await pollUntilParsingIsDone(definingDoc);
         await pollUntilParsingIsDone(referringDoc);
         const referringText = referringDoc.getText();
         
-        for (const [start, end] of findRanges(referringText, "int1")) {
+        for (const [start] of findRanges(referringText, "int1")) {
             const position = referringDoc.positionAt(start + 2);
             const locations = await vscode.commands.executeCommand<(vscode.Location | vscode.LocationLink)[]>(
                 "vscode.executeDefinitionProvider",

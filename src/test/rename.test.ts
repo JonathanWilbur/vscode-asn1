@@ -29,6 +29,8 @@ suite('Rename', function () {
             language: "asn1",
             content: ASN1_FILE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         
         // Forward edit
         await pollUntilParsingIsDone(document);

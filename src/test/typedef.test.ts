@@ -123,6 +123,8 @@ suite('Go to Type Definition', function () {
             language: "asn1",
             content: COMBINED_TYPEDEF_MODULE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
         await checkFile(document);
     });
@@ -135,6 +137,8 @@ suite('Go to Type Definition', function () {
             language: "asn1",
             content: ASN1_DEFINING_MODULE + ASN1_REFERRING_MODULE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         await checkFile(document);
     });
 

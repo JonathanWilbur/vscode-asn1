@@ -32,6 +32,8 @@ suite('Selection Range', function () {
             language: "asn1",
             content: ASN1_FILE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
         const text = document.getText();
         const offset = indexAfter(text, "code INTEGER DEFAULT defaultCode") - 2;

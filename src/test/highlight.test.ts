@@ -97,6 +97,8 @@ suite('Highlights', function () {
             language: "asn1",
             content: ASN1_MODULE_A,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
         const text = document.getText();
         const offset = indexAfter(text, "IMPORTS int1") - 2;
@@ -129,6 +131,8 @@ suite('Highlights', function () {
             language: "asn1",
             content: MULTI_MODULE_TEST,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
         const text = document.getText();
         const offset = text.indexOf("int1 INTEGER ::= 1") + 2;

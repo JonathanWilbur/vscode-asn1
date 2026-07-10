@@ -164,7 +164,6 @@ truly.
 - [ ] Code action to remove entire `SymbolsFromModule` if no symbols are used
 - [ ] Screenshots
 - [ ] Provenance
-- [x] Unit Tests
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.

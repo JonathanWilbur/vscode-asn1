@@ -26,6 +26,8 @@ suite('Hover', function () {
             language: "asn1",
             content: ASN1_FILE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
+        await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
         const text = document.getText();
         const offset = text.indexOf("ErrorResponse{5}") + 2;

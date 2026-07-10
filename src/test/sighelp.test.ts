@@ -72,6 +72,7 @@ suite('Signature Help', function () {
             language: "asn1",
             content: ASN1_FILE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
         const editor = await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
 
@@ -116,6 +117,7 @@ suite('Signature Help', function () {
             language: "asn1",
             content: ASN1_FILE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
         const editor = await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
 
@@ -169,6 +171,7 @@ suite('Signature Help', function () {
             language: "asn1",
             content: ASN1_FILE,
         });
+        // Seems to be necessary for asn1.parsed-version to work. Not sure why.
         const editor = await vscode.window.showTextDocument(document);
         await pollUntilParsingIsDone(document);
 
