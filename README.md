@@ -164,7 +164,7 @@ truly.
 - [ ] Code action to remove entire `SymbolsFromModule` if no symbols are used
 - [ ] Screenshots
 - [ ] Provenance
-- [ ] Unit Tests
+- [x] Unit Tests
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.
@@ -183,3 +183,6 @@ truly.
     - [ ] FROM range cannot span multi-character strings
     - [ ] PATTERN validation
   - [ ] Leading zeros in numeric literal (X.680 S 12.8)
+
+Note: it appears that there is no way to programmatically obtain inline
+completions, so this is not going to have unit tests for now.
