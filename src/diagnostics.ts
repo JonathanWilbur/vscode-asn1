@@ -1535,8 +1535,6 @@ function provideMissingSymbolDiagnostics(
         drillForUndefinedSymbols(document, mod, diags, assn.production, usedSymbols, enumItemsDefined, assn);
         const params = (assn.parameters ?? []);
         for (const param of params) {
-            // FIXME: I think this will consider any parameter with this same name used.
-            // Maybe remove the parameter names when you are done?
             if (!usedSymbols.has(param.dummyReference)) {
                 const ploc = param.production?.location ?? assn.production.location;
                 const range = getRangeFromLocation(document, ploc);
@@ -1550,6 +1548,9 @@ function provideMissingSymbolDiagnostics(
                     vscode.DiagnosticTag.Unnecessary,
                 ];
                 diags.push(diag);
+            } else {
+                // So this does not pollute subsequent assignments.
+                usedSymbols.delete(param.dummyReference);
             }
         }
     }
