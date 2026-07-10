@@ -66,13 +66,6 @@ beep BOOLEAN ::= TRUE
 END
 `;
 
-function fourCharsStartingAt(pos: vscode.Position): vscode.Range {
-    return new vscode.Range(
-        pos,
-        new vscode.Position(pos.line, pos.character + 4),
-    );
-}
-
 suite('Workspace Symbols', function () {
     // You have to use a regular function (not arrow) for `this` to be defined properly.
     // this.timeout(10000);
