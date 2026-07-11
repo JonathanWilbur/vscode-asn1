@@ -23,7 +23,6 @@ import type {
 } from '@wildboar/asn1-parser';
 
 // TODO: This could be ported to `@wildboar/asn1-parser` instead
-// TODO: Test this.
 /**
  * @internal Only exported for testing purposes.
  * @summary Without fully parsing a file, obtain the module and their imports
@@ -61,7 +60,7 @@ export function* getModuleNamesAndImportsFromTokenStream(
             i += importsStartIndex;
             let symbolsImported: string[] = [];
             let readingModuleName: boolean = false;
-            while (i < tokens.length) { // TODO: Make this end at END
+            while (i < (i + moduleEndIndex)) {
                 const importToken = tokens[i++];
                 if (importToken.type === "semiColon") {
                     break;
@@ -197,7 +196,6 @@ function* getFilesContainingModule(
     }
 }
 
-// TODO: Make this return URIs instead of strings?
 /**
  * @summary Fallibly find all references to a symbol
  * @description
@@ -231,7 +229,6 @@ function* findAllReferencesFallibly(
     }
 }
 
-// TODO: Make this return URIs instead of strings?
 /**
  * @summary Fallibly find all references to a module by name
  * @description
