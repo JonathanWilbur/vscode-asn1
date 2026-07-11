@@ -6,6 +6,9 @@ extension to perform proper ASN.1 parsing using my
 will result in better quality and more features than the previous
 implementation.
 
+[!diagnostics](./images/diagnostics.png)
+[!outline](./images/outline.png)
+
 ## Features
 
 - Syntax Highlighting
@@ -21,7 +24,7 @@ implementation.
 - Rename
 - Folding Ranges at assignments and modules
 - Code Actions: mostly just removing duplicate or unused imports
-- Both Inline and Dropdown Completions
+- Dropdown (not inline) Completions
 - Formatting (Very conservative: basically does not touch your assignments)
 - Selection Ranges
 - Signature Help when you are using parameterized assignments
@@ -46,6 +49,12 @@ implementation.
   - Export All ASN.1 Assignments in Current File to CSV
   - Export All ASN.1 Assignments in Entire Workspace to CSV
   - Export All ASN.1 Modules in Current File to JSON
+- Language Model (LM) Tools
+  - `asn1_get_imports`
+  - `asn1_get_exported_symbols`
+  - `asn1_get_assignments`
+  - `asn1_get_modules`
+  - `asn1_get_object_identifiers`
 
 The few remaining features that were not implemented were intentional: deemed
 to be low value or non-sensical. The features that were implemented are often
@@ -80,6 +89,9 @@ You may encounter quality issues in the following scenarios:
   so rarely used. I have a "database" of about 2000 published ASN.1 modules,
   and _none_ use XML value assignments, so I don't even have authoritative
   examples to validate my implementation with.
+- The language model tools have not been tested at all. It's pretty simple
+  code, so I think its correctly implemented, but I don't know how well it
+  will actually work when used with vibe-coding.
 
 ## Configuration
 
@@ -151,6 +163,11 @@ the file, just to remind you that you have otherwise disabled diagnostics.
 You can also globally disable diagnostics by setting `enableDiagnostics` to
 `false`.
 
+## Performance
+
+This seems to perform reasonably well. Even in a workspace with over 1500
+modules, it manages to index them in about seven to twenty seconds.
+
 ## AI / LLM Usage Statement
 
 Almost none of the code in this repository was written AI / LLMs, except a few
@@ -159,13 +176,7 @@ truly.
 
 ## To Do
 
-- [x] Language Model Tools
-  - [x] `asn1_get_imported_symbols` (rename to imports, since it could be used for just module relationships too)
-  - [x] `asn1_get_exported_symbols`
-  - [x] `asn1_get_assignments`
-  - [x] `asn1_get_modules`
-  - [x] `asn1_get_object_identifiers`
-- [ ] Screenshots
+- [x] Screenshots
 - [ ] CI/CD
 - [ ] Provenance
 
