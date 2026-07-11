@@ -300,12 +300,6 @@ async function get_oid_csv_rows_from_doc(
             }
             const v = assn.value;
             if (v.valueType !== ValueType.ObjectIdentifierValue) {
-                if (
-                    (assn.type.typeType !== TypeType.ObjectIdentifierType)
-                    && !typeTypesThatCouldBeAnything.has(assn.type.typeType)
-                ) {
-                    throw new Error("Yeet " + assn.type.typeType + " -?- " + v.valueType);
-                }
                 continue;
             }
             const arcs = await resolveOidValue(document, v.value, token, mod);
