@@ -5,7 +5,7 @@
   "description": "ASN.1 syntax, snippets, formatting, and more.",
   "version": "1.0.0",
   "engines": {
-    "vscode": "^1.116.0"
+    "vscode": "^1.118.0"
   },
   "publisher": "wildboar",
   "categories": [
