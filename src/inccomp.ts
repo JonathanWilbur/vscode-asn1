@@ -17,7 +17,6 @@ const keywordFollowupCompletions: ReadonlyMap<string, string> = new Map([
     ["CONSTRAINED", "BY"],
     ["EXPORTS", "ALL;"],
     ["ENCODED", "BY"],
-    ["IDENTIFIED", "BY"],
 ]);
 
 /**
