@@ -622,6 +622,53 @@ function suggestValuesForSet(currentModule: Module): vscode.CompletionItem[] {
 }
 
 /**
+ * @summary Get completion items for what comes after the opening curly bracket
+ *  for that type.
+ * @param cancel The cancellation token
+ * @param currentModule The current ASN.1 module
+ * @param name The type name
+ * @returns Completion items for what comes after the opening curly bracket
+ *  for that type.
+ * @function
+ */
+function getBuiltInTypeAfterCurly(
+    cancel: vscode.CancellationToken,
+    currentModule: Module,
+    name: string,
+): vscode.CompletionItem[] | null {
+    if (/OBJECT\s+IDENTIFIER/.test(name)) {
+        return suggestOidPrefixes(cancel, currentModule);
+    }
+    // I think this is unreachable.
+    if (name === "TYPE-IDENTIFIER") {
+        return [
+            COMPLETION_ITEM_TI_TYPE,
+            COMPLETION_ITEM_ID,
+        ];
+    }
+    // I think this is unreachable.
+    if (name === "ABSTRACT-SYNTAX") {
+        return [
+            COMPLETION_ITEM_AS_TYPE,
+            COMPLETION_ITEM_ID,
+            COMPLETION_ITEM_PROPERTY,
+        ];
+    }
+    if (name === "REAL") {
+        return REAL_COMPLETION_ITEMS;
+    }
+    if (name === "RELATIVE-OID") {
+        return provideDefinedSymbolsAsCompletionItems(
+            cancel,
+            currentModule,
+            false,
+            AssignmentType.ValueAssignment,
+        );
+    }
+    return null;
+}
+
+/**
  * @summary Suggest values after the user types an opening curly bracket
  * @description
  * 
@@ -638,9 +685,12 @@ function suggestValueAfterCurlyOpen(
     currentModule: Module,
     typeName: string,
 ): vscode.CompletionItem[] {
-    // TODO: Look up built-in type names too.
+    const builtInCompletions = getBuiltInTypeAfterCurly(cancel, currentModule, typeName);
+    if (builtInCompletions) {
+        return builtInCompletions;
+    }
     const typeassn = currentModule.assignments[typeName];
-    if (typeassn.assignmentType !== AssignmentType.TypeAssignment) {
+    if (typeassn?.assignmentType !== AssignmentType.TypeAssignment) {
         return [];
     }
     if (typeassn.type.typeType === TypeType.BitStringType) {
@@ -1013,6 +1063,11 @@ async function provideCompletionItems(
         }
     }
 
+    if (lastSigChar === "[" && !trimmed.endsWith("[[")) {
+        /* This could be for an `OptionalGroup`, but the tag class names are allowed there too. */
+        return TAG_CLASS_COMPLETION_ITEMS;
+    }
+
     const outputs = getLastValidParserOutputs(document.uri);
     if (
         !outputs
@@ -1023,11 +1078,13 @@ async function provideCompletionItems(
         return getVSCodeDefaultCompletions();
     }
     const modules = outputs.parsedModules.ok;
-    const currentModule = modules
+    let currentModule = modules
         .find((mod) => (
             mod.production
             && positionFallsWithin(document, position, mod.production)
         ));
+    currentModule ??= ((modules.length === 1) ? modules[0] : undefined);
+    // Everything below this requires an identified module.
     if (!currentModule) {
         return getVSCodeDefaultCompletions(); // User isn't even within an ASN.1 module.
     }
@@ -1064,9 +1121,6 @@ async function provideCompletionItems(
 
     if (lastSigChar === "|" || trimmed.endsWith("::=")) {
         return provideDefinedSymbolsAsCompletionItems(token, currentModule);
-    } else if (lastSigChar === "[" && !trimmed.endsWith("[[")) {
-        /* This could be for an `OptionalGroup`, but the tag class names are allowed there too. */
-        return TAG_CLASS_COMPLETION_ITEMS;
     } else if (lastSigChar === ":") {
         // These are the encoding references defined in ITU-T Recommendation X.680 (2021).
         // If the user types these in, the next possible suggestions are tag classes.
@@ -1119,7 +1173,7 @@ async function provideCompletionItems(
     } else if (lastSigChar === "<" && !trimmed.includes(">")) {
         return provideDefinedSymbolsAsCompletionItems(token, currentModule);
     } else if (lastSigChar === ",") {
-        // This code will probably be used for signature help.
+        // This code is used for signature help, too.
         let i = trimmed.length - 2;
         let depth: number = 0;
         while (i >= 0) {

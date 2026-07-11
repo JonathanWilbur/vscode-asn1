@@ -120,8 +120,7 @@ function drillSelectionRangesForPosition(
             return ret;
         }
     }
-    // TODO: Is this right? Shouldn't you just return the CST node?
-    // This only happens if the CST node has no children, I think.
+    // Somehow we got here, but none of the child CST nodes contained the position.
     return undefined;
 }
 

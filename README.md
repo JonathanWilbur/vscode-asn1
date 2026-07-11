@@ -159,6 +159,7 @@ truly.
 
 ## Future To Dos
 
+- [ ] Inline completions still sucks, especially `OBJECT IDENTIFIER`
 - [ ] Only suggest suitable types after `COMPONENTS OF`
 - [ ] Screenshots
 - [ ] Provenance

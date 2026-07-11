@@ -178,7 +178,6 @@ async function provideTypeDefinition(
         const def = t.type;
         return typeDefFromDefinedThing(cancel, def, mod1, uri1, false);
     }
-    // TODO: Resolve other types? built in types, at least?
     return Promise.reject(null);
 }
 

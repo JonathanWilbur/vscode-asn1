@@ -166,7 +166,6 @@ function provideRemoveImportSymbol(
     }
 }
 
-// TODO: Test this. I am not sure it will correctly handle different EOLs or productions that span lines.
 /**
  * @summary Create a VS Code action that removes some text
  * @description
@@ -264,7 +263,6 @@ async function provideCodeActions(
         return Promise.reject(null);
     }
     const modules = p.parsedModules;
-    // TODO: Check if all symbols in a SFM are unused and suggest SFM deletion
     const actions: vscode.CodeAction[] = [];
     for (const diag of context.diagnostics) {
         if (cancel.isCancellationRequested) {
