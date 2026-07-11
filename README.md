@@ -6,9 +6,6 @@ extension to perform proper ASN.1 parsing using my
 will result in better quality and more features than the previous
 implementation.
 
-[!diagnostics](./images/diagnostics.png)
-[!outline](./images/outline.png)
-
 ## Features
 
 - Syntax Highlighting
@@ -80,6 +77,11 @@ much other than by spending several months re-writing module (`P4 / WONTFIX`).
 
 There are probably other shortcomings I haven't listed above. I welcome PRs
 that aren't entirely AI slop.
+
+## Screenshots
+
+![diagnostics](./images/diagnostics.png)
+![outline](./images/outline.png)
 
 ## Quality Issues
 
@@ -176,7 +178,6 @@ truly.
 
 ## To Do
 
-- [x] Screenshots
 - [ ] CI/CD
 - [ ] Provenance
 
