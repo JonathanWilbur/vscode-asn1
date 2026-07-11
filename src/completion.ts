@@ -1024,16 +1024,18 @@ async function provideCompletionItems(
 ): Promise<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
     const line = document.lineAt(position.line);
     const lineTextBeforeCursor = line.text.slice(0, position.character);
-    // TODO: Should you still provide completions if asked? (no trigger character)
-    if (inOpenSyntaxRegion(lineTextBeforeCursor)) {
-        // Don't provide completions, because we are in a comment
-        // or string or something.
-        return getVSCodeDefaultCompletions();
-    }
-    // Try to avoid suggestions if the user is typing out a block comment.
-    if (context.triggerCharacter && line.text.trimEnd().endsWith("*/")) {
-        // Avoid providing 
-        return getVSCodeDefaultCompletions();
+
+    // We don't ignore open syntax regions if the user requested completions.
+    if (context.triggerKind !== vscode.CompletionTriggerKind.Invoke) {
+        if (inOpenSyntaxRegion(lineTextBeforeCursor)) {
+            // Don't provide completions, because we are in a comment
+            // or string or something.
+            return getVSCodeDefaultCompletions();
+        }
+        // Try to avoid suggestions if the user is typing out a block comment.
+        if (context.triggerCharacter && line.text.trimEnd().endsWith("*/")) {
+            return getVSCodeDefaultCompletions();
+        }
     }
 
     const trimmed = lineTextBeforeCursor.trimEnd();
