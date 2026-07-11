@@ -159,7 +159,14 @@ truly.
 
 ## Future To Dos
 
-- [ ] Inline completions still sucks, especially `OBJECT IDENTIFIER`
+- [ ] `vscode.lm.registerTool`
+- [ ] Inline completions
+  - I remove this entirely because it sucks. Probably my implementation, but
+    also VS code's handling of it. It seems so buggy I don't know how this
+    ever worked for GitHub Copilot, and I hate that there's now code that
+    runs on every key stroke. There is also no API for invoking the inline
+    completions, still, after this feature has been out for four years. So
+    I cannot even write unit tests for it. This will have to wait.
 - [ ] Only suggest suitable types after `COMPONENTS OF`
 - [ ] Screenshots
 - [ ] Provenance
