@@ -163,7 +163,7 @@ truly.
   - [x] `asn1_get_imported_symbols` (rename to imports, since it could be used for just module relationships too)
   - [x] `asn1_get_exported_symbols`
   - [x] `asn1_get_assignments`
-  - [ ] `asn1_get_modules`
+  - [x] `asn1_get_modules`
   - [ ] `asn1_get_object_identifiers`
 - [ ] Screenshots
 - [ ] CI/CD

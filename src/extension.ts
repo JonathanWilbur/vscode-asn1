@@ -35,6 +35,7 @@ import { GetImportedSymbolsTool } from "./lmtools/asn1_get_imported_symbols.js";
 import { GetExportedSymbolsTool } from "./lmtools/asn1_get_exported_symbols.js";
 import path from 'node:path';
 import { GetAssignmentsTool } from './lmtools/asn1_get_assignments.js';
+import { GetModulesTool } from './lmtools/asn1_get_modules.js';
 
 const LANGUAGE: string = "asn1";
 
@@ -183,6 +184,7 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.lm.registerTool("asn1_get_imported_symbols", new GetImportedSymbolsTool());
 	vscode.lm.registerTool("asn1_get_exported_symbols", new GetExportedSymbolsTool());
 	vscode.lm.registerTool("asn1_get_assignments", new GetAssignmentsTool());
+	vscode.lm.registerTool("asn1_get_modules", new GetModulesTool());
 
 	/* We have to do the most minimal indexing so we know what files have what
 	modules and what modules are in what files. This might not even really be
