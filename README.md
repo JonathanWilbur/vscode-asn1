@@ -157,9 +157,21 @@ Almost none of the code in this repository was written AI / LLMs, except a few
 tests and a few small functions. The vast majority of it was written by yours
 truly.
 
+## To Do
+
+- [ ] Language Model Tools
+  - [x] `asn1_get_imported_symbols`
+  - [ ] `asn1_get_exported_symbols`
+  - [ ] `asn1_get_imported_modules`
+  - [ ] `asn1_get_assignment_names`
+  - [ ] `asn1_get_modules`
+  - [ ] `asn1_get_object_identifiers`
+- [ ] Screenshots
+- [ ] CI/CD
+- [ ] Provenance
+
 ## Future To Dos
 
-- [ ] `vscode.lm.registerTool`
 - [ ] Inline completions
   - I remove this entirely because it sucks. Probably my implementation, but
     also VS code's handling of it. It seems so buggy I don't know how this
@@ -168,8 +180,6 @@ truly.
     completions, still, after this feature has been out for four years. So
     I cannot even write unit tests for it. This will have to wait.
 - [ ] Only suggest suitable types after `COMPONENTS OF`
-- [ ] Screenshots
-- [ ] Provenance
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.
