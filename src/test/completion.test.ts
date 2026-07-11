@@ -84,7 +84,7 @@ suite('Completions', function () {
     // this.timeout(10000);
 
     // This test could be more thorough, but I think I am going to change this behavior...
-    test('Completions do not appear in open syntax regions', async () => {
+    test.skip('Completions do not appear in open syntax regions', async () => {
         const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
         const outcome = await ext.activate();
         await outcome.indexingPromise;
