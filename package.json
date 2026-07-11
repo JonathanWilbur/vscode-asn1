@@ -146,15 +146,15 @@
     ],
     "languageModelTools": [
 			{
-				"name": "asn1_get_imported_symbols",
+				"name": "asn1_get_imports",
 				"tags": [
 					"import",
 					"symbols",
           "dependencies"
 				],
-				"toolReferenceName": "getImportedSymbols",
-				"displayName": "Get Imported Symbols",
-				"modelDescription": "Get a JSON manifest of the symbols imported in ASN.1 modules",
+				"toolReferenceName": "getImports",
+				"displayName": "Get Imported Modules and Symbols",
+				"modelDescription": "Get a JSON manifest of the modules and symbols imported in ASN.1 modules",
 				"canBeReferencedInPrompt": true,
 				"icon": "$(references)",
 				"inputSchema": {

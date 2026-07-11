@@ -5,7 +5,7 @@ import {
 } from '@wildboar/asn1-parser';
 import { type Scope, getModulesForScope } from "./scope.js";
 
-interface GetImportedSymbolsParameters {
+interface GetImportsParameters {
 	/** If omitted, the whole workspace is read. */
 	readonly scope?: Scope;
 }
@@ -29,9 +29,9 @@ interface GetImportedSymbolsResult {
 	modules: ModuleImports[];
 }
 
-export class GetImportedSymbolsTool implements vscode.LanguageModelTool<GetImportedSymbolsParameters> {
+export class GetImportsTool implements vscode.LanguageModelTool<GetImportsParameters> {
 	async invoke(
-		options: vscode.LanguageModelToolInvocationOptions<GetImportedSymbolsParameters>,
+		options: vscode.LanguageModelToolInvocationOptions<GetImportsParameters>,
 		token: vscode.CancellationToken
 	) {
 
@@ -110,7 +110,7 @@ export class GetImportedSymbolsTool implements vscode.LanguageModelTool<GetImpor
 	}
 
 	async prepareInvocation(
-		options: vscode.LanguageModelToolInvocationPrepareOptions<GetImportedSymbolsParameters>,
+		options: vscode.LanguageModelToolInvocationPrepareOptions<GetImportsParameters>,
 		_token: vscode.CancellationToken
 	) {
 		const scope = options.input.scope;

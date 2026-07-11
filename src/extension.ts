@@ -31,7 +31,7 @@ import {
 	export_modules_json_from_doc_cmd,
 } from "./commands.js";
 import { clearParserOutputCaches, get_last_parsed_doc_version_cmd } from './parsing.js';
-import { GetImportedSymbolsTool } from "./lmtools/asn1_get_imported_symbols.js";
+import { GetImportsTool } from "./lmtools/asn1_get_imported_symbols.js";
 import { GetExportedSymbolsTool } from "./lmtools/asn1_get_exported_symbols.js";
 import path from 'node:path';
 import { GetAssignmentsTool } from './lmtools/asn1_get_assignments.js';
@@ -182,7 +182,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// vscode.languages.registerOnTypeFormattingEditProvider: computationally expensive, annoying, overly opinionated, etc.
 	// vscode.languages.registerTypeHierarchyProvider: could be useful for X.500 object classes, but otherwise narrow use case
 
-	vscode.lm.registerTool("asn1_get_imported_symbols", new GetImportedSymbolsTool());
+	vscode.lm.registerTool("asn1_get_imports", new GetImportsTool());
 	vscode.lm.registerTool("asn1_get_exported_symbols", new GetExportedSymbolsTool());
 	vscode.lm.registerTool("asn1_get_assignments", new GetAssignmentsTool());
 	vscode.lm.registerTool("asn1_get_modules", new GetModulesTool());
