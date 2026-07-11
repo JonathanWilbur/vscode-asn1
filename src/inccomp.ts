@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { inOpenSyntaxRegion } from "./utils.js";
 
 /**
  * When the user finishes typing one of these keywords, suggest the
@@ -19,37 +18,34 @@ const keywordFollowupCompletions: ReadonlyMap<string, string> = new Map([
     ["ENCODED", "BY"],
 ]);
 
+// TODO: Just give up on inline completions? I can't even get unit tests working.
+
 /**
  * @summary Provide inline completion items, based on position within a document
  * @param document The current text document
  * @param position The cursor position within the document
  * @param token The cancellation token
- * @returns A promise that resolves an array of inline completion items
- * @async
+ * @returns An array of inline completion items
  * @function
  */
-async function provideInlineCompletionItems(
+function provideInlineCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken,
-): Promise<vscode.InlineCompletionItem[]> {
+): vscode.InlineCompletionItem[] {
     const line = document.lineAt(position.line);
     const lineBeforeCursor = line.text.slice(0, position.character);
-    if (inOpenSyntaxRegion(lineBeforeCursor)) {
+    if (/(--|\/\*|"|'|<)/.test(lineBeforeCursor)) {
         // Don't provide inline completions, because we are in a comment
-        // or string or something.
-        return [];
-    }
-    const openingPointyBracket = lineBeforeCursor.indexOf("<");
-    if (openingPointyBracket > -1 || token.isCancellationRequested) {
-        // Assume that we are in an XML value.
-        // Completions would be fine here, but not supported currently.
+        // or string or just in an XML value (which is not supported yet).
         return [];
     }
 
     const lineBeforeCursorEndTrimmed = lineBeforeCursor.trimEnd();
-
     const wordsBefore = lineBeforeCursorEndTrimmed.split(/\s+/);
+    if (wordsBefore.length <= 1) {
+        return [];
+    }
     if (
         (wordsBefore.length === 4)
         && (wordsBefore[0] === '')
@@ -78,6 +74,22 @@ async function provideInlineCompletionItems(
             ];
         }
     }
+
+    const zeroRange = new vscode.Range(position, position);
+
+    const lastWord = wordsBefore[wordsBefore.length - 1];
+    if (wordsBefore.length >= 2) {
+        const semiLastWord = wordsBefore[wordsBefore.length - 2];
+        for (const [completeWord1, completeWord2] of keywordFollowupCompletions.entries()) {
+            if (!completeWord2.startsWith(lastWord) || (semiLastWord !== completeWord1)) {
+                continue;
+            }
+            const remainingPhrase = completeWord2.slice(lastWord.length);
+            return [
+                new vscode.InlineCompletionItem(remainingPhrase, zeroRange),
+            ];
+        }
+    }
     
     const whitespacesBeforeCursor = lineBeforeCursor.length - lineBeforeCursorEndTrimmed.length;
     const positionBeforeLastWhitespace = new vscode.Position(
@@ -90,8 +102,6 @@ async function provideInlineCompletionItems(
     if (!prevWordText || token.isCancellationRequested) {
         return []; // If there is no previous word, we cannot suggest anything.
     }
-
-    const zeroRange = new vscode.Range(position, position);
 
     if (whitespacesBeforeCursor > 0) {
         // 1. The previous would must match lookup exactly.
@@ -112,6 +122,12 @@ async function provideInlineCompletionItems(
             }
             if (key.startsWith(prevWordText)) {
                 const remainingPhrase = `${key} ${value}`.slice(prevWordText.length);
+                return [
+                    new vscode.InlineCompletionItem(remainingPhrase, zeroRange),
+                ];
+            }
+            if (value.startsWith(prevWordText)) {
+                const remainingPhrase = value.slice(prevWordText.length);
                 return [
                     new vscode.InlineCompletionItem(remainingPhrase, zeroRange),
                 ];
