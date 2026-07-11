@@ -32,6 +32,7 @@ import {
 } from "./commands.js";
 import { clearParserOutputCaches, get_last_parsed_doc_version_cmd } from './parsing.js';
 import { GetImportedSymbolsTool } from "./lmtools/asn1_get_imported_symbols.js";
+import { GetExportedSymbolsTool } from "./lmtools/asn1_get_exported_symbols.js";
 import path from 'node:path';
 
 const LANGUAGE: string = "asn1";
@@ -179,6 +180,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// vscode.languages.registerTypeHierarchyProvider: could be useful for X.500 object classes, but otherwise narrow use case
 
 	vscode.lm.registerTool("asn1_get_imported_symbols", new GetImportedSymbolsTool());
+	vscode.lm.registerTool("asn1_get_exported_symbols", new GetExportedSymbolsTool());
 
 	/* We have to do the most minimal indexing so we know what files have what
 	modules and what modules are in what files. This might not even really be

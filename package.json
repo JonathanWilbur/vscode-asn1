@@ -208,6 +208,70 @@
             }
 					}
 				}
+			},
+      {
+				"name": "asn1_get_exported_symbols",
+				"tags": [
+					"import",
+					"symbols",
+          "dependencies"
+				],
+				"toolReferenceName": "getExportedSymbols",
+				"displayName": "Get Exported Symbols",
+				"modelDescription": "Get a JSON manifest of the symbols exported in ASN.1 modules",
+				"canBeReferencedInPrompt": true,
+				"icon": "$(references)",
+				"inputSchema": {
+					"type": "object",
+					"properties": {
+            "scope": {
+              "type": "object",
+              "description": "The scope (files, globs, exclusions, modules, etc.) in which to search",
+              "properties": {
+                "uris": {
+                  "type": "array",
+                  "description": "URIs of files to include",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "includeGlobs": {
+                  "type": "array",
+                  "description": "Globs of files to include",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "excludeGlob": {
+                  "type": "array",
+                  "description": "Globs of files to exclude",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "moduleName": {
+                  "type": "string",
+                  "description": "If set, filter out all modules that don't match this name"
+                },
+                "moduleOid": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2
+                },
+                "selectionOption": {
+                  "type": "string",
+                  "description": "Module selection option",
+                  "enum": [
+                    "successors",
+                    "descendants"
+                  ]
+                }
+              }
+            }
+					}
+				}
 			}
     ]
   },
