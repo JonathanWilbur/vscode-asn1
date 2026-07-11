@@ -80,7 +80,7 @@
                 {
                     "name": "comment.line",
                     "begin": "--",
-                    "end": "(\n|(?:--))"
+                    "end": "--|$"
                 },
                 {
                     "name": "comment.block",
