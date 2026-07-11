@@ -176,11 +176,6 @@ Almost none of the code in this repository was written AI / LLMs, except a few
 tests and a few small functions. The vast majority of it was written by yours
 truly.
 
-## To Do
-
-- [ ] CI/CD
-- [ ] Provenance
-
 ## Future To Dos
 
 - [ ] Inline completions
