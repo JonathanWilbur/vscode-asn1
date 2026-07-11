@@ -16,6 +16,10 @@ import type {
     VersionNumber,
 } from "./types.js";
 import { log } from "./logging.js";
+// This approach seems to make the startup indexing 3x slower, but I
+// think it makes cancellation work, though, so I think it should be
+// a smoother operation overall. It just seems like a good idea.
+import { setImmediate as yieldToEventLoop } from "node:timers/promises";
 
 /**
  * The stage of parsing to stop at. This is used when subsequent stages are
@@ -164,6 +168,7 @@ export async function getParserOutputs(
         return outputs;
     }
 
+    await yieldToEventLoop();
     if (stopAt === "lexing" || cancel?.isCancellationRequested) {
         return outputs;
     }
@@ -187,6 +192,7 @@ export async function getParserOutputs(
         return outputs;
     }
 
+    await yieldToEventLoop();
     if (stopAt === "parsing" || cancel?.isCancellationRequested) {
         return outputs;
     }
@@ -194,7 +200,7 @@ export async function getParserOutputs(
     // Grok: convert the Concrete Syntax Tree (CST) into abstract modules
     try {
         const modules = grok(text, outputs.parserEndState.ok);
-        // TODO: Should you use setImmediate or something to yield to the scheduler?
+        await yieldToEventLoop();
         if (cancel?.isCancellationRequested) {
             return outputs;
         }
