@@ -6,7 +6,9 @@ the bar at the top of the Marketplace website if you hover over it) is a UUID
 starting with `54e70768-4773-6137`.
 
 To publish, log into Azure DevOps using "Microsoft Account," not "Default
-Directory." I'm not even sure WTF that means.
+Directory." I'm not even sure WTF that means. I did not need access to any
+form of MFA that I didn't already have access to on my current devices. My
+attempt to resurrect my old phones was a waste of time.
 
 Log into the [`wildboarsoftware`](https://dev.azure.com/wildboarsoftware)
 organization. I think the project literally does not matter. The `VSCE_PAT`
