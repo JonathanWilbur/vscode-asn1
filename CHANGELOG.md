@@ -11,6 +11,12 @@ See the [README](./README.md) for information on versioning.
 
 - Nothing here yet
 
+## [1.0.1] - 2026-07-12
+
+- Add screenshot of hover over `OBJECT IDENTIFIER` to `README.md`
+- Fix ugly gallery banner theme
+- Pin GitHub Actions versions
+
 ## [1.0.0] - 2026-07-12
 
 - Complete Re-write using the
