@@ -17,14 +17,14 @@
   "icon": "images/Icon512.png",
   "homepage": "https://github.com/JonathanWilbur/vscode-asn1/README.md",
   "contributes": {
-      "configurationDefaults": {
-        "[asn1]": {
-            "editor.quickSuggestions": {
-                "other": "on",
-                "comments": "off",
-                "strings": "off"
-            }
+    "configurationDefaults": {
+      "[asn1]": {
+        "editor.quickSuggestions": {
+          "other": "on",
+          "comments": "off",
+          "strings": "off"
         }
+      }
     },
     "configuration": {
       "title": "ASN.1 Language",
@@ -145,21 +145,21 @@
       }
     ],
     "languageModelTools": [
-			{
-				"name": "asn1_get_imports",
-				"tags": [
-					"import",
-					"symbols",
+      {
+        "name": "asn1_get_imports",
+        "tags": [
+          "import",
+          "symbols",
           "dependencies"
-				],
-				"toolReferenceName": "getImports",
-				"displayName": "Get Imported Modules and Symbols",
-				"modelDescription": "Get a JSON manifest of the modules and symbols imported in ASN.1 modules",
-				"canBeReferencedInPrompt": true,
-				"icon": "$(references)",
-				"inputSchema": {
-					"type": "object",
-					"properties": {
+        ],
+        "toolReferenceName": "getImports",
+        "displayName": "Get Imported Modules and Symbols",
+        "modelDescription": "Get a JSON manifest of the modules and symbols imported in ASN.1 modules",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(references)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
             "scope": {
               "type": "object",
               "description": "The scope (files, globs, exclusions, modules, etc.) in which to search",
@@ -206,24 +206,24 @@
                 }
               }
             }
-					}
-				}
-			},
+          }
+        }
+      },
       {
-				"name": "asn1_get_exported_symbols",
-				"tags": [
-					"import",
-					"symbols",
+        "name": "asn1_get_exported_symbols",
+        "tags": [
+          "import",
+          "symbols",
           "dependencies"
-				],
-				"toolReferenceName": "getExportedSymbols",
-				"displayName": "Get Exported Symbols",
-				"modelDescription": "Get a JSON manifest of the symbols exported in ASN.1 modules",
-				"canBeReferencedInPrompt": true,
-				"icon": "$(references)",
-				"inputSchema": {
-					"type": "object",
-					"properties": {
+        ],
+        "toolReferenceName": "getExportedSymbols",
+        "displayName": "Get Exported Symbols",
+        "modelDescription": "Get a JSON manifest of the symbols exported in ASN.1 modules",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(references)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
             "scope": {
               "type": "object",
               "description": "The scope (files, globs, exclusions, modules, etc.) in which to search",
@@ -270,24 +270,24 @@
                 }
               }
             }
-					}
-				}
-			},
+          }
+        }
+      },
       {
-				"name": "asn1_get_assignments",
-				"tags": [
-					"assignments",
-					"definitions",
+        "name": "asn1_get_assignments",
+        "tags": [
+          "assignments",
+          "definitions",
           "identifiers"
-				],
-				"toolReferenceName": "getAssignments",
-				"displayName": "Get Assignments",
-				"modelDescription": "Get a JSON manifest of the assignments defined in ASN.1 modules",
-				"canBeReferencedInPrompt": true,
-				"icon": "$(list-unordered)",
-				"inputSchema": {
-					"type": "object",
-					"properties": {
+        ],
+        "toolReferenceName": "getAssignments",
+        "displayName": "Get Assignments",
+        "modelDescription": "Get a JSON manifest of the assignments defined in ASN.1 modules",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(list-unordered)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
             "scope": {
               "type": "object",
               "description": "The scope (files, globs, exclusions, modules, etc.) in which to search",
@@ -334,22 +334,22 @@
                 }
               }
             }
-					}
-				}
-			},
+          }
+        }
+      },
       {
-				"name": "asn1_get_modules",
-				"tags": [
-					"modules"
-				],
-				"toolReferenceName": "getModules",
-				"displayName": "Get Modules",
-				"modelDescription": "Get a JSON manifest of ASN.1 modules found in ASN.1 files",
-				"canBeReferencedInPrompt": true,
-				"icon": "$(package)",
-				"inputSchema": {
-					"type": "object",
-					"properties": {
+        "name": "asn1_get_modules",
+        "tags": [
+          "modules"
+        ],
+        "toolReferenceName": "getModules",
+        "displayName": "Get Modules",
+        "modelDescription": "Get a JSON manifest of ASN.1 modules found in ASN.1 files",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(package)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
             "scope": {
               "type": "object",
               "description": "The scope (files, globs, exclusions, modules, etc.) in which to search",
@@ -396,23 +396,23 @@
                 }
               }
             }
-					}
-				}
-			},
+          }
+        }
+      },
       {
-				"name": "asn1_get_object_identifiers",
-				"tags": [
-					"identifiers",
+        "name": "asn1_get_object_identifiers",
+        "tags": [
+          "identifiers",
           "oids"
-				],
-				"toolReferenceName": "getObjectIdentifiers",
-				"displayName": "Get Object Identifiers",
-				"modelDescription": "Get a JSON manifest of object identifiers found in ASN.1 files",
-				"canBeReferencedInPrompt": true,
-				"icon": "$(tag)",
-				"inputSchema": {
-					"type": "object",
-					"properties": {
+        ],
+        "toolReferenceName": "getObjectIdentifiers",
+        "displayName": "Get Object Identifiers",
+        "modelDescription": "Get a JSON manifest of object identifiers found in ASN.1 files",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(tag)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
             "scope": {
               "type": "object",
               "description": "The scope (files, globs, exclusions, modules, etc.) in which to search",
@@ -459,9 +459,9 @@
                 }
               }
             }
-					}
-				}
-			}
+          }
+        }
+      }
     ]
   },
   "scripts": {
@@ -515,6 +515,6 @@
   "pricing": "Free",
   "dependencies": {
     "@wildboar/asn1": "npm:@jsr/wildboar__asn1@^11.1.0",
-    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.5.1"
+    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.6.0"
   }
 }
