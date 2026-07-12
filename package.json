@@ -3,7 +3,7 @@
   "type": "module",
   "displayName": "ASN.1",
   "description": "ASN.1 syntax, snippets, formatting, and more.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.118.0"
   },
@@ -509,7 +509,7 @@
     "x509"
   ],
   "galleryBanner": {
-    "color": "#FFFF00",
+    "color": "#141414",
     "theme": "dark"
   },
   "pricing": "Free",
