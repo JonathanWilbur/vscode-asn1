@@ -1,3 +1,4 @@
+# Default ignores
 .vscode/**
 .vscode-test/**
 out/**
@@ -12,3 +13,32 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+
+# These ideas come from here: https://github.com/microsoft/vscode-python/blob/ef1b46997fc30355d220e9e12046927d3fdafdd5/.vscodeignore#L20
+package-lock.json
+**/.env
+*.vsix
+.editorconfig
+.env
+.eslintrc
+.eslintignore
+.gitattributes
+.gitmodules
+.git*
+CODE_OF_CONDUCT.md
+CODING_STANDARDS.md
+CONTRIBUTING.md
+.nvm/**
+tmp/**
+.github/**
+scripts/**
+build/**
+*.log
+
+# My own additions
+doc/**
+AGENTS.md
+testroot/**
+
+# I am NOT excluding CHANGELOG.md, because I think it is used to populate the
+# Changelog tab in Marketplace.
