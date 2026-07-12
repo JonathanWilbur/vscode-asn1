@@ -165,6 +165,18 @@ the file, just to remind you that you have otherwise disabled diagnostics.
 You can also globally disable diagnostics by setting `enableDiagnostics` to
 `false`.
 
+## Versioning
+
+In this project, a major version change (breaking change) means any change that
+(knowingly):
+
+- Makes a user's existing configuration not work as expected
+- Removes a column from CSV export formats
+- Adds a column to CSV export formats anywhere other than at the end
+- Removes or renames fields used in JSON exports
+
+The above is what is considered "breaking" for versioning purposes.
+
 ## Performance
 
 This seems to perform reasonably well. Even in a workspace with over 1500

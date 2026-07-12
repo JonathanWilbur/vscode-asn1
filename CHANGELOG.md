@@ -1,9 +1,17 @@
 # Change Log
 
-All notable changes to the "asn1" extension will be documented in this file.
+The format is based on
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+See the [README](./README.md) for information on versioning.
 
 ## [Unreleased]
 
-- Initial release
+- Nothing here yet
+
+## [1.0.0] - 2026-07-12
+
+- Complete Re-write using the
+  [`@wildboar/asn1-parser`](https://jsr.io/@wildboar/asn1-parser) ESM module.
