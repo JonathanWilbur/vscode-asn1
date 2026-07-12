@@ -1,4 +1,6 @@
 # Copied, then modified, from: https://code.visualstudio.com/api/working-with-extensions/continuous-integration#github-actions
+name: Release
+
 on:
   release:
     types:
