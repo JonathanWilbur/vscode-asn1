@@ -22,6 +22,12 @@ import {
     ValueType,
     keywordsForbiddenAsLiterals,
     ProductionType,
+    type ObjectAssignment,
+    type TokenOrGroupSpec,
+    type Defined,
+    translateDefinedSyntaxToDefaultSyntax,
+    type DefinedSyntax,
+    type Setting,
 } from "@wildboar/asn1-parser";
 import {
     resolveDefined,
@@ -38,6 +44,7 @@ import {
     generalizedTimeRegex,
     DURATION_EQUIVALENT,
 } from "@wildboar/asn1";
+import { resolve } from "path";
 
 /**
  * Defined because utcTimeRegex uses the `^` and `$` operators, which does not
@@ -729,6 +736,92 @@ function provideOctetStringHover(
     return new vscode.Hover(md, range);
 }
 
+function getTextFromSetting(s: Setting, documentText: string): string | null {
+    const text = 
+        s.text
+        || (("type" in s) && ("text" in s.type) && s.type.text)
+        || (("value" in s) && ("text" in s.value) && s.value.text)
+        || (("object" in s) && ("text" in s.object) && s.object.text)
+        || (("objectSet" in s) && ("text" in s.objectSet) && s.objectSet.text)
+        || (("valueSet" in s) && ("text" in s.valueSet) && s.valueSet.text)
+        ;
+    if (text) {
+        return text;
+    }
+    const prod =
+        s.production
+        ?? (("type" in s) && ("production" in s.type) && s.type.production)
+        ?? (("value" in s) && ("production" in s.value) && s.value.production)
+        ?? (("object" in s) && ("production" in s.object) && s.object.production)
+        ?? (("objectSet" in s) && ("production" in s.objectSet) && s.objectSet.production)
+        ?? (("valueSet" in s) && ("production" in s.valueSet) && s.valueSet.production)
+        ;
+    if (prod) {
+        const loc = prod.location;
+        return documentText.slice(loc.startIndex, loc.endIndex);
+    }
+    return null;
+}
+
+async function provideDefaultSyntaxHover(
+    cancel: vscode.CancellationToken,
+    document: vscode.TextDocument,
+    currentModule: Module,
+    objectClassRef: Defined,
+    obj: DefinedSyntax,
+    range?: vscode.Range,
+): Promise<vscode.Hover | null> {
+    if (objectClassRef.parameters?.length) {
+        return null;
+    }
+    const ocresolved = await resolveDefined(
+        cancel,
+        objectClassRef.module ?? objectClassRef.computedModule,
+        objectClassRef.reference,
+        currentModule,
+        document.uri,
+    );
+    if (!ocresolved) {
+        return null;
+    }
+    const [ ocassn ] = ocresolved;
+    if (
+        (ocassn.assignmentType !== AssignmentType.ObjectClassAssignment)
+        || ocassn.parameters?.length
+        || !("syntax" in ocassn.objectClass)
+        || !ocassn.objectClass.syntax
+    ) {
+        return null;
+    }
+    const syntax = ocassn.objectClass.syntax;
+    // ObjectClass ::= DefinedObjectClass | ObjectClassDefn | ParameterizedObjectClass
+    const [translation] = translateDefinedSyntaxToDefaultSyntax(obj, syntax, currentModule);
+    if (!translation) {
+        return null;
+    }
+    const longestFieldName = Object.keys(translation.fieldSettings)
+        .map((fn) => fn.length)
+        .reduce((prev, curr) => curr > prev ? curr : prev, 0);
+    const fieldNameColumnWidth = longestFieldName;
+    const text = document.getText();
+    const fieldSettings: string[] = [];
+    for (const [fn, fv] of Object.entries(translation.fieldSettings)) {
+        const fvtext = getTextFromSetting(fv, text);
+        if (!fvtext) {
+            return null;
+        }
+        const fieldSetting = `  ${fn.padEnd(fieldNameColumnWidth, " ")} ${fvtext}`;
+        fieldSettings.push(fieldSetting);
+    }
+
+    const mds = new vscode.MarkdownString();
+    mds.appendMarkdown("ASN.1 information object of class `" + ocassn.identifier + "`\n\n");
+    mds.appendMarkdown("## Default Syntax Equivalent\n\n");
+    const codeblock = "{\n" + fieldSettings.join(",\n") + "\n}";
+    mds.appendCodeblock(codeblock, "asn1");
+    return new vscode.Hover(mds, range);
+}
+
 /**
  * @summary Provide information on hover
  * @param document The current text document
@@ -926,8 +1019,24 @@ async function provideHover(
                     wordText
                     && (wordText.toUpperCase() === wordText)
                     && !keywordsForbiddenAsLiterals.has(wordText as ProductionType)
-                ) { // Looks like a literal. Do not provide hover.
-                    return Promise.reject(null);
+                ) {
+                    // Looks like a literal.
+                    // Attempt to translate defined syntax into default syntax
+                    // and display a hover containing the default syntax.
+                    const defaultSyntaxHover = await provideDefaultSyntaxHover(
+                        cancel,
+                        document,
+                        currentModule,
+                        currentAssignment.definedObjectClass,
+                        obj,
+                        wordRange,
+                    );
+                    if (defaultSyntaxHover) {
+                        return defaultSyntaxHover;
+                    } else {
+                        // Failed to translate to default syntax
+                        return Promise.reject(null);
+                    }
                 }
             }
 
