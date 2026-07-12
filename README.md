@@ -83,6 +83,7 @@ that aren't entirely AI slop.
 ![Diagnostic warning produced by the wildboar.asn1 VS Code extension showing an imported symbol and module not being used](./images/diagnostics.png)
 ![Outline showcasing document symbols identified by the wildboar.asn1 VS Code extension](./images/outline.png)
 ![VS Code hover over an OBJECT IDENTIFIER produced by the wildboar.asn1 VS Code extension](./images/oid-hover.png)
+![VS Code hover over an information object produced by the wildboar.asn1 VS Code extension](./images/default-syntax-hover.png)
 
 ## Quality Issues
 
@@ -183,11 +184,26 @@ The above is what is considered "breaking" for versioning purposes.
 This seems to perform reasonably well. Even in a workspace with over 1500
 modules, it manages to index them in about seven to twenty seconds.
 
+This was not implemented as an LSP server. The parser was already written in
+TypeScript, so its going to be slower than a compiled language, but it has
+the benefit of being able to run directly in VS code's memory, so there is
+no overhead of IPC to incur.
+
 ## AI / LLM Usage Statement
 
 Almost none of the code in this repository was written AI / LLMs, except a few
 tests and a few small functions. The vast majority of it was written by yours
 truly.
+
+## Command Output Samples
+
+You can see samples of the outputs of the CSV export commands in the
+`sample-exports` folder.
+
+- [`assignments.csv`](./sample-exports/assignments.csv)
+- [`imports-exports.csv`](./sample-exports/imports-exports.csv)
+- [`modules.csv`](./sample-exports/modules.csv)
+- [`oids.csv`](./sample-exports/oids.csv)
 
 ## Future To Dos
 

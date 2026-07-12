@@ -39,6 +39,7 @@ build/**
 doc/**
 AGENTS.md
 testroot/**
+sample-exports/**
 
 # I am NOT excluding CHANGELOG.md, because I think it is used to populate the
 # Changelog tab in Marketplace.
