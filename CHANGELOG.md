@@ -11,6 +11,11 @@ See the [README](./README.md) for information on versioning.
 
 - Nothing here yet
 
+## [1.1.0] - 2026-07-12
+
+- Display `DefaultSyntax` equivalent of an information object when hovering
+  over a `Literal` in an information object defined using the `DefinedSyntax`.
+
 ## [1.0.1] - 2026-07-12
 
 - Add screenshot of hover over `OBJECT IDENTIFIER` to `README.md`
