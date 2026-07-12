@@ -80,8 +80,9 @@ that aren't entirely AI slop.
 
 ## Screenshots
 
-![diagnostics](./images/diagnostics.png)
-![outline](./images/outline.png)
+![Diagnostic warning produced by the wildboar.asn1 VS Code extension showing an imported symbol and module not being used](./images/diagnostics.png)
+![Outline showcasing document symbols identified by the wildboar.asn1 VS Code extension](./images/outline.png)
+![VS Code hover over an OBJECT IDENTIFIER produced by the wildboar.asn1 VS Code extension](./images/oid-hover.png)
 
 ## Quality Issues
 
@@ -201,6 +202,8 @@ truly.
 - [ ] Propose merging duplicate modules
 - [ ] Export X.500 Information Objects? (Support LDIF as well)
   - I am taking a break from this. It's just way too complicated for something I'll want as a one-off.
+- [ ] Show production type on hover?
+- [ ] Export Information Objects to JSON (translates to defined syntax)
 - [ ] Warnings
   - [ ] (MIN..MAX) unnecessary
   - [ ] GeneralString use is discouraged (Page 182 Dubuisson)
