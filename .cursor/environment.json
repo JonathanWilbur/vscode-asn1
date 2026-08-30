@@ -1,0 +1,4 @@
+{
+  "name": "vscode-asn1",
+  "install": "npm ci"
+}
