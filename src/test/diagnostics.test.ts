@@ -209,8 +209,8 @@ END
 NamedBitUse
 DEFINITIONS ::= BEGIN
 Holder{INTEGER:x} ::= SEQUENCE { f INTEGER DEFAULT x }
-alias Holder{ week1 }
-unknown Holder{ totallyBogusBit }
+Alias ::= Holder{ week1 }
+Unknown ::= Holder{ totallyBogusBit }
 END
 `,
         });
