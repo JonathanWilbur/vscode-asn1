@@ -1343,6 +1343,27 @@ const selfContainedProductions: Set<string> = new Set([
 const SYMBOL_NOT_DEFINED: string = "symbol not assigned in this module, nor imported";
 
 /**
+ * @summary Record identifier names from an `IdentifierList` as used symbols
+ * @param document The current text document
+ * @param node The `IdentifierList` CST node, or a descendant
+ * @param usedSymbols The set of used symbols to insert identifiers into
+ * @function
+ */
+function collectIdentifiersFromIdentifierList(
+    document: vscode.TextDocument,
+    node: Production,
+    usedSymbols: Set<string>,
+): void {
+    if (node.type === "identifier") {
+        usedSymbols.add(document.getText(getRangeFromLocation(document, node.location)));
+        return;
+    }
+    for (const child of node.children) {
+        collectIdentifiersFromIdentifierList(document, child, usedSymbols);
+    }
+}
+
+/**
  * @summary Drill into the Concrete Syntax Tree (CST) to find undefined symbols
  * @description
  * 
@@ -1361,6 +1382,7 @@ const SYMBOL_NOT_DEFINED: string = "symbol not assigned in this module, nor impo
  * @param assignment The current assignment
  * @param recursionTTL The recursion TTL: recursion limit, after which this function
  *  immediately returns without doing anything.
+ * @param insideSetting `true` if `cstnode` falls within a `Setting` production
  * @function
  */
 function drillForUndefinedSymbols(
@@ -1372,12 +1394,24 @@ function drillForUndefinedSymbols(
     enumItemsDefined: Set<string>,
     assignment: Assignment | undefined,
     recursionTTL: number = 100,
+    insideSetting: boolean = false,
 ): void {
     if (recursionTTL <= 0) {
         return;
     }
     recursionTTL--;
     for (const child of cstnode.children) {
+        const childInsideSetting = insideSetting || (child.type === "Setting");
+        /*
+        The parser prefers to read `{ ident, ident, ... }` as a BitStringValue
+        IdentifierList rather than an ObjectSet. When that production is a
+        Setting in an ObjectDefn (e.g. SUBCLASS OF {top}), those identifiers
+        are object references and must be counted as used.
+        */
+        if (childInsideSetting && (child.type === "IdentifierList")) {
+            collectIdentifiersFromIdentifierList(document, child, usedSymbols);
+            continue;
+        }
         if (selfContainedProductions.has(child.type)) {
             continue;
         }
@@ -1422,6 +1456,7 @@ function drillForUndefinedSymbols(
                     enumItemsDefined,
                     assignment,
                     recursionTTL,
+                    childInsideSetting,
                 );
             }
             const isDefinedEnumVariant: boolean = (
@@ -1455,6 +1490,7 @@ function drillForUndefinedSymbols(
                 enumItemsDefined,
                 assignment,
                 recursionTTL,
+                childInsideSetting,
             );
         }
     }
