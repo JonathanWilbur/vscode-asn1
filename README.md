@@ -20,7 +20,7 @@ implementation.
 - Find All References
 - Rename
 - Folding Ranges at assignments and modules
-- Code Actions: mostly just removing duplicate or unused imports
+- Code Actions: removing duplicate or unused imports, and treating an undefined identifier as defined
 - Dropdown (not inline) Completions
 - Formatting (Very conservative: basically does not touch your assignments)
 - Selection Ranges
@@ -32,11 +32,13 @@ implementation.
 - Diagnostics
   - Duplicate, unused, and undefined symbols, imports, exports, modules, etc.
   - Duplicate named bits, integers, `ENUMERATED` variants
+  - Implicitly imported `ENUMERATED` variants, named integers, and named bits
   - Malformed `OBJECT IDENTIFIER`s
   - Malformed strings and time types
   - `COMPONENTS OF` referring to an invalid type
 - Commands
   - Refresh ASN.1 Diagnostics
+  - Re-index ASN.1 Named Bits, Integers, and Enumerated Variants
   - Export All Object Identifiers in Current File to CSV
   - Export All Object Identifiers in Entire Workspace to CSV
   - Export All ASN.1 Imports and Exports in Current File to CSV
@@ -135,6 +137,14 @@ Here are the configuration options:
       "crlf"
     ],
     "description": "Line endings for CSV exports. Defaults to the line endings of the source ASN.1 file."
+  },
+  "asn1.alwaysDefined": {
+    "type": "array",
+    "items": {
+      "type": "string"
+    },
+    "default": [],
+    "description": "Identifiers to always treat as defined (for example ENUMERATED variants used without import)."
   }
 }
 ```

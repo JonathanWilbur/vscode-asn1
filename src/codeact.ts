@@ -4,6 +4,7 @@ import {
     DIAG_CODE_IMPORT_SYMBOL_UNUSED,
     DIAG_CODE_ASSIGNMENT_DUP,
     DIAG_CODE_IMPORT_MODULE_UNUSED,
+    DIAG_CODE_SYMBOL_NOT_DEFINED,
 } from "./diagnostics.js";
 import { getParserOutputsWithLogging } from "./parsing.js";
 import { getRangeFromLocation, positionFallsWithin } from "./utils.js";
@@ -208,6 +209,42 @@ function provideRemove(
 }
 
 /**
+ * @summary Provide a quick fix that treats an undefined identifier as defined
+ * @description
+ *
+ * This is analogous to "Add to Dictionary" in a spell checker: the identifier
+ * is appended to `asn1.alwaysDefined` so it is no longer diagnosed as an
+ * unimported symbol.
+ *
+ * @param document The text document
+ * @param diag The "symbol not defined" diagnostic
+ * @returns A VS Code quick-fix action, or `null` if the identifier cannot be read
+ * @author Cursor Grok 4.6
+ * @function
+ */
+function provideTreatAsDefined(
+    document: vscode.TextDocument,
+    diag: vscode.Diagnostic,
+): vscode.CodeAction | null {
+    const wordRange = document.getWordRangeAtPosition(diag.range.start) ?? diag.range;
+    const identifier = document.getText(wordRange);
+    if (!identifier) {
+        return null;
+    }
+    const action = new vscode.CodeAction(
+        `Treat '${identifier}' as defined`,
+        vscode.CodeActionKind.QuickFix,
+    );
+    action.diagnostics = [diag];
+    action.command = {
+        title: `Treat '${identifier}' as defined`,
+        command: "asn1.treatAsDefined",
+        arguments: [identifier, document.uri],
+    };
+    return action;
+}
+
+/**
  * @summary Provide code actions for a single diagnostic
  * @param document The text document
  * @param diag The diagnostic for which code actions are proposed
@@ -238,6 +275,13 @@ async function provideCodeActionsForOneDiag(
         case (DIAG_CODE_IMPORT_MODULE_UNUSED):
             actions.push(provideRemove(document, diag, "module import"));
             return;
+        case (DIAG_CODE_SYMBOL_NOT_DEFINED): {
+            const treatAsDefined = provideTreatAsDefined(document, diag);
+            if (treatAsDefined) {
+                actions.push(treatAsDefined);
+            }
+            return;
+        }
         default: return;
     }
 }
