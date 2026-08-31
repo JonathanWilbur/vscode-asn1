@@ -39,13 +39,12 @@ import { pollUntilParsingIsDone } from './utils.test.js';
 const DIAGNOSTICS_TEST_FILE: string = "DiagnosticsTest.asn1";
 
 /**
- * Two modules in one file: the importing module uses `ENUMERATED` variants
- * from the defining module's information object class without importing them.
+ * Defining module for the implicit `ENUMERATED` import tests.
  *
- * `directoryOperationOrphan` is a made-up identifier so the value-assignment
- * case is distinguishable from the legitimate `directoryOperation` variant.
+ * This must live in a separate document from the importing module so that
+ * file-local `definedEnumItems` cannot mask a missing import.
  */
-const IMPLICIT_ENUM_IMPORT_ASN1: string = `
+const IMPLICIT_ENUM_DEFINING_ASN1: string = `
 ImplicitEnumDefining DEFINITIONS ::= BEGIN
 
 AttributeUsage ::= ENUMERATED {
@@ -87,7 +86,16 @@ id-b OBJECT IDENTIFIER ::= { joint-iso-itu-t(2) 2 4 }
 id-c OBJECT IDENTIFIER ::= { joint-iso-itu-t(2) 2 5 }
 
 END
+`;
 
+/**
+ * Importing module that uses `ENUMERATED` variants from
+ * `ImplicitEnumDefining` without importing those variants.
+ *
+ * `directoryOperationOrphan` is a made-up identifier so the value-assignment
+ * case is distinguishable from the legitimate `directoryOperation` variant.
+ */
+const IMPLICIT_ENUM_IMPORTING_ASN1: string = `
 ImplicitEnumImporting DEFINITIONS ::= BEGIN
 
 IMPORTS
@@ -208,17 +216,23 @@ suite('Diagnostics', function () {
         const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
         const outcome = await ext.activate();
         await outcome.indexingPromise;
-        const document = await vscode.workspace.openTextDocument({
+        const definingDoc = await vscode.workspace.openTextDocument({
             language: "asn1",
-            content: IMPLICIT_ENUM_IMPORT_ASN1,
+            content: IMPLICIT_ENUM_DEFINING_ASN1,
         });
-        await vscode.window.showTextDocument(document);
-        await pollUntilParsingIsDone(document);
-        await vscode.commands.executeCommand("asn1.diagnose", document.uri);
-        const actualDiagnostics = vscode.languages.getDiagnostics(document.uri);
+        const importingDoc = await vscode.workspace.openTextDocument({
+            language: "asn1",
+            content: IMPLICIT_ENUM_IMPORTING_ASN1,
+        });
+        await vscode.window.showTextDocument(definingDoc);
+        await vscode.window.showTextDocument(importingDoc);
+        await pollUntilParsingIsDone(definingDoc);
+        await pollUntilParsingIsDone(importingDoc);
+        await vscode.commands.executeCommand("asn1.diagnose", importingDoc.uri);
+        const actualDiagnostics = vscode.languages.getDiagnostics(importingDoc.uri);
         const undefinedSymbols = actualDiagnostics
             .filter((diag) => diag.code === DIAG_CODE_SYMBOL_NOT_DEFINED)
-            .map((diag) => document.getText(diag.range));
+            .map((diag) => importingDoc.getText(diag.range));
 
         for (const allowed of [
             "directoryOperation",
