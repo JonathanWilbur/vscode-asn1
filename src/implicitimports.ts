@@ -24,6 +24,24 @@ import { startsWithLowercaseLetter } from "./utils.js";
 import type { FileURIStr, VersionNumber } from "./types.js";
 
 /**
+ * Synchronous lookup table of implicitly imported `ENUMERATED` variants,
+ * produced by {@link prefetchImplicitEnumImports} before CST drilling.
+ */
+export interface ImplicitEnumImportIndex {
+    /**
+     * Per object-assignment identifier, lowercase identifiers that are
+     * `ENUMERATED` variants of a value field of that object.
+     */
+    readonly variantsByAssignment: Map<string, Set<string>>;
+    /**
+     * Object assignments whose class or `ENUMERATED` types could not be
+     * resolved. Lowercase identifiers in these assignments are not flagged
+     * as missing imports (false negatives preferred over false positives).
+     */
+    readonly unresolvedAssignments: Set<string>;
+}
+
+/**
  * Cache of resolved information-object-class ENUMERATED variants, scoped to
  * an importing ASN.1 module at a given document version.
  */
@@ -187,51 +205,32 @@ function fieldNameStartsWithLowercase(fieldName: string): boolean {
 }
 
 /**
- * @summary Determine whether a setting is the given unqualified identifier
+ * @summary Extract an unqualified lowercase identifier from a value setting
  * @param setting A default-syntax field setting
- * @param identifier The identifier being resolved
- * @returns `true` if this setting is that identifier
+ * @returns The identifier, or `undefined` if this setting is not one
  * @function
  */
-function settingIsIdentifier(setting: Setting, identifier: string): boolean {
+function lowercaseIdentifierFromSetting(setting: Setting): string | undefined {
     if (!("value" in setting)) {
-        return false;
+        return undefined;
     }
     const value = setting.value;
-    if (value.valueType === ValueType.DefinedValue) {
-        return (
-            (value.value.reference === identifier)
-            && !value.value.module
-            && !value.value.parameters?.length
-        );
+    let ident: string | undefined;
+    if (
+        (value.valueType === ValueType.DefinedValue)
+        && !value.value.module
+        && !value.value.parameters?.length
+    ) {
+        ident = value.value.reference;
+    } else if (value.valueType === ValueType.EnumeratedValue) {
+        ident = value.value.identifier;
+    } else if ((value.valueType === ValueType.IntegerValue) && (typeof value.value === "string")) {
+        ident = value.value;
+    } else if (value.text && startsWithLowercaseLetter(value.text)) {
+        ident = value.text;
     }
-    if (value.valueType === ValueType.EnumeratedValue) {
-        return value.value.identifier === identifier;
-    }
-    if ((value.valueType === ValueType.IntegerValue) && (typeof value.value === "string")) {
-        return value.value === identifier;
-    }
-    if (value.text === identifier) {
-        return true;
-    }
-    return false;
-}
-
-/**
- * @summary Find the default-syntax field whose setting is this identifier
- * @param defaultSyntax The object in default syntax
- * @param identifier The identifier sought
- * @returns The field name, or `undefined` if no field setting matches
- * @function
- */
-function findFieldWithIdentifier(
-    defaultSyntax: DefaultSyntax,
-    identifier: string,
-): string | undefined {
-    for (const [fieldName, setting] of Object.entries(defaultSyntax.fieldSettings)) {
-        if (settingIsIdentifier(setting, identifier)) {
-            return fieldName;
-        }
+    if (ident && startsWithLowercaseLetter(ident)) {
+        return ident;
     }
     return undefined;
 }
@@ -472,101 +471,173 @@ async function getOrPopulateClassEnumIndex(
 }
 
 /**
- * @summary Determine if an undefined identifier is an implicitly imported ENUMERATED variant
+ * @summary Collect implicit `ENUMERATED` imports for one information object
+ * @param cancel The cancellation token
+ * @param document The current text document
+ * @param currentModule The importing ASN.1 module
+ * @param cache The importing-module cache
+ * @param assn The object assignment
+ * @param index The output index
+ * @async
+ * @function
+ */
+async function prefetchObjectAssignment(
+    cancel: vscode.CancellationToken,
+    document: vscode.TextDocument,
+    currentModule: Module,
+    cache: ImportingModuleEnumCache,
+    assn: ObjectAssignment,
+    index: ImplicitEnumImportIndex,
+): Promise<void> {
+    if (assn.definedObjectClass.parameters?.length) {
+        index.unresolvedAssignments.add(assn.identifier);
+        return;
+    }
+    const classKey = objectClassKey(assn.definedObjectClass);
+    let resolvedClass = cache.resolvedClasses.get(classKey);
+    if (typeof resolvedClass === "undefined") {
+        resolvedClass = await resolveObjectClassAssignment(
+            cancel,
+            assn.definedObjectClass,
+            currentModule,
+            document.uri,
+        ) ?? null;
+        cache.resolvedClasses.set(classKey, resolvedClass);
+    }
+    if (!resolvedClass) {
+        index.unresolvedAssignments.add(assn.identifier);
+        return;
+    }
+    const [ocassn, ocmod, ocuri] = resolvedClass;
+    if (!("fieldSpecs" in ocassn.objectClass)) {
+        index.unresolvedAssignments.add(assn.identifier);
+        return;
+    }
+    const oc: ObjectClassDefn = ocassn.objectClass;
+    const defaultSyntax = getDefaultSyntax(cache, assn, oc, currentModule);
+    if (!defaultSyntax) {
+        index.unresolvedAssignments.add(assn.identifier);
+        return;
+    }
+    const byField = await getOrPopulateClassEnumIndex(
+        cancel,
+        cache,
+        classKey,
+        ocassn,
+        ocmod,
+        ocuri,
+    );
+    const variants: Set<string> = new Set();
+    for (const [fieldName, setting] of Object.entries(defaultSyntax.fieldSettings)) {
+        const ident = lowercaseIdentifierFromSetting(setting);
+        if (!ident) {
+            continue;
+        }
+        const lookedUp = lookupFieldSpec(oc.fieldSpecs, fieldName);
+        if (!lookedUp) {
+            // Prefer not flagging an identifier we cannot place on the class.
+            variants.add(ident);
+            continue;
+        }
+        const [spec, canonicalFieldName] = lookedUp;
+        if (
+            !fieldNameStartsWithLowercase(canonicalFieldName)
+            || (spec.specType !== FieldSpecType.FixedTypeValueFieldSpec)
+        ) {
+            continue;
+        }
+        const fieldVariants = byField.get(canonicalFieldName) ?? byField.get(fieldName);
+        if (!fieldVariants) {
+            // Could not resolve this field to ENUMERATED. Do not flag.
+            variants.add(ident);
+            continue;
+        }
+        if (fieldVariants.has(ident)) {
+            variants.add(ident);
+        }
+    }
+    index.variantsByAssignment.set(assn.identifier, variants);
+}
+
+/**
+ * @summary Prefetch implicit `ENUMERATED` imports for a module
  * @description
  *
- * In ASN.1, `ENUMERATED` variants may be used without importing or qualifying
- * the enumerated type. When an unqualified lowercase identifier appears
- * undefined in an information object, this function checks whether it is a
- * variant of an `ENUMERATED` value field of that object's class.
- *
- * Resolution of the object class and its `ENUMERATED` variants is cached for
- * the importing module at the current document version.
+ * Resolves information object classes and their `ENUMERATED` value-field
+ * variants once per module, before the synchronous CST walk that reports
+ * undefined symbols. This keeps `drillForUndefinedSymbols` free of `await`.
  *
  * @param cancel The cancellation token
  * @param document The current text document
  * @param currentModule The importing ASN.1 module
- * @param assignment The current assignment, if any
- * @param identifier The undefined identifier
- * @returns `true` if the identifier is an implicitly imported `ENUMERATED` variant
+ * @returns An index that can be consulted synchronously while drilling
  * @async
  * @function
  */
-export async function isImplicitlyImportedEnumVariant(
+export async function prefetchImplicitEnumImports(
     cancel: vscode.CancellationToken,
     document: vscode.TextDocument,
     currentModule: Module,
+): Promise<ImplicitEnumImportIndex> {
+    const index: ImplicitEnumImportIndex = {
+        variantsByAssignment: new Map(),
+        unresolvedAssignments: new Set(),
+    };
+    const cache = getImportingModuleCache(document, currentModule);
+    for (const assn of Object.values(currentModule.assignments)) {
+        if (cancel.isCancellationRequested) {
+            break;
+        }
+        if (!isObjectAssignment(assn)) {
+            continue;
+        }
+        try {
+            await prefetchObjectAssignment(
+                cancel,
+                document,
+                currentModule,
+                cache,
+                assn,
+                index,
+            );
+        } catch (e) {
+            log.appendLine(
+                `failed implicit ENUMERATED import prefetch for ${assn.identifier} in ${currentModule.name}: ${e}`,
+            );
+            index.unresolvedAssignments.add(assn.identifier);
+        }
+    }
+    return index;
+}
+
+/**
+ * @summary Determine if an undefined identifier is an implicitly imported ENUMERATED variant
+ * @description
+ *
+ * Consults the index produced by {@link prefetchImplicitEnumImports}. If the
+ * current assignment's class could not be resolved, lowercase identifiers in
+ * that information object are treated as implicit imports so that unresolved
+ * enum variants are not flagged as missing.
+ *
+ * @param index The prefetched implicit-import index
+ * @param assignment The current assignment, if any
+ * @param identifier The undefined identifier
+ * @returns `true` if the identifier should not be flagged as a missing import
+ * @function
+ */
+export function isImplicitlyImportedEnumVariant(
+    index: ImplicitEnumImportIndex,
     assignment: Assignment | undefined,
     identifier: string,
-): Promise<boolean> {
+): boolean {
     if (!startsWithLowercaseLetter(identifier)) {
         return false;
     }
     if (!isObjectAssignment(assignment)) {
         return false;
     }
-    if (assignment.definedObjectClass.parameters?.length) {
-        return false;
+    if (index.unresolvedAssignments.has(assignment.identifier)) {
+        return true;
     }
-    try {
-        const cache = getImportingModuleCache(document, currentModule);
-        const classKey = objectClassKey(assignment.definedObjectClass);
-
-        let resolvedClass = cache.resolvedClasses.get(classKey);
-        if (typeof resolvedClass === "undefined") {
-            resolvedClass = await resolveObjectClassAssignment(
-                cancel,
-                assignment.definedObjectClass,
-                currentModule,
-                document.uri,
-            ) ?? null;
-            cache.resolvedClasses.set(classKey, resolvedClass);
-        }
-        if (!resolvedClass) {
-            return false;
-        }
-        const [ocassn, ocmod, ocuri] = resolvedClass;
-        if (!("fieldSpecs" in ocassn.objectClass)) {
-            return false;
-        }
-        const oc: ObjectClassDefn = ocassn.objectClass;
-
-        const defaultSyntax = getDefaultSyntax(cache, assignment, oc, currentModule);
-        if (!defaultSyntax) {
-            return false;
-        }
-
-        const fieldName = findFieldWithIdentifier(defaultSyntax, identifier);
-        if (!fieldName) {
-            return false;
-        }
-
-        const lookedUp = lookupFieldSpec(oc.fieldSpecs, fieldName);
-        if (!lookedUp) {
-            return false;
-        }
-        const [spec, canonicalFieldName] = lookedUp;
-        if (!fieldNameStartsWithLowercase(canonicalFieldName)) {
-            return false;
-        }
-        if (spec.specType !== FieldSpecType.FixedTypeValueFieldSpec) {
-            return false;
-        }
-
-        const byField = await getOrPopulateClassEnumIndex(
-            cancel,
-            cache,
-            classKey,
-            ocassn,
-            ocmod,
-            ocuri,
-        );
-        const variants = byField.get(canonicalFieldName) ?? byField.get(fieldName);
-        return !!variants?.has(identifier);
-    } catch (e) {
-        log.appendLine(
-            `failed implicit ENUMERATED import lookup for ${identifier} in ${currentModule.name}: ${e}`,
-        );
-        return false;
-    }
+    return index.variantsByAssignment.get(assignment.identifier)?.has(identifier) ?? false;
 }

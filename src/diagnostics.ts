@@ -35,7 +35,11 @@ import {
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
 import { maybeReparse } from "./reparse.js";
-import { isImplicitlyImportedEnumVariant } from "./implicitimports.js";
+import {
+    isImplicitlyImportedEnumVariant,
+    prefetchImplicitEnumImports,
+    type ImplicitEnumImportIndex,
+} from "./implicitimports.js";
 import log from "./logging.js";
 import { DATE_REGEX, TIME_REGEX } from "./time.js";
 import { ASN1Construction, ASN1TagClass, ASN1UniversalType, BERElement } from "@wildboar/asn1";
@@ -1384,11 +1388,11 @@ function collectIdentifiersFromIdentifierList(
  * @param assignment The current assignment
  * @param recursionTTL The recursion TTL: recursion limit, after which this function
  *  immediately returns without doing anything.
- * @param cancel The cancellation token
+ * @param implicitEnums Prefetched implicit `ENUMERATED` imports for this module
  * @param insideSetting `true` if `cstnode` falls within a `Setting` production
  * @function
  */
-async function drillForUndefinedSymbols(
+function drillForUndefinedSymbols(
     document: vscode.TextDocument,
     mod: Module,
     diags: vscode.Diagnostic[],
@@ -1397,9 +1401,9 @@ async function drillForUndefinedSymbols(
     enumItemsDefined: Set<string>,
     assignment: Assignment | undefined,
     recursionTTL: number = 100,
-    cancel?: vscode.CancellationToken,
+    implicitEnums?: ImplicitEnumImportIndex,
     insideSetting: boolean = false,
-): Promise<void> {
+): void {
     if (recursionTTL <= 0) {
         return;
     }
@@ -1451,7 +1455,7 @@ async function drillForUndefinedSymbols(
                 ?.children
                 .filter((c) => c.type === "ActualParameter");
             for (const param of params ?? []) {
-                await drillForUndefinedSymbols(
+                drillForUndefinedSymbols(
                     document,
                     mod,
                     diags,
@@ -1460,7 +1464,7 @@ async function drillForUndefinedSymbols(
                     enumItemsDefined,
                     assignment,
                     recursionTTL,
-                    cancel,
+                    implicitEnums,
                     childInsideSetting,
                 );
             }
@@ -1478,12 +1482,10 @@ async function drillForUndefinedSymbols(
                 continue;
             }
             if (
-                cancel
+                implicitEnums
                 && startsWithLowercaseLetter(def.reference)
-                && await isImplicitlyImportedEnumVariant(
-                    cancel,
-                    document,
-                    mod,
+                && isImplicitlyImportedEnumVariant(
+                    implicitEnums,
                     assignment,
                     def.reference,
                 )
@@ -1499,7 +1501,7 @@ async function drillForUndefinedSymbols(
             diag.code = DIAG_CODE_SYMBOL_NOT_DEFINED;
             diags.push(diag);
         } else {
-            await drillForUndefinedSymbols(
+            drillForUndefinedSymbols(
                 document,
                 mod,
                 diags,
@@ -1508,7 +1510,7 @@ async function drillForUndefinedSymbols(
                 enumItemsDefined,
                 assignment,
                 recursionTTL,
-                cancel,
+                implicitEnums,
                 childInsideSetting,
             );
         }
@@ -1522,7 +1524,7 @@ async function drillForUndefinedSymbols(
  * @param diags The output diagnostics as an array
  * @param usedSymbols A set into which encountered used symbols are inserted as strings
  * @param enumItemsDefined A set of `ENUMERATED` values defined
- * @param cancel The cancellation token
+ * @param cancel The cancellation token used to prefetch implicit enum imports
  * @function
  */
 async function provideMissingSymbolDiagnostics(
@@ -1541,6 +1543,8 @@ async function provideMissingSymbolDiagnostics(
     if (!body) {
         return;
     }
+
+    const implicitEnums = await prefetchImplicitEnumImports(cancel, document, mod);
 
     // Check that all exported symbols are defined
     const exps = Object.entries(mod.exports?.exportedSymbols ?? {});
@@ -1572,7 +1576,7 @@ async function provideMissingSymbolDiagnostics(
         if (!assid) {
             continue;
         }
-        await drillForUndefinedSymbols(
+        drillForUndefinedSymbols(
             document,
             mod,
             diags,
@@ -1581,7 +1585,6 @@ async function provideMissingSymbolDiagnostics(
             new Set(),
             undefined,
             10,
-            cancel,
         );
     }
 
@@ -1590,7 +1593,7 @@ async function provideMissingSymbolDiagnostics(
         if (!assn.production) {
             continue; // This should not happen.
         }
-        await drillForUndefinedSymbols(
+        drillForUndefinedSymbols(
             document,
             mod,
             diags,
@@ -1599,7 +1602,7 @@ async function provideMissingSymbolDiagnostics(
             enumItemsDefined,
             assn,
             100,
-            cancel,
+            implicitEnums,
         );
         const params = (assn.parameters ?? []);
         for (const param of params) {
