@@ -111,4 +111,63 @@ suite('Diagnostics', function () {
         }
     });
 
+    test('does not flag imported objects used in ObjectDefn set settings as unused', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        const document = await vscode.workspace.openTextDocument({
+            language: "asn1",
+            content: `
+ObjectDefnImportUse
+DEFINITIONS ::= BEGIN
+IMPORTS
+    OBJECT-CLASS, top, alias, commonName, neverUsed
+        FROM InformationFramework
+        {joint-iso-itu-t ds(5) module(1) informationFramework(1) 9};
+thingy OBJECT-CLASS ::= {
+    SUBCLASS OF        {top, alias}
+    KIND               auxiliary
+    MAY CONTAIN        {commonName}
+    LDAP-NAME          {"thingy"}
+    LDAP-DESC          "testeroo"
+    ID                 id-oc-thingy
+}
+defaulty OBJECT-CLASS ::= {
+    &Superclasses {top},
+    &id id-oc-defaulty
+}
+END
+`,
+        });
+        await vscode.window.showTextDocument(document);
+        await vscode.commands.executeCommand("asn1.diagnose");
+        const unusedImportNames = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_IMPORT_SYMBOL_UNUSED)
+            .map((diag) => document.getText(diag.range));
+        assert.deepEqual(unusedImportNames, ["neverUsed"]);
+    });
+
+    test('still flags imported symbols used only as BIT STRING named bits as unused', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        const document = await vscode.workspace.openTextDocument({
+            language: "asn1",
+            content: `
+BitStringNamedBit
+DEFINITIONS ::= BEGIN
+IMPORTS unusedBit FROM OtherModule;
+Flags ::= BIT STRING { unusedBit (0), otherBit (1) }
+flags Flags ::= { unusedBit }
+END
+`,
+        });
+        await vscode.window.showTextDocument(document);
+        await vscode.commands.executeCommand("asn1.diagnose");
+        const unusedImportNames = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_IMPORT_SYMBOL_UNUSED)
+            .map((diag) => document.getText(diag.range));
+        assert.deepEqual(unusedImportNames, ["unusedBit"]);
+    });
+
 });
