@@ -3,6 +3,7 @@ import { getParserOutputs } from "./parsing.js";
 import {
     getRangeFromLocation,
     isDefinedThing,
+    startsWithLowercaseLetter,
     typeTypesThatCouldBeAnything,
 } from "./utils.js";
 import {
@@ -34,6 +35,7 @@ import {
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
 import { maybeReparse } from "./reparse.js";
+import { isImplicitlyImportedEnumVariant } from "./implicitimports.js";
 import log from "./logging.js";
 import { DATE_REGEX, TIME_REGEX } from "./time.js";
 import { ASN1Construction, ASN1TagClass, ASN1UniversalType, BERElement } from "@wildboar/asn1";
@@ -1361,9 +1363,10 @@ const SYMBOL_NOT_DEFINED: string = "symbol not assigned in this module, nor impo
  * @param assignment The current assignment
  * @param recursionTTL The recursion TTL: recursion limit, after which this function
  *  immediately returns without doing anything.
+ * @param cancel The cancellation token
  * @function
  */
-function drillForUndefinedSymbols(
+async function drillForUndefinedSymbols(
     document: vscode.TextDocument,
     mod: Module,
     diags: vscode.Diagnostic[],
@@ -1372,7 +1375,8 @@ function drillForUndefinedSymbols(
     enumItemsDefined: Set<string>,
     assignment: Assignment | undefined,
     recursionTTL: number = 100,
-): void {
+    cancel?: vscode.CancellationToken,
+): Promise<void> {
     if (recursionTTL <= 0) {
         return;
     }
@@ -1413,7 +1417,7 @@ function drillForUndefinedSymbols(
                 ?.children
                 .filter((c) => c.type === "ActualParameter");
             for (const param of params ?? []) {
-                drillForUndefinedSymbols(
+                await drillForUndefinedSymbols(
                     document,
                     mod,
                     diags,
@@ -1422,6 +1426,7 @@ function drillForUndefinedSymbols(
                     enumItemsDefined,
                     assignment,
                     recursionTTL,
+                    cancel,
                 );
             }
             const isDefinedEnumVariant: boolean = (
@@ -1437,6 +1442,19 @@ function drillForUndefinedSymbols(
             ) {
                 continue;
             }
+            if (
+                cancel
+                && startsWithLowercaseLetter(def.reference)
+                && await isImplicitlyImportedEnumVariant(
+                    cancel,
+                    document,
+                    mod,
+                    assignment,
+                    def.reference,
+                )
+            ) {
+                continue;
+            }
             const range = getRangeFromLocation(document, child.location);
             const diag = new vscode.Diagnostic(
                 range,
@@ -1446,7 +1464,7 @@ function drillForUndefinedSymbols(
             diag.code = DIAG_CODE_SYMBOL_NOT_DEFINED;
             diags.push(diag);
         } else {
-            drillForUndefinedSymbols(
+            await drillForUndefinedSymbols(
                 document,
                 mod,
                 diags,
@@ -1455,6 +1473,7 @@ function drillForUndefinedSymbols(
                 enumItemsDefined,
                 assignment,
                 recursionTTL,
+                cancel,
             );
         }
     }
@@ -1467,15 +1486,17 @@ function drillForUndefinedSymbols(
  * @param diags The output diagnostics as an array
  * @param usedSymbols A set into which encountered used symbols are inserted as strings
  * @param enumItemsDefined A set of `ENUMERATED` values defined
+ * @param cancel The cancellation token
  * @function
  */
-function provideMissingSymbolDiagnostics(
+async function provideMissingSymbolDiagnostics(
     document: vscode.TextDocument,
     mod: Module,
     diags: vscode.Diagnostic[],
     usedSymbols: Set<string>,
     enumItemsDefined: Set<string>,
-): void {
+    cancel: vscode.CancellationToken,
+): Promise<void> {
     if (!mod.production) {
         return;
     }
@@ -1515,7 +1536,7 @@ function provideMissingSymbolDiagnostics(
         if (!assid) {
             continue;
         }
-        drillForUndefinedSymbols(
+        await drillForUndefinedSymbols(
             document,
             mod,
             diags,
@@ -1524,6 +1545,7 @@ function provideMissingSymbolDiagnostics(
             new Set(),
             undefined,
             10,
+            cancel,
         );
     }
 
@@ -1532,7 +1554,17 @@ function provideMissingSymbolDiagnostics(
         if (!assn.production) {
             continue; // This should not happen.
         }
-        drillForUndefinedSymbols(document, mod, diags, assn.production, usedSymbols, enumItemsDefined, assn);
+        await drillForUndefinedSymbols(
+            document,
+            mod,
+            diags,
+            assn.production,
+            usedSymbols,
+            enumItemsDefined,
+            assn,
+            100,
+            cancel,
+        );
         const params = (assn.parameters ?? []);
         for (const param of params) {
             if (!usedSymbols.has(param.dummyReference)) {
@@ -1829,16 +1861,28 @@ async function updateDiagnostics(
     const enumItems = p.parserEndState.ok.definedEnumItems;
     const modules = p.parsedModules.ok;
     const diags: vscode.Diagnostic[] = [];
-    for (const module of modules) {
-        const usedSymbols: Set<string> = new Set();
-        // The specification technically does not forbid duplicate imports, but it does explicitly forbid duplicate assignments.
-        provideDuplicateAssignmentDiagnostics(document, module, diags);
-        provideAssignmentListDiagnostics(document, module, diags);
+    const cancelSource = new vscode.CancellationTokenSource();
+    try {
+        for (const module of modules) {
+            const usedSymbols: Set<string> = new Set();
+            // The specification technically does not forbid duplicate imports, but it does explicitly forbid duplicate assignments.
+            provideDuplicateAssignmentDiagnostics(document, module, diags);
+            provideAssignmentListDiagnostics(document, module, diags);
 
-        // Ordering is important here: provideMissingSymbolDiagnostics populates
-        // usedSymbols, which is used by provideImportDiagnostics.
-        provideMissingSymbolDiagnostics(document, module, diags, usedSymbols, enumItems);
-        provideImportDiagnostics(document, module, diags, usedSymbols);
+            // Ordering is important here: provideMissingSymbolDiagnostics populates
+            // usedSymbols, which is used by provideImportDiagnostics.
+            await provideMissingSymbolDiagnostics(
+                document,
+                module,
+                diags,
+                usedSymbols,
+                enumItems,
+                cancelSource.token,
+            );
+            provideImportDiagnostics(document, module, diags, usedSymbols);
+        }
+    } finally {
+        cancelSource.dispose();
     }
     diagnosticCollection.set(document.uri, diags);
 }

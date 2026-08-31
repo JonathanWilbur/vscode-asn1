@@ -9,7 +9,8 @@ See the [README](./README.md) for information on versioning.
 
 ## [Unreleased]
 
-- Nothing here yet
+- Treat `ENUMERATED` variants used as information object field settings as
+  implicitly imported, so they are no longer flagged as unimported symbols.
 
 ## [1.1.0] - 2026-07-12
 

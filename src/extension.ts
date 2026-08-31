@@ -31,6 +31,7 @@ import {
 	export_modules_json_from_doc_cmd,
 } from "./commands.js";
 import { clearParserOutputCaches, get_last_parsed_doc_version_cmd } from './parsing.js';
+import { clearImplicitImportCaches } from './implicitimports.js';
 import { GetImportsTool } from "./lmtools/asn1_get_imported_symbols.js";
 import { GetExportedSymbolsTool } from "./lmtools/asn1_get_exported_symbols.js";
 import path from 'node:path';
@@ -260,4 +261,5 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
 	clearAsn1ModuleIndexes();
 	clearParserOutputCaches();
+	clearImplicitImportCaches();
 }

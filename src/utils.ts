@@ -249,6 +249,24 @@ function startsWithCapitalLetter(s: string): boolean {
 }
 
 /**
+ * @summary Determine if a string `s` starts with a lower-cased letter
+ * @description
+ *
+ * ASN.1 valuereferences, objectreferences, and `ENUMERATED` variants begin
+ * with a lowercase letter. This is a strict ASCII check so that digits,
+ * ampersands, and other non-letters are not treated as valuereferences.
+ *
+ * @param s A string
+ * @returns `true` if the string starts with a lowercase ASCII letter
+ * @function
+ */
+export
+function startsWithLowercaseLetter(s: string): boolean {
+    const c = s.charCodeAt(0);
+    return (c >= 0x61) && (c <= 0x7a);
+}
+
+/**
  * @summary Determine if the cursor position probably falls within open-syntax
  * @description
  * 
