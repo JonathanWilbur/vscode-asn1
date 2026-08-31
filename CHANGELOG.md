@@ -11,6 +11,8 @@ See the [README](./README.md) for information on versioning.
 
 - Treat `ENUMERATED` variants used as information object field settings as
   implicitly imported, so they are no longer flagged as unimported symbols.
+- Fix imported objects used in sets that appear as settings in an `ObjectDefn`
+  (for example `SUBCLASS OF {top}`) being flagged as unused.
 
 ## [1.1.0] - 2026-07-12
 
