@@ -170,4 +170,57 @@ END
         assert.deepEqual(unusedImportNames, ["unusedBit"]);
     });
 
+    test('does not flag implicitly imported ENUMERATED variants in information objects', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        const document = await vscode.workspace.openTextDocument({
+            language: "asn1",
+            content: `
+EnumVariantUse
+DEFINITIONS ::= BEGIN
+IMPORTS
+    OBJECT-CLASS
+        FROM InformationFramework
+        {joint-iso-itu-t ds(5) module(1) informationFramework(1) 9};
+thingy OBJECT-CLASS ::= {
+    KIND               auxiliary
+    ID                 totallyBogusIdent
+}
+END
+`,
+        });
+        await vscode.window.showTextDocument(document);
+        await vscode.commands.executeCommand("asn1.diagnose");
+        const undefinedNames = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_SYMBOL_NOT_DEFINED)
+            .map((diag) => document.getText(diag.range));
+        assert.ok(!undefinedNames.includes("auxiliary"), "auxiliary should be treated as an implicitly imported ENUMERATED variant");
+        assert.ok(undefinedNames.includes("totallyBogusIdent"), "truly undefined identifiers should still be diagnosed");
+    });
+
+    test('does not flag implicitly imported named bits used in curly brackets', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        const document = await vscode.workspace.openTextDocument({
+            language: "asn1",
+            content: `
+NamedBitUse
+DEFINITIONS ::= BEGIN
+Holder{INTEGER:x} ::= SEQUENCE { f INTEGER DEFAULT x }
+alias Holder{ week1 }
+unknown Holder{ totallyBogusBit }
+END
+`,
+        });
+        await vscode.window.showTextDocument(document);
+        await vscode.commands.executeCommand("asn1.diagnose");
+        const undefinedNames = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_SYMBOL_NOT_DEFINED)
+            .map((diag) => document.getText(diag.range));
+        assert.ok(!undefinedNames.includes("week1"), "week1 should be treated as an implicitly imported named bit");
+        assert.ok(undefinedNames.includes("totallyBogusBit"), "truly undefined identifiers should still be diagnosed");
+    });
+
 });
