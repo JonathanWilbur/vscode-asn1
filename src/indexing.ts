@@ -110,6 +110,192 @@ const filesToModules: Map<FileURIStr, VersionNumbered<Map<ASN1ModuleName, Module
 const modulesToFiles: Map<ASN1ModuleName, Map<FileURIStr, VersionNumber>> = new Map();
 
 /**
+ * Globally defined named bits from `BIT STRING { ident (n), ... }` productions.
+ *
+ * Entries are never removed except by {@link clearNamedBitAndIntegerIndexes}.
+ */
+const namedBits: Set<string> = new Set();
+
+/**
+ * Globally defined named integers and `ENUMERATED` variant identifiers.
+ *
+ * Entries are never removed except by {@link clearNamedBitAndIntegerIndexes}.
+ */
+const namedIntegersAndEnums: Set<string> = new Set();
+
+/**
+ * Lexical token types that carry no identifier information and can be skipped
+ * when scanning for named bits, named integers, and enumerated variants.
+ */
+const ignorableLexicalTokenTypes: Set<string> = new Set([
+    "comment",
+    "newlineWhitespace",
+    "nonNewlineWhitespace",
+]);
+
+/**
+ * @summary Find the next non-ignorable lexical token index
+ * @param tokens The lexical tokens from lexing an ASN.1 file
+ * @param start The index at which to begin searching
+ * @returns The index of the next significant token, or `tokens.length` if none remain
+ * @author Cursor Grok 4.6
+ * @function
+ */
+function nextSignificantTokenIndex(
+    tokens: Production<TerminalProductionType>[],
+    start: number,
+): number {
+    let i = start;
+    while (i < tokens.length && ignorableLexicalTokenTypes.has(tokens[i]!.type)) {
+        i++;
+    }
+    return i;
+}
+
+/**
+ * @summary Collect identifiers from a brace-delimited named-number or enumeration list
+ * @description
+ *
+ * Starting at a `{` token, walk until the matching `}` and insert every
+ * `identifier` that appears at brace-depth 1 and parenthesis-depth 0 into
+ * `dest`. Nested braces (for example exception specs) are skipped. This is
+ * intentionally sloppy: the cache is append-only and may include false
+ * positives.
+ *
+ * @param tokens The lexical tokens from lexing an ASN.1 file
+ * @param text The text of the file
+ * @param openBraceIndex The index of the opening `{` token
+ * @param dest The set into which collected identifiers are inserted
+ * @returns The index immediately after the matching `}`, or `tokens.length`
+ * @author Cursor Grok 4.6
+ * @function
+ */
+function collectIdentifiersInBraces(
+    tokens: Production<TerminalProductionType>[],
+    text: string,
+    openBraceIndex: number,
+    dest: Set<string>,
+): number {
+    let braceDepth = 1;
+    let parenDepth = 0;
+    let i = openBraceIndex + 1;
+    while (i < tokens.length && braceDepth > 0) {
+        const token = tokens[i]!;
+        if (token.type === "curlyOpening") {
+            braceDepth++;
+        } else if (token.type === "curlyClosing") {
+            braceDepth--;
+        } else if (token.type === "parenthesisOpening") {
+            parenDepth++;
+        } else if (token.type === "parenthesisClosing") {
+            parenDepth--;
+        } else if (
+            token.type === "identifier"
+            && braceDepth === 1
+            && parenDepth === 0
+        ) {
+            dest.add(text.slice(token.location.startIndex, token.location.endIndex));
+        }
+        i++;
+    }
+    return i;
+}
+
+/**
+ * @summary Index named bits, named integers, and enumerated variants from a token stream
+ * @description
+ *
+ * Scans a lexed ASN.1 file for:
+ *
+ * - `ENUMERATED { ident, ... }` variants
+ * - `INTEGER { ident (n), ... }` named integers
+ * - `BIT STRING { ident (n), ... }` named bits
+ *
+ * Names are added to process-wide sets and are never removed by this function.
+ *
+ * @param tokens The lexical tokens from lexing the file
+ * @param text The text of the file
+ * @author Cursor Grok 4.6
+ * @function
+ */
+export function indexNamedBitsAndIntegersFromTokenStream(
+    tokens: Production<TerminalProductionType>[],
+    text: string,
+): void {
+    let i = 0;
+    while (i < tokens.length) {
+        const token = tokens[i]!;
+        if (token.type === "ENUMERATED" || token.type === "INTEGER") {
+            const next = nextSignificantTokenIndex(tokens, i + 1);
+            if (next < tokens.length && tokens[next]!.type === "curlyOpening") {
+                i = collectIdentifiersInBraces(
+                    tokens,
+                    text,
+                    next,
+                    namedIntegersAndEnums,
+                );
+                continue;
+            }
+        } else if (token.type === "BIT") {
+            const afterBit = nextSignificantTokenIndex(tokens, i + 1);
+            if (afterBit < tokens.length && tokens[afterBit]!.type === "STRING") {
+                const afterString = nextSignificantTokenIndex(tokens, afterBit + 1);
+                if (
+                    afterString < tokens.length
+                    && tokens[afterString]!.type === "curlyOpening"
+                ) {
+                    i = collectIdentifiersInBraces(
+                        tokens,
+                        text,
+                        afterString,
+                        namedBits,
+                    );
+                    continue;
+                }
+            }
+        }
+        i++;
+    }
+}
+
+/**
+ * @summary Whether `identifier` is a globally indexed named bit
+ * @param identifier The identifier to look up
+ * @returns `true` if the identifier was indexed as a named bit
+ * @author Cursor Grok 4.6
+ * @function
+ */
+export function isKnownNamedBit(identifier: string): boolean {
+    return namedBits.has(identifier);
+}
+
+/**
+ * @summary Whether `identifier` is a globally indexed named integer or enumerated variant
+ * @param identifier The identifier to look up
+ * @returns `true` if the identifier was indexed as a named integer or `ENUMERATED` variant
+ * @author Cursor Grok 4.6
+ * @function
+ */
+export function isKnownNamedIntegerOrEnum(identifier: string): boolean {
+    return namedIntegersAndEnums.has(identifier);
+}
+
+/**
+ * @summary Clear the named-bit and named-integer / enumerated-variant indexes
+ * @description
+ *
+ * This is intended to be called when the user asks to re-index these caches,
+ * and upon deactivating the extension.
+ *
+ * @author Cursor Grok 4.6
+ * @function
+ */
+export function clearNamedBitAndIntegerIndexes(): void {
+    namedBits.clear();
+    namedIntegersAndEnums.clear();
+}
+
+/**
  * @summary Index an ASN.1 file
  * @param docOrUri The text document, or a URI to it
  * @returns A promise that resolves to nothing
@@ -132,6 +318,7 @@ export async function indexAsn1File(
     }
     const text = document.getText();
     const tokens = p.lexicalTokens.ok;
+    indexNamedBitsAndIntegersFromTokenStream(tokens, text);
     const uristr = document.uri.toString();
     const modulesFound: Map<ASN1ModuleName, ModuleInfo> = new Map();
     const modulesAndImports = getModuleNamesAndImportsFromTokenStream(tokens, text);
