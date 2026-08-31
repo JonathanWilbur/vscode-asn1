@@ -121,11 +121,11 @@ suite('Diagnostics', function () {
 ObjectDefnImportUse
 DEFINITIONS ::= BEGIN
 IMPORTS
-    OBJECT-CLASS, top, alias, commonName, neverUsed
+    OBJECT-CLASS, top, commonName, neverUsed
         FROM InformationFramework
         {joint-iso-itu-t ds(5) module(1) informationFramework(1) 9};
 thingy OBJECT-CLASS ::= {
-    SUBCLASS OF        {top, alias}
+    SUBCLASS OF        {top}
     KIND               auxiliary
     MAY CONTAIN        {commonName}
     LDAP-NAME          {"thingy"}
