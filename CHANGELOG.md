@@ -9,6 +9,10 @@ See the [README](./README.md) for information on versioning.
 
 ## [Unreleased]
 
+- Stop flagging implicitly imported `ENUMERATED` variants, named integers, and
+  named bits as undefined symbols.
+- Add `asn1.alwaysDefined` configuration and a "Treat as defined" quick fix.
+- Add a command to re-index named bits, integers, and enumerated variants.
 - Fix imported objects used in sets that appear as settings in an `ObjectDefn`
   (for example `SUBCLASS OF {top}`) being flagged as unused.
 
