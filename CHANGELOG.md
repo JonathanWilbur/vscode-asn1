@@ -19,6 +19,7 @@ See the [README](./README.md) for information on versioning.
 - Add a command to re-index named bits, integers, and enumerated variants.
 - Fix imported objects used in sets that appear as settings in an `ObjectDefn`
   (for example `SUBCLASS OF {top}`) being flagged as unused.
+- Huge performance and quality improvements in the ASN.1 parsing
 
 ## [1.1.0] - 2026-07-12
 
