@@ -33,26 +33,26 @@ export const NULL_DEFINITION : MarkdownString = new MarkdownString(
 );
 
 export const OBJECT_IDENTIFIER_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents an object identifier as defined in the \
+`A \`UNIVERSAL\` type that represents an object identifier as defined in the \
 [International Telecommunication's Union](https://www.itu.int/en/Pages/default.aspx)'s \
 specification [X.660](https://www.itu.int/rec/T-REC-X.660-201107-I/en). Consists \
 of a sequence of unsigned integers with no specified maximum. Often represented as \
-a sequence of numbers separated by periods. \
-\
-When used in ASN.1 specifications, `OBJECT IDENTIFIER`s are often represented as \
+a sequence of numbers separated by periods.
+
+When used in ASN.1 specifications, \`OBJECT IDENTIFIER\`s are often represented as \
 a sequence of arcs enclosed in curly brackets and with a space padding the \
 brackets from the arcs. Each arc is either represented in numeric form, or with \
-the `ObjectDescriptor` that uniquely defines that arc within its parent arc, or \
-the `ObjectDescriptor` followed immediately by the numeric form enclosed in \
-parentheses. Example: `{ iso(1) member-body(2) us(840) microsoft(113556) 1 }`. \
-\
+the \`ObjectDescriptor\` that uniquely defines that arc within its parent arc, or \
+the \`ObjectDescriptor\` followed immediately by the numeric form enclosed in \
+parentheses. Example: \`{ iso(1) member-body(2) us(840) microsoft(113556) 1 }\`.
+
 Each arc of the object identifier is typically associated with an owner, who \
 gets to decide what each node beneath their arc means. This owner is free to \
 define an infinite number of arcs beneath an arc they own, or delegate \
 exclusive ownership and control to another party. To continue off of our \
-example, `1.2.840.113556` is the object identifier for Microsoft Corporation, \
+example, \`1.2.840.113556\` is the object identifier for Microsoft Corporation, \
 and Microsoft Corporation assigned arc 1 within that object identifier to mean \
-'Active Directory', and arcs beneath this relate to their Active Directory product."
+'Active Directory', and arcs beneath this relate to their Active Directory product.`
 );
 
 export const OBJECT_DESCRIPTOR_DEFINITION : MarkdownString = new MarkdownString(
@@ -60,35 +60,38 @@ export const OBJECT_DESCRIPTOR_DEFINITION : MarkdownString = new MarkdownString(
 );
 
 export const EXTERNAL_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that is used to change the presentation context, which\
-is defined as follows:\n\
-```\
-EXTERNAL ::= [UNIVERSAL 8] IMPLICIT SEQUENCE {\
-    identification CHOICE {\
-        syntax OBJECT IDENTIFIER,\
-        presentation-context-id INTEGER,\
-        context-negotiation SEQUENCE {\
-            presentation-context-id INTEGER,\
-            transfer-syntax OBJECT IDENTIFIER } },\
-    data-value-descriptor ObjectDescriptor OPTIONAL,\
-    data-value OCTET STRING }\
-```\n\
-But, according to the\
-[International Telecommunications Union](https://www.itu.int/en/pages/default.aspx)'s\
-[X.690 - ASN.1 encoding rules](http://www.itu.int/rec/T-REC-X.690/en),\
-section 8.18, when encoded using Basic Encoding Rules (BER), is encoded as\
-follows, for compatibility reasons:\n\
-```\
-EXTERNAL ::= [UNIVERSAL 8] IMPLICIT SEQUENCE {\
-    direct-reference  OBJECT IDENTIFIER OPTIONAL,\
-    indirect-reference  INTEGER OPTIONAL,\
-    data-value-descriptor  ObjectDescriptor  OPTIONAL,\
-    encoding  CHOICE {\
-        single-ASN1-type  [0] ANY,\
-        octet-aligned     [1] IMPLICIT OCTET STRING,\
-        arbitrary         [2] IMPLICIT BIT STRING } }\
-```\
-");
+`A \`UNIVERSAL\` type that is used to change the presentation context, which \
+is defined as follows:
+
+\`\`\`asn1
+EXTERNAL ::= [UNIVERSAL 8] IMPLICIT SEQUENCE {
+    identification CHOICE {
+        syntax OBJECT IDENTIFIER,
+        presentation-context-id INTEGER,
+        context-negotiation SEQUENCE {
+            presentation-context-id INTEGER,
+            transfer-syntax OBJECT IDENTIFIER } },
+    data-value-descriptor ObjectDescriptor OPTIONAL,
+    data-value OCTET STRING }
+\`\`\`
+
+But, according to the \
+[International Telecommunications Union](https://www.itu.int/en/pages/default.aspx)'s \
+[X.690 - ASN.1 encoding rules](http://www.itu.int/rec/T-REC-X.690/en), \
+section 8.18, when encoded using Basic Encoding Rules (BER), is encoded as \
+follows, for compatibility reasons:
+
+\`\`\`asn1
+EXTERNAL ::= [UNIVERSAL 8] IMPLICIT SEQUENCE {
+    direct-reference  OBJECT IDENTIFIER OPTIONAL,
+    indirect-reference  INTEGER OPTIONAL,
+    data-value-descriptor  ObjectDescriptor  OPTIONAL,
+    encoding  CHOICE {
+        single-ASN1-type  [0] ANY,
+        octet-aligned     [1] IMPLICIT OCTET STRING,
+        arbitrary         [2] IMPLICIT BIT STRING } }
+\`\`\`
+`);
 
 export const REAL_DEFINITION : MarkdownString = new MarkdownString(
 "A `UNIVERSAL` type that represents a floating point number."
@@ -99,28 +102,29 @@ export const ENUMERATED_DEFINITION : MarkdownString = new MarkdownString(
 );
 
 export const EMBEDDED_PDV_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that is used to change the presentation context defined as:\n\
-```\
-    EmbeddedPDV ::= [UNIVERSAL 11] IMPLICIT SEQUENCE {\
-        identification CHOICE {\
-            syntaxes SEQUENCE {\
-                abstract OBJECT IDENTIFIER,\
-                transfer OBJECT IDENTIFIER },\
-            syntax OBJECT IDENTIFIER,\
-            presentation-context-id INTEGER,\
-            context-negotiation SEQUENCE {\
-                presentation-context-id INTEGER,\
-                transfer-syntax OBJECT IDENTIFIER },\
-            transfer-syntax OBJECT IDENTIFIER,\
-            fixed NULL },\
-        data-value-descriptor ObjectDescriptor OPTIONAL,\
-        data-value OCTET STRING }\
-    (WITH COMPONENTS { ... , data-value-descriptor ABSENT })\
-```\
-This assumes `AUTOMATIC TAGS`, so all of the `identification`\
-choices will be `CONTEXT-SPECIFIC` and numbered from 0 to 5.\
-");
+`A \`UNIVERSAL\` type that is used to change the presentation context defined as:
 
+\`\`\`asn1
+EmbeddedPDV ::= [UNIVERSAL 11] IMPLICIT SEQUENCE {
+    identification CHOICE {
+        syntaxes SEQUENCE {
+            abstract OBJECT IDENTIFIER,
+            transfer OBJECT IDENTIFIER },
+        syntax OBJECT IDENTIFIER,
+        presentation-context-id INTEGER,
+        context-negotiation SEQUENCE {
+            presentation-context-id INTEGER,
+            transfer-syntax OBJECT IDENTIFIER },
+        transfer-syntax OBJECT IDENTIFIER,
+        fixed NULL },
+    data-value-descriptor ObjectDescriptor OPTIONAL,
+    data-value OCTET STRING }
+(WITH COMPONENTS { ... , data-value-descriptor ABSENT })
+\`\`\`
+
+This assumes \`AUTOMATIC TAGS\`, so all of the \`identification\` \
+choices will be \`CONTEXT-SPECIFIC\` and numbered from 0 to 5.`
+);
 export const UTF8_STRING_DEFINITION : MarkdownString = new MarkdownString(
 "A `UNIVERSAL` type that represents a UTF-8 String. Each character can be encoded "
 + "on multiple bytes."
@@ -155,13 +159,14 @@ Each character is encoded on a single byte."
 );
 
 export const T61_STRING_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents a string encoded with the Teletex character \
+`A \`UNIVERSAL\` type that represents a string encoded with the Teletex character \
 set, as specified in the \
-[International Telecommunications Union](https://www.itu.int/en/pages/default.aspx)'s\
-[T.61 : Character repertoire and coded character sets for the international teletex service](https://www.itu.int/rec/T-REC-T.61-198811-S/en).\n\
+[International Telecommunications Union](https://www.itu.int/en/pages/default.aspx)'s \
+[T.61 : Character repertoire and coded character sets for the international teletex service](https://www.itu.int/rec/T-REC-T.61-198811-S/en).
+
 This data type is deprecated, but it remains in use in some old X.509 certificates. \
 Most characters are encoded on a single byte, but diacritics themselves are another \
-byte that prefixes the character."
+byte that prefixes the character.`
 );
 
 export const VIDEOTEX_STRING_DEFINITION : MarkdownString = new MarkdownString(
@@ -171,44 +176,50 @@ never standardized. This data type is deprecated."
 );
 
 export const IA5_STRING_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents a string encoded with the International \
+`A \`UNIVERSAL\` type that represents a string encoded with the International \
 Reference Alphabet (IRA) character set--formerly known as the \
 'International Alphabet No. 5' (IA5)--as specified in the \
-[International Telecommunications Union](https://www.itu.int/en/pages/default.aspx)'s\
-[T.50 : International Alphabet No. 5](https://www.itu.int/rec/T-REC-T.50-198811-S).\n\
+[International Telecommunications Union](https://www.itu.int/en/pages/default.aspx)'s \
+[T.50 : International Alphabet No. 5](https://www.itu.int/rec/T-REC-T.50-198811-S).
+
 This is very similar to ASCII, but substitutes characters that are specific to \
-the United States, like the dollar sign (`$`) for more generic international characters. \
-Each character is encoded on a single byte."
+the United States, like the dollar sign (\`$\`) for more generic international characters. \
+Each character is encoded on a single byte.`
 );
 
 export const UTC_TIME_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents a moment in time. It is represented as a \
-string of the form `YYYMMDDhhmmss`, followed by either a `Z` to indicate UTC \
-time zone, or a plus or minus followed by an hour and minute of the form `hhmm` \
-to specify a timezone offset from UTC. The seconds component is optional.\n\
+`A \`UNIVERSAL\` type that represents a moment in time. It is represented as a \
+string of the form \`YYYMMDDhhmmss\`, followed by either a \`Z\` to indicate UTC \
+time zone, or a plus or minus followed by an hour and minute of the form \`hhmm\` \
+to specify a timezone offset from UTC. The seconds component is optional.
+
 Because this data type encodes the year on two digits, the indicated year is \
-ambiguous. The precision is also limited to seconds, which makes `UTCTime` \
-unusable for certain circumstances. For these reasons, `GeneralizedTime` \
-should be preferred when possible.\n\
-Examples:\
-`9805281429Z`\n\
-`980528142905Z`\n\
-`9805281429+0200`\n"
-);
+ambiguous. The precision is also limited to seconds, which makes \`UTCTime\` \
+unusable for certain circumstances. For these reasons, \`GeneralizedTime\` \
+should be preferred when possible.
+
+Examples:
+\`9805281429Z\`
+\`980528142905Z\`
+\`9805281429+0200\`
+`);
+
 
 export const GENERALIZED_TIME_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that represents a moment in time, and is represented as a \
-string of the form `YYYYMMDDhhmmss`, where both minutes and seconds are \
+`A \`UNIVERSAL\` type that represents a moment in time, and is represented as a \
+string of the form \`YYYYMMDDhhmmss\`, where both minutes and seconds are \
 optional. A milliseconds component of infinite precision can follow, taking \
 the form of a period or comma followed by an infinite sequence of digits \
-representing a decimal fraction of a second. Either a `Z` or a timezone may \
+representing a decimal fraction of a second. Either a \`Z\` or a timezone may \
 follow as a plus or minus with four digits that indicate the hour and minute \
-offset from UTC, and where `Z` indicates UTCTime.\n\
-Examples:\
-`199805281429Z`\n\
-`19980528142905Z`\n\
-`199805281429+0200`\n"
-);
+offset from UTC, and where \`Z\` indicates UTCTime.
+
+Examples:
+\`199805281429Z\`
+\`19980528142905Z\`
+\`199805281429+0200\`
+`);
+
 
 // deprecated (page 182)
 export const GRAPHIC_STRING_DEFINITION : MarkdownString = new MarkdownString(
@@ -237,24 +248,26 @@ Each character code point is encoded as a big-endian 32-bit integer on four byte
 );
 
 export const CHARACTER_STRING_DEFINITION : MarkdownString = new MarkdownString(
-"A `UNIVERSAL` type that is used to change the presentation context defined as:\n\
-```asn1\
-    CHARACTER STRING ::= [UNIVERSAL 29] SEQUENCE { \
-        identification CHOICE { \
-            syntaxes SEQUENCE { \
-                abstract OBJECT IDENTIFIER, \
-                transfer OBJECT IDENTIFIER }, \
-            syntax OBJECT IDENTIFIER, \
-            presentation-context-id INTEGER, \
-            context-negotiation SEQUENCE { \
-                presentation-context-id INTEGER, \
-                transfer-syntax OBJECT IDENTIFIER }, \
-            transfer-syntax OBJECT IDENTIFIER, \
-            fixed NULL }, \
-        string-value OCTET STRING } \
-```\n\
-This assumes `AUTOMATIC TAGS`, so all of the `identification` \
-choices will be `CONTEXT-SPECIFIC` and numbered from 0 to 5."
+`A \`UNIVERSAL\` type that is used to change the presentation context defined as:
+
+\`\`\`asn1
+CHARACTER STRING ::= [UNIVERSAL 29] SEQUENCE {
+    identification CHOICE {
+        syntaxes SEQUENCE {
+            abstract OBJECT IDENTIFIER,
+            transfer OBJECT IDENTIFIER },
+        syntax OBJECT IDENTIFIER,
+        presentation-context-id INTEGER,
+        context-negotiation SEQUENCE {
+            presentation-context-id INTEGER,
+            transfer-syntax OBJECT IDENTIFIER },
+        transfer-syntax OBJECT IDENTIFIER,
+        fixed NULL },
+    string-value OCTET STRING }
+\`\`\`
+
+This assumes \`AUTOMATIC TAGS\`, so all of the \`identification\` \
+choices will be \`CONTEXT-SPECIFIC\` and numbered from 0 to 5.`
 );
 
 export const BMP_STRING_DEFINITION : MarkdownString = new MarkdownString(
@@ -267,65 +280,75 @@ export const CHOICE_DEFINITION : MarkdownString = new MarkdownString(
 );
 
 export const DATE_DEFINITION : MarkdownString = new MarkdownString(
-"An ISO 8601 Date in the local time:\n\
-```asn1\
-DATE ::= [UNIVERSAL 31] IMPLICIT TIME (SETTINGS \"Basic=Date Date=YMD Year=Basic\")\
-```\n\
-This data type is newer and is unlikely to be encountered in ASN.1.\
-Its encodings are as follows:\n\
-- Eight bytes of the date as ASCII in `YYYYMMDD` format for BER, CER, and DER.\
-  No hyphens are encoded, and the value MUST be primitively encoded.\
-- Just like the abstract syntax, but without the surrounding quotes in XML\
-  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))\
-- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)\
-\n\
-This type is not recognized in the Generic String Encoding Rules (GSER).\n\
-In the Octet Encoding Rules (OER), it is encoded as though it were defined as:\n\
-```asn1\
-DATE-ENCODING ::= SEQUENCE {\
-    year    INTEGER,\
-    month   INTEGER (1..12),\
-    day     INTEGER (1..31) }\
-```\n\
-In the Packed Encoding Rules (PER), it is encoded as though it were defined as:\n\
-```asn1\
-YEAR-ENCODING ::= CHOICE { -- 2 bits for choice determinant\
-    immediate   INTEGER (2005..2020), -- 4 bits\
-    near-future INTEGER (2021..2276), -- 8 bits\
-    near-past   INTEGER (1749..2004), -- 8 bits\
-    remainder   INTEGER (MIN..1748 | 2277..MAX) }\
-\
-DATE-ENCODING ::= SEQUENCE {\
-    year    YEAR-ENCODING,\
-    month   INTEGER (1..12), -- 4 bits\
-    day     INTEGER (1..31) -- 5 bits -- }\
-```\n\
-"
-);
+`An ISO 8601 Date in the local time:
+
+\`\`\`asn1
+DATE ::= [UNIVERSAL 31] IMPLICIT TIME (SETTINGS "Basic=Date Date=YMD Year=Basic")
+\`\`\`
+
+This data type is newer and is unlikely to be encountered in ASN.1. \
+Its encodings are as follows:
+
+- Eight bytes of the date as ASCII in \`YYYYMMDD\` format for BER, CER, and DER.
+  No hyphens are encoded, and the value MUST be primitively encoded.
+- Just like the abstract syntax, but without the surrounding quotes in XML
+  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))
+- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)
+
+This type is not recognized in the Generic String Encoding Rules (GSER).
+In the Octet Encoding Rules (OER), it is encoded as though it were defined as:
+
+\`\`\`asn1
+DATE-ENCODING ::= SEQUENCE {
+    year    INTEGER,
+    month   INTEGER (1..12),
+    day     INTEGER (1..31) }
+\`\`\`
+
+In the Packed Encoding Rules (PER), it is encoded as though it were defined as:
+
+\`\`\`asn1
+YEAR-ENCODING ::= CHOICE { -- 2 bits for choice determinant
+    immediate   INTEGER (2005..2020), -- 4 bits
+    near-future INTEGER (2021..2276), -- 8 bits
+    near-past   INTEGER (1749..2004), -- 8 bits
+    remainder   INTEGER (MIN..1748 | 2277..MAX) }
+
+DATE-ENCODING ::= SEQUENCE {
+    year    YEAR-ENCODING,
+    month   INTEGER (1..12), -- 4 bits
+    day     INTEGER (1..31) -- 5 bits -- }
+\`\`\`
+`);
+
 
 export const DATE_TIME_DEFINITION : MarkdownString = new MarkdownString(
-"An ISO 8601 Date-Time in the local time:\n\n\
-```asn1\
-DATE-TIME ::= [UNIVERSAL 33] IMPLICIT TIME (SETTINGS \"Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=L\")\n\
-```\n\n\
-This data type is newer and is unlikely to be encountered in ASN.1.\
-Its encodings are as follows:\n\
-- 14 bytes of the datetime as ASCII in `YYYYMMDDhhmmss` format for BER, CER, and DER.\
-  No hyphens, colons, or \"T\" are encoded, and the value MUST be primitively encoded.\
-- Just like the abstract syntax, but without the surrounding quotes in XML\
-  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))\
-- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)\
-\n\
-This type is not recognized in the Generic String Encoding Rules (GSER).\n\
-In the Packed Encoding Rules (PER) and the Octet Encoding Rules (OER), it is\
-encoded as though it were defined as:\n\
-```asn1\
-DATE-TIME-ENCODING {Date-Type, Time-Type} ::= SEQUENCE {\
-    date    Date-Type,\
-    time    Time-Type }\
-```\n\
-"
-);
+`An ISO 8601 Date-Time in the local time:
+
+\`\`\`asn1
+DATE-TIME ::= [UNIVERSAL 33] IMPLICIT TIME (SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=L")
+\`\`\`
+
+This data type is newer and is unlikely to be encountered in ASN.1. \
+Its encodings are as follows:
+
+- 14 bytes of the datetime as ASCII in \`YYYYMMDDhhmmss\` format for BER, CER, and DER.
+  No hyphens, colons, or "T" are encoded, and the value MUST be primitively encoded.
+- Just like the abstract syntax, but without the surrounding quotes in XML
+  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))
+- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)
+
+This type is not recognized in the Generic String Encoding Rules (GSER).
+In the Packed Encoding Rules (PER) and the Octet Encoding Rules (OER), it is \
+encoded as though it were defined as:
+
+\`\`\`asn1
+DATE-TIME-ENCODING {Date-Type, Time-Type} ::= SEQUENCE {
+    date    Date-Type,
+    time    Time-Type }
+\`\`\`
+`);
+
 
 export const TIME_DEFINITION : MarkdownString = new MarkdownString(
 "A timestamp recorded as a string in the form specified in ISO 8601, \
@@ -333,79 +356,89 @@ Section 3.4."
 );
 
 export const TIME_OF_DAY_DEFINITION : MarkdownString = new MarkdownString(
-"An ISO 8601 Date in the local time:\n\
-```asn1\
-TIME-OF-DAY ::= [UNIVERSAL 32] IMPLICIT TIME (SETTINGS \"Basic=Time Time=HMS Local-or-UTC=L\")\
-```\n\
-This data type is newer and is unlikely to be encountered in ASN.1.\
-Its encodings are as follows:\n\
-- Six bytes of the time as ASCII in `HHMMSS` format for BER, CER, and DER.\
-  No colons are encoded, and the value MUST be primitively encoded.\
-- Just like the abstract syntax, but without the surrounding quotes in XML\
-  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))\
-- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)\
-\n\
-This type is not recognized in the Generic String Encoding Rules (GSER).\n\
+`An ISO 8601 Date in the local time:
+
+\`\`\`asn1
+TIME-OF-DAY ::= [UNIVERSAL 32] IMPLICIT TIME (SETTINGS "Basic=Time Time=HMS Local-or-UTC=L")
+\`\`\`
+
+This data type is newer and is unlikely to be encountered in ASN.1. \
+Its encodings are as follows:
+
+- Six bytes of the time as ASCII in \`HHMMSS\` format for BER, CER, and DER.
+  No colons are encoded, and the value MUST be primitively encoded.
+- Just like the abstract syntax, but without the surrounding quotes in XML
+  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))
+- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)
+
+This type is not recognized in the Generic String Encoding Rules (GSER).
 In the Octet Encoding Rules (OER) and the Packed Encoding Rules (PER), \
-it is encoded as though it were defined as:\n\
-```asn1\
-TIME-OF-DAY-ENCODING ::= SEQUENCE {\
-    hours   INTEGER (0..24),\
-    minutes INTEGER (0..59),\
-    seconds INTEGER (0..60) }\
-```\n\
-In the Packed Encoding Rules (PER), each component is encoded on five bits.\
-"
+it is encoded as though it were defined as:
+
+\`\`\`asn1
+TIME-OF-DAY-ENCODING ::= SEQUENCE {
+    hours   INTEGER (0..24),
+    minutes INTEGER (0..59),
+    seconds INTEGER (0..60) }
+\`\`\`
+
+In the Packed Encoding Rules (PER), each component is encoded on five bits.`
 );
 
 export const DURATION_DEFINITION : MarkdownString = new MarkdownString(
-"An ISO 8601 duration:\n\
-```asn1\
-DURATION ::= [UNIVERSAL 34] IMPLICIT TIME (SETTINGS \"Basic=Interval Interval-type=D\")\
-```\n\
-This data type is newer and is unlikely to be encountered in ASN.1.\
-Its encodings are as follows:\n\
-- Just like the abstract value for BER, CER, and DER, but with the leading\
-  \"P\" removed. The value MUST be primitively encoded. Further restrictions\
-  apply for CER and DER encodings, including using only period `.` for fractions.\
-- Just like the abstract syntax, but without the surrounding quotes in XML\
-  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))\
-- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)\
-\n\
-This type is not recognized in the Generic String Encoding Rules (GSER).\n\
-In the Octet Encoding Rules (OER), it is encoded as though it were defined as:\n\
-```asn1\
-DURATION-INTERVAL-ENCODING ::= SEQUENCE {\
-    years   INTEGER (0..MAX) OPTIONAL,\
-    months  INTEGER (0..MAX) OPTIONAL,\
-    weeks   INTEGER (0..MAX) OPTIONAL,\
-    days    INTEGER (0..MAX) OPTIONAL,\
-    hours   INTEGER (0..MAX) OPTIONAL,\
-    minutes INTEGER (0..MAX) OPTIONAL,\
-    seconds INTEGER (0..MAX) OPTIONAL,\
-    fractional-part SEQUENCE {\
-        number-of-digits    INTEGER (0..MAX),\
-        fractional-value    INTEGER (0..MAX)\
-    } OPTIONAL\
-}\
-```\n\
-In the Packed Encoding Rules (PER), it is encoded as though it were defined as:\n\
-```asn1\
-DURATION-INTERVAL-ENCODING ::= SEQUENCE { -- 8 bits for optionality\
-    years   INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 years\
-    months  INTEGER (0..15, ..., 16..MAX) OPTIONAL, -- 4 bits for up to 15 months\
-    weeks   INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 weeks\
-    days    INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 days\
-    hours   INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 hours\
-    minutes INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 minutes\
-    seconds INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 seconds\
-    fractional-part SEQUENCE {\
-        number-of-digits    INTEGER(1..3, ..., 4..MAX), -- 3 bits for up to three digits accuracy\
-        fractional-value    INTEGER(0..999, ..., 1000..MAX) -- 11 bits for up to three digits accuracy\
-    } OPTIONAL }\
-```\n\
-"
-);
+`An ISO 8601 duration:
+
+\`\`\`asn1
+DURATION ::= [UNIVERSAL 34] IMPLICIT TIME (SETTINGS "Basic=Interval Interval-type=D")
+\`\`\`
+
+This data type is newer and is unlikely to be encountered in ASN.1. \
+Its encodings are as follows:
+
+- Just like the abstract value for BER, CER, and DER, but with the leading
+  "P" removed. The value MUST be primitively encoded. Further restrictions
+  apply for CER and DER encodings, including using only period \`.\` for fractions.
+- Just like the abstract syntax, but without the surrounding quotes in XML
+  Encoding Rules (XER) (restrictions apply with the Canonical XER (CXER))
+- Just like the abstract syntax (as a string) in the JSON Encoding Rules (JER)
+
+This type is not recognized in the Generic String Encoding Rules (GSER).
+In the Octet Encoding Rules (OER), it is encoded as though it were defined as:
+
+\`\`\`asn1
+DURATION-INTERVAL-ENCODING ::= SEQUENCE {
+    years   INTEGER (0..MAX) OPTIONAL,
+    months  INTEGER (0..MAX) OPTIONAL,
+    weeks   INTEGER (0..MAX) OPTIONAL,
+    days    INTEGER (0..MAX) OPTIONAL,
+    hours   INTEGER (0..MAX) OPTIONAL,
+    minutes INTEGER (0..MAX) OPTIONAL,
+    seconds INTEGER (0..MAX) OPTIONAL,
+    fractional-part SEQUENCE {
+        number-of-digits    INTEGER (0..MAX),
+        fractional-value    INTEGER (0..MAX)
+    } OPTIONAL
+}
+\`\`\`
+
+In the Packed Encoding Rules (PER), it is encoded as though it were defined as:
+
+\`\`\`asn1
+DURATION-INTERVAL-ENCODING ::= SEQUENCE { -- 8 bits for optionality
+    years   INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 years
+    months  INTEGER (0..15, ..., 16..MAX) OPTIONAL, -- 4 bits for up to 15 months
+    weeks   INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 weeks
+    days    INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 days
+    hours   INTEGER (0..31, ..., 32..MAX) OPTIONAL, -- 5 bits for up to 31 hours
+    minutes INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 minutes
+    seconds INTEGER (0..63, ..., 64..MAX) OPTIONAL, -- 6 bits for up to 63 seconds
+    fractional-part SEQUENCE {
+        number-of-digits    INTEGER(1..3, ..., 4..MAX), -- 3 bits for up to three digits accuracy
+        fractional-value    INTEGER(0..999, ..., 1000..MAX) -- 11 bits for up to three digits accuracy
+    } OPTIONAL }
+\`\`\`
+`);
+
 
 export const INSTANCE_OF_DEFINITION : MarkdownString = new MarkdownString(
 "An instance of an ASN.1 `CLASS`, which is encoded the same way as an \
