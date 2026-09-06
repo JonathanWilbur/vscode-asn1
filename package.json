@@ -3,7 +3,7 @@
   "type": "module",
   "displayName": "ASN.1",
   "description": "ASN.1 syntax, snippets, formatting, and more.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "engines": {
     "vscode": "^1.118.0"
   },
@@ -483,9 +483,9 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.19",
     "@types/vscode": "^1.118.0",
-    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
-    "esbuild": "^0.27.3",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.3",
     "npm-run-all": "^4.1.5",
     "typescript": "^5.9.3",
@@ -514,7 +514,7 @@
   },
   "pricing": "Free",
   "dependencies": {
-    "@wildboar/asn1": "npm:@jsr/wildboar__asn1@^11.1.0",
-    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.6.0"
+    "@wildboar/asn1": "npm:@jsr/wildboar__asn1@^11.3.0",
+    "@wildboar/asn1-parser": "npm:@jsr/wildboar__asn1-parser@^2.7.1"
   }
 }

@@ -9,7 +9,10 @@ See the [README](./README.md) for information on versioning.
 
 ## [Unreleased]
 
-- Nothing here yet
+## [1.1.1] - 2026-09-06
+
+- Fix malformed hovers, such as for `DURATION`
+- Fix several parsing issues (by upgrading `@wildboar/asn1-parser`)
 
 ## [1.1.0] - 2026-07-12
 

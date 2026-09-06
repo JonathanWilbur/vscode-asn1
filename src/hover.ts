@@ -22,8 +22,6 @@ import {
     ValueType,
     keywordsForbiddenAsLiterals,
     ProductionType,
-    type ObjectAssignment,
-    type TokenOrGroupSpec,
     type Defined,
     translateDefinedSyntaxToDefaultSyntax,
     type DefinedSyntax,
@@ -44,7 +42,6 @@ import {
     generalizedTimeRegex,
     DURATION_EQUIVALENT,
 } from "@wildboar/asn1";
-import { resolve } from "path";
 
 /**
  * Defined because utcTimeRegex uses the `^` and `$` operators, which does not

@@ -38,6 +38,10 @@ import { pollUntilParsingIsDone } from './utils.test.js';
 
 const DIAGNOSTICS_TEST_FILE: string = "DiagnosticsTest.asn1";
 
+function rangeToString(range: vscode.Range): string {
+    return `[${range.start.line}:${range.start.character}, ${range.end.line}:${range.end.character}]`;
+}
+
 suite('Diagnostics', function () {
     // You have to use a regular function (not arrow) for `this` to be defined properly.
     // this.timeout(10000);
@@ -89,7 +93,7 @@ suite('Diagnostics', function () {
             assert.ok(typeof diag.code === "string");
             const expectation = diagCodesExpected.get(diag.code);
             if (typeof expectation === "undefined") {
-                assert.fail("unexpected diagnostic: " + diag.code);
+                assert.fail(`unexpected diagnostic ${diag.code} at ${rangeToString(diag.range)}`);
             } else if (typeof expectation === "object" && !expectation) {
                 continue;
             } else if (typeof expectation === "number") {
