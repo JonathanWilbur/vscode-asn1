@@ -9,10 +9,16 @@ See the [README](./README.md) for information on versioning.
 
 ## [Unreleased]
 
-## [1.1.1] - 2026-09-06
+## [1.2.0] - 2026-09-06
 
 - Fix malformed hovers, such as for `DURATION`
 - Fix several parsing issues (by upgrading `@wildboar/asn1-parser`)
+- Stop flagging implicitly imported `ENUMERATED` variants, named integers, and
+  named bits as undefined symbols.
+- Add `asn1.alwaysDefined` configuration and a "Treat as defined" quick fix.
+- Add a command to re-index named bits, integers, and enumerated variants.
+- Fix imported objects used in sets that appear as settings in an `ObjectDefn`
+  (for example `SUBCLASS OF {top}`) being flagged as unused.
 
 ## [1.1.0] - 2026-07-12
 

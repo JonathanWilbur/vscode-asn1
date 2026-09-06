@@ -61,6 +61,14 @@
             "crlf"
           ],
           "description": "Line endings for CSV exports. Defaults to the line endings of the source ASN.1 file."
+        },
+        "asn1.alwaysDefined": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Identifiers to always treat as defined (for example ENUMERATED variants used without import)."
         }
       }
     },
@@ -104,6 +112,10 @@
       {
         "command": "asn1.mods-to-json.opendoc",
         "title": "Export All ASN.1 Modules in Current File to JSON"
+      },
+      {
+        "command": "asn1.reindex-implicit-symbols",
+        "title": "Re-index ASN.1 Named Bits, Integers, and Enumerated Variants"
       }
     ],
     "languages": [

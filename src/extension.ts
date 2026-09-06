@@ -8,7 +8,7 @@ import { Asn1HighlightProvider } from "./highlight.js";
 import { Asn1FoldingRangeProvider } from "./folding.js";
 import { Asn1CodeActionProvider } from "./codeact.js";
 import { Asn1CompletionItemProvider } from "./completion.js";
-import { indexAsn1Files, indexAsn1File, reindexAsn1File, deindexAsn1File, clearAsn1ModuleIndexes } from "./indexing.js";
+import { indexAsn1Files, indexAsn1File, reindexAsn1File, deindexAsn1File, clearAsn1ModuleIndexes, clearNamedBitAndIntegerIndexes } from "./indexing.js";
 import { log } from "./logging.js";
 import {
 	updateDiagnostics,
@@ -52,6 +52,68 @@ const ASN1_MODE: vscode.DocumentFilter[] = [
 
 function isAsn1File(doc: vscode.TextDocument) {
 	return (doc.languageId === LANGUAGE);
+}
+
+/**
+ * @summary Invalidate and rebuild the named-bit, named-integer, and enumerated-variant indexes
+ * @description
+ *
+ * Clears the append-only implicit-identifier caches, re-lexes every ASN.1 file
+ * in the workspace, then refreshes diagnostics for open ASN.1 documents.
+ *
+ * @author Cursor Grok 4.6
+ * @async
+ * @function
+ */
+async function reindexImplicitSymbolsCommand(): Promise<void> {
+	clearNamedBitAndIntegerIndexes();
+	await indexAsn1Files();
+	for (const document of vscode.workspace.textDocuments) {
+		if (document.languageId === LANGUAGE) {
+			await updateDiagnostics(document, diagnosticCollection);
+		}
+	}
+	log.appendLine(`${new Date()}: named bits, integers, and enumerated variants reindexed`);
+}
+
+/**
+ * @summary Treat an identifier as defined by adding it to `asn1.alwaysDefined`
+ * @description
+ *
+ * Appends `identifier` to the `asn1.alwaysDefined` configuration (workspace
+ * settings, falling back to user settings) and refreshes diagnostics for the
+ * given document. This is the "Add to Dictionary" quick fix for undefined
+ * ASN.1 symbols.
+ *
+ * @param identifier The identifier to always treat as defined
+ * @param uri The URI of the document whose diagnostics should be refreshed
+ * @author Cursor Grok 4.6
+ * @async
+ * @function
+ */
+async function treatIdentifierAsDefinedCommand(
+	identifier?: string,
+	uri?: vscode.Uri,
+): Promise<void> {
+	if (!identifier) {
+		return;
+	}
+	const config = vscode.workspace.getConfiguration("asn1");
+	const current = config.get<string[]>("alwaysDefined", []);
+	if (!current.includes(identifier)) {
+		const updated = [...current, identifier];
+		try {
+			await config.update("alwaysDefined", updated, vscode.ConfigurationTarget.Workspace);
+		} catch {
+			await config.update("alwaysDefined", updated, vscode.ConfigurationTarget.Global);
+		}
+	}
+	const activeUri = uri ?? vscode.window.activeTextEditor?.document.uri;
+	if (!activeUri) {
+		return;
+	}
+	const doc = await vscode.workspace.openTextDocument(activeUri);
+	await updateDiagnostics(doc, diagnosticCollection);
 }
 
 function fsWatcherOnDidCreate(uri: vscode.Uri, excludeFiles?: string): void {
@@ -107,6 +169,18 @@ export function activate(context: vscode.ExtensionContext) {
     	await updateDiagnostics(doc, diagnosticCollection);
 	});
 	context.subscriptions.push(commandDiagnose);
+
+	const commandReindexImplicit = vscode.commands.registerCommand(
+		"asn1.reindex-implicit-symbols",
+		reindexImplicitSymbolsCommand,
+	);
+	context.subscriptions.push(commandReindexImplicit);
+
+	const commandTreatAsDefined = vscode.commands.registerCommand(
+		"asn1.treatAsDefined",
+		treatIdentifierAsDefinedCommand,
+	);
+	context.subscriptions.push(commandTreatAsDefined);
 
 	vscode.commands.registerCommand("asn1.oid-to-csv.opendoc", export_oid_csv_from_doc_cmd);
 	vscode.commands.registerCommand("asn1.oid-to-csv.workspace", export_oid_csv_from_workspace_cmd);
@@ -259,5 +333,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	clearAsn1ModuleIndexes();
+	clearNamedBitAndIntegerIndexes();
 	clearParserOutputCaches();
 }

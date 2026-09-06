@@ -34,6 +34,10 @@ import {
 } from "@wildboar/asn1-parser";
 import { resolveDefinedInstantly } from "./resolve.js";
 import { maybeReparse } from "./reparse.js";
+import {
+    isKnownNamedBit,
+    isKnownNamedIntegerOrEnum,
+} from "./indexing.js";
 import log from "./logging.js";
 import { DATE_REGEX, TIME_REGEX } from "./time.js";
 import { ASN1Construction, ASN1TagClass, ASN1UniversalType, BERElement } from "@wildboar/asn1";
@@ -1343,6 +1347,104 @@ const selfContainedProductions: Set<string> = new Set([
 const SYMBOL_NOT_DEFINED: string = "symbol not assigned in this module, nor imported";
 
 /**
+ * @summary Determine whether an identifier is a curly-bracket list item
+ * @description
+ *
+ * After skipping whitespace, the previous character must be `{` or `,` and the
+ * next character must be `}` or `,`. This treats `{ sunday, monday }` as a
+ * named-bit list while leaving `KIND auxiliary` on the enumerated / named
+ * integer path, even though that variant sits inside an information object.
+ *
+ * @param document The current text document
+ * @param loc The location of the identifier (or `Defined*` production)
+ * @returns `true` if the identifier appears as a curly-bracket list item
+ * @author Cursor Grok 4.6
+ * @function
+ */
+function identifierAppearsInCurlyBrackets(
+    document: vscode.TextDocument,
+    loc: Asn1ParserLocation,
+): boolean {
+    const text = document.getText();
+    let prev = loc.startIndex - 1;
+    while (prev >= 0 && /\s/.test(text.charAt(prev))) {
+        prev--;
+    }
+    let next = loc.endIndex;
+    while (next < text.length && /\s/.test(text.charAt(next))) {
+        next++;
+    }
+    const prevChar = prev >= 0 ? text.charAt(prev) : "";
+    const nextChar = next < text.length ? text.charAt(next) : "";
+    return (prevChar === "{" || prevChar === ",") && (nextChar === "}" || nextChar === ",");
+}
+
+/**
+ * @summary Read the `asn1.alwaysDefined` configuration as a set of identifiers
+ * @returns A set of identifiers that should never be diagnosed as undefined
+ * @author Cursor Grok 4.6
+ * @function
+ */
+function getAlwaysDefinedSymbols(): Set<string> {
+    const config = vscode.workspace.getConfiguration("asn1");
+    const list = config.get<string[]>("alwaysDefined", []);
+    return new Set(list);
+}
+
+/**
+ * @summary Whether an otherwise-undefined symbol should not produce a diagnostic
+ * @description
+ *
+ * Consults the global named-bit index if the identifier appears in curly
+ * brackets, the named-integer / enumerated-variant index otherwise, then the
+ * `asn1.alwaysDefined` configuration.
+ *
+ * @param document The current text document
+ * @param loc The location of the identifier (or `Defined*` production)
+ * @param identifier The identifier that was not locally assigned or imported
+ * @param alwaysDefined Identifiers configured to always be treated as defined
+ * @returns `true` if no "symbol not defined" diagnostic should be emitted
+ * @author Cursor Grok 4.6
+ * @function
+ */
+function shouldSuppressUndefinedSymbolDiagnostic(
+    document: vscode.TextDocument,
+    loc: Asn1ParserLocation,
+    identifier: string,
+    alwaysDefined: ReadonlySet<string>,
+): boolean {
+    if (identifierAppearsInCurlyBrackets(document, loc)) {
+        if (isKnownNamedBit(identifier)) {
+            return true;
+        }
+    } else if (isKnownNamedIntegerOrEnum(identifier)) {
+        return true;
+    }
+    return alwaysDefined.has(identifier);
+}
+
+/**
+ * @summary Record identifier names from an `IdentifierList` as used symbols
+ * @param document The current text document
+ * @param node The `IdentifierList` CST node, or a descendant
+ * @param usedSymbols The set of used symbols to insert identifiers into
+ * @function
+ */
+function collectIdentifiersFromIdentifierList(
+    document: vscode.TextDocument,
+    node: Production,
+    usedSymbols: Set<string>,
+): void {
+    if (node.type === "identifier") {
+        usedSymbols.add(document.getText(getRangeFromLocation(document, node.location)));
+        return;
+    }
+    for (const child of node.children) {
+        collectIdentifiersFromIdentifierList(document, child, usedSymbols);
+    }
+}
+
+/**
  * @summary Drill into the Concrete Syntax Tree (CST) to find undefined symbols
  * @description
  * 
@@ -1361,6 +1463,8 @@ const SYMBOL_NOT_DEFINED: string = "symbol not assigned in this module, nor impo
  * @param assignment The current assignment
  * @param recursionTTL The recursion TTL: recursion limit, after which this function
  *  immediately returns without doing anything.
+ * @param insideSetting `true` if `cstnode` falls within a `Setting` production
+ * @param alwaysDefined Identifiers configured to always be treated as defined
  * @function
  */
 function drillForUndefinedSymbols(
@@ -1372,12 +1476,25 @@ function drillForUndefinedSymbols(
     enumItemsDefined: Set<string>,
     assignment: Assignment | undefined,
     recursionTTL: number = 100,
+    insideSetting: boolean = false,
+    alwaysDefined: ReadonlySet<string> = new Set(),
 ): void {
     if (recursionTTL <= 0) {
         return;
     }
     recursionTTL--;
     for (const child of cstnode.children) {
+        const childInsideSetting = insideSetting || (child.type === "Setting");
+        /*
+        The parser prefers to read `{ ident, ident, ... }` as a BitStringValue
+        IdentifierList rather than an ObjectSet. When that production is a
+        Setting in an ObjectDefn (e.g. SUBCLASS OF {top}), those identifiers
+        are object references and must be counted as used.
+        */
+        if (childInsideSetting && (child.type === "IdentifierList")) {
+            collectIdentifiersFromIdentifierList(document, child, usedSymbols);
+            continue;
+        }
         if (selfContainedProductions.has(child.type)) {
             continue;
         }
@@ -1422,6 +1539,8 @@ function drillForUndefinedSymbols(
                     enumItemsDefined,
                     assignment,
                     recursionTTL,
+                    childInsideSetting,
+                    alwaysDefined,
                 );
             }
             const isDefinedEnumVariant: boolean = (
@@ -1434,6 +1553,12 @@ function drillForUndefinedSymbols(
                 isDefinedOrImported(mod, def.reference)
                 || isDefinedInParams
                 || isDefinedEnumVariant
+                || shouldSuppressUndefinedSymbolDiagnostic(
+                    document,
+                    child.location,
+                    def.reference,
+                    alwaysDefined,
+                )
             ) {
                 continue;
             }
@@ -1455,6 +1580,8 @@ function drillForUndefinedSymbols(
                 enumItemsDefined,
                 assignment,
                 recursionTTL,
+                childInsideSetting,
+                alwaysDefined,
             );
         }
     }
@@ -1484,6 +1611,7 @@ function provideMissingSymbolDiagnostics(
     if (!body) {
         return;
     }
+    const alwaysDefined = getAlwaysDefinedSymbols();
 
     // Check that all exported symbols are defined
     const exps = Object.entries(mod.exports?.exportedSymbols ?? {});
@@ -1524,6 +1652,8 @@ function provideMissingSymbolDiagnostics(
             new Set(),
             undefined,
             10,
+            false,
+            alwaysDefined,
         );
     }
 
@@ -1532,7 +1662,7 @@ function provideMissingSymbolDiagnostics(
         if (!assn.production) {
             continue; // This should not happen.
         }
-        drillForUndefinedSymbols(document, mod, diags, assn.production, usedSymbols, enumItemsDefined, assn);
+        drillForUndefinedSymbols(document, mod, diags, assn.production, usedSymbols, enumItemsDefined, assn, 100, false, alwaysDefined);
         const params = (assn.parameters ?? []);
         for (const param of params) {
             if (!usedSymbols.has(param.dummyReference)) {

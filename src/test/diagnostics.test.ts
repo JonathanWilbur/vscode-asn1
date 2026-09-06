@@ -42,6 +42,35 @@ function rangeToString(range: vscode.Range): string {
     return `[${range.start.line}:${range.start.character}, ${range.end.line}:${range.end.character}]`;
 }
 
+/**
+ * @summary Open untitled ASN.1 text, show it, and wait until it has been parsed
+ * @description
+ *
+ * Untitled ASN.1 documents are indexed on open. Waiting for parsing to finish
+ * gives that indexing a chance to record named bits, named integers, and
+ * enumerated variants before a later document uses them.
+ *
+ * @param content The ASN.1 module text
+ * @returns The opened text document
+ * @author Cursor Grok 4.6
+ * @async
+ * @function
+ */
+async function openAndParseAsn1(content: string): Promise<vscode.TextDocument> {
+    const document = await vscode.workspace.openTextDocument({
+        language: "asn1",
+        content,
+    });
+    await vscode.window.showTextDocument(document);
+    await pollUntilParsingIsDone(document);
+    await vscode.commands.executeCommand("asn1.diagnose");
+    // Untitled files are indexed asynchronously on open. Give that a tick
+    // so named bits / enum variants are in the global sets before the
+    // caller opens a document that uses them.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    return document;
+}
+
 suite('Diagnostics', function () {
     // You have to use a regular function (not arrow) for `this` to be defined properly.
     // this.timeout(10000);
@@ -113,6 +142,128 @@ suite('Diagnostics', function () {
                 assert.fail("diagnostic missing: " + code);
             }
         }
+    });
+
+    test('does not flag imported objects used in ObjectDefn set settings as unused', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        const document = await vscode.workspace.openTextDocument({
+            language: "asn1",
+            content: `
+ObjectDefnImportUse
+DEFINITIONS ::= BEGIN
+IMPORTS
+    OBJECT-CLASS, top, commonName, neverUsed
+        FROM InformationFramework
+        {joint-iso-itu-t ds(5) module(1) informationFramework(1) 9};
+thingy OBJECT-CLASS ::= {
+    SUBCLASS OF        {top}
+    KIND               auxiliary
+    MAY CONTAIN        {commonName}
+    LDAP-NAME          {"thingy"}
+    LDAP-DESC          "testeroo"
+    ID                 id-oc-thingy
+}
+defaulty OBJECT-CLASS ::= {
+    &Superclasses {top},
+    &id id-oc-defaulty
+}
+END
+`,
+        });
+        await vscode.window.showTextDocument(document);
+        await vscode.commands.executeCommand("asn1.diagnose");
+        const unusedImportNames = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_IMPORT_SYMBOL_UNUSED)
+            .map((diag) => document.getText(diag.range));
+        assert.deepEqual(unusedImportNames, ["neverUsed"]);
+    });
+
+    test('still flags imported symbols used only as BIT STRING named bits as unused', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        const document = await vscode.workspace.openTextDocument({
+            language: "asn1",
+            content: `
+BitStringNamedBit
+DEFINITIONS ::= BEGIN
+IMPORTS unusedBit FROM OtherModule;
+Flags ::= BIT STRING { unusedBit (0), otherBit (1) }
+flags Flags ::= { unusedBit }
+END
+`,
+        });
+        await vscode.window.showTextDocument(document);
+        await vscode.commands.executeCommand("asn1.diagnose");
+        const unusedImportNames = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_IMPORT_SYMBOL_UNUSED)
+            .map((diag) => document.getText(diag.range));
+        assert.deepEqual(unusedImportNames, ["unusedBit"]);
+    });
+
+    test('does not flag implicitly imported ENUMERATED variants in information objects', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        await openAndParseAsn1(`
+ImplicitEnumDefs
+DEFINITIONS ::= BEGIN
+CursorTestKind ::= ENUMERATED {
+    cursorTestAuxiliary (2)
+}
+END
+`);
+        const document = await openAndParseAsn1(`
+ImplicitEnumUse
+DEFINITIONS ::= BEGIN
+TEST-OC ::= CLASS {
+    &kind INTEGER OPTIONAL,
+    &id OBJECT IDENTIFIER UNIQUE
+}
+WITH SYNTAX {
+    [KIND &kind]
+    ID &id
+}
+thingy TEST-OC ::= {
+    KIND cursorTestAuxiliary
+    ID totallyBogusIdent
+}
+END
+`);
+        const undefinedNames = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_SYMBOL_NOT_DEFINED)
+            .map((diag) => document.getText(diag.range));
+        assert.ok(!undefinedNames.includes("cursorTestAuxiliary"), "cursorTestAuxiliary should be treated as an implicitly imported ENUMERATED variant");
+        assert.ok(undefinedNames.includes("totallyBogusIdent"), "truly undefined identifiers should still be diagnosed");
+    });
+
+    test('does not flag implicitly imported named bits used in curly brackets', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        await openAndParseAsn1(`
+ImplicitBitDefs
+DEFINITIONS ::= BEGIN
+CursorTestBits ::= BIT STRING {
+    cursorTestFlag (0)
+}
+END
+`);
+        const document = await openAndParseAsn1(`
+ImplicitBitUse
+DEFINITIONS ::= BEGIN
+Holder{INTEGER:x} ::= SEQUENCE { f INTEGER DEFAULT x }
+Alias ::= Holder{ cursorTestFlag }
+Unknown ::= Holder{ totallyBogusBit }
+END
+`);
+        const undefinedNames = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_SYMBOL_NOT_DEFINED)
+            .map((diag) => document.getText(diag.range));
+        assert.ok(!undefinedNames.includes("cursorTestFlag"), "cursorTestFlag should be treated as an implicitly imported named bit");
+        assert.ok(undefinedNames.includes("totallyBogusBit"), "truly undefined identifiers should still be diagnosed");
     });
 
 });
