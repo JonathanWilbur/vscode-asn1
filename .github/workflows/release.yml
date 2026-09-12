@@ -2,9 +2,7 @@
 name: Release
 
 on:
-  release:
-    types:
-    - published
+  workflow_dispatch:
 
 permissions:
   # Needed for uploading assets to releases
@@ -47,13 +45,16 @@ jobs:
         if-no-files-found: error
         retention-days: 90
     - name: Publish to VS Code Extensions Marketplace
-      if: success() && startsWith(github.ref, 'refs/tags/')
       run: npx vsce publish
       env:
         VSCE_PAT: ${{ secrets.VSCE_PAT }}
     - name: Install ovsx
       run: npm install --no-save ovsx
     - name: Publish to Open VSX
+      # If this fails, it should still create a tag, release, SBOM, etc.
+      # Whatever went wrong can be retried, or the artifact can be manually
+      # uploaded, or a new patch version can be created.
+      continue-on-error: true
       run: npx ovsx publish ./*.vsix -p "$OVSX_PAT"
       env:
         OVSX_PAT: ${{ secrets.OVSX_PAT }}
@@ -61,11 +62,19 @@ jobs:
       run: mv asn1-${{ steps.version.outputs.version }}.vsix wildboar-asn1-${{ steps.version.outputs.version }}.vsix
     - name: Rename SBOM File
       run: mv wildboar-asn1.cdx.json wildboar-asn1-${{ steps.version.outputs.version }}.cdx.json
+    - name: Create Git Tag
+      run: |
+        git tag "v${{ steps.version.outputs.version }}"
+        git push origin "v${{ steps.version.outputs.version }}"
+    - name: Create release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release create "v${{ steps.version.outputs.version }}" --title "v${{ steps.version.outputs.version }}" --notes "See CHANGELOG.md for details."
     - name: Upload extension to release
       env:
         GH_TOKEN: ${{ github.token }}
-      run: gh release upload "${{ github.ref_name }}" "./wildboar-asn1-${{ steps.version.outputs.version }}.vsix#VS Code Extension"
+      run: gh release upload "v${{ steps.version.outputs.version }}" "./wildboar-asn1-${{ steps.version.outputs.version }}.vsix#VS Code Extension"
     - name: Upload SBOM to release
       env:
         GH_TOKEN: ${{ github.token }}
-      run: gh release upload "${{ github.ref_name }}" "./wildboar-asn1-${{ steps.version.outputs.version }}.cdx.json#Cyclone DX SBOM"
+      run: gh release upload "v${{ steps.version.outputs.version }}" "./wildboar-asn1-${{ steps.version.outputs.version }}.cdx.json#Cyclone DX SBOM"
