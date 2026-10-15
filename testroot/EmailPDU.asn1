@@ -1,0 +1,541 @@
+EmailPDU
+{itu-t(0) identified-organization(4) etsi(0) securityDomain(2)
+lawfulIntercept(2) li-ps(5) email(2) version20(20)}
+DEFINITIONS IMPLICIT TAGS ::=
+BEGIN
+IMPORTS
+
+    -- from ETSI TS 102 232-1 [3]
+    IPAddress
+        FROM LI-PS-PDU
+        {itu-t(0) identified-organization(4) etsi(0) securityDomain(2)
+        lawfulIntercept(2) li-ps(5) genHeader(1) version35(35)}
+
+    -- from ETSI TS 102 232-5 [38]
+    IPMMCC
+        FROM IPMultimediaPDU
+        {itu-t(0) identified-organization(4) etsi(0) securityDomain(2)
+        lawfulIntercept(2) li-ps(5) iPMultimedia(5) version16(16)}
+    ;
+
+-- ============================
+-- Object Identifier Definition
+-- ============================
+
+-- emailPDUObjId RELATIVE-OID          ::= {li-ps(5) email(2) version20(20)}
+-- emailIRIObjId RELATIVE-OID          ::= {emailPDUObjId iRI(1)}
+-- emailCCObjId RELATIVE-OID           ::= {emailPDUObjId cC(2)}
+-- messagingIRIObjId RELATIVE-OID      ::= {emailPDUObjId messagingIRI(3)}
+-- messagingCCObjId RELATIVE-OID       ::= {emailPDUObjId messagingCC(4)}
+-- messagingMMCCObjId RELATIVE-OID     ::= {emailPDUObjId messagingMMCC(5)}
+
+    -- definitions are relative to
+    -- {itu-t(0) identified-organization(4) etsi(0) securityDomain(2) lawfulintercept(2)}
+
+
+-- =============================
+-- Email Communications Contents
+-- =============================
+
+EmailCC ::= SEQUENCE
+    -- EmailCC is the PDU sent for each "piece" of E-mail captured content
+{
+    emailCCObjId        [0] RELATIVE-OID,
+    email-Format        [1] Email-Format,
+    content             [2] OCTET STRING
+        -- Network byte order
+}
+
+Email-Format ::= ENUMERATED
+{
+    ip-packet(1),
+        -- When this is the email format, the content will contain the bytes of the IP packet from
+        -- the IP header through to the end of the IP packet
+        -- Meets requirement E.2.7
+    application(2)
+        -- Only the IP stack Layer 4 payload, (i.e. no IP or TCP headers)
+        -- Meets requirement E.2.8
+}
+
+-- =======================================
+-- Intercept-related information for Email
+-- =======================================
+
+EmailIRI ::= SEQUENCE
+    -- EmailIRI is the PDU sent for each "piece" of E-mail IRI
+{
+    emailIRIObjId               [0] RELATIVE-OID,
+    eventType                   [1] E-mail-Event,
+    client-Address              [2] LI-PS-PDU.IPAddress OPTIONAL,
+        -- Provided if available
+    server-Address              [3] LI-PS-PDU.IPAddress OPTIONAL,
+        -- Provided if available
+    client-Port                 [4] INTEGER OPTIONAL,
+        -- Provided if available
+    server-Port                 [5] INTEGER OPTIONAL,
+        -- Provided if available
+    server-Octets-Sent          [6] INTEGER,
+    client-Octets-Sent          [7] INTEGER,
+    protocol-ID                 [8] E-mail-Protocol,
+    e-mail-Sender               [9] UTF8String (SIZE (0..255)) OPTIONAL,
+        -- Not available in some cases; if a value is available, it shall be provided.
+        -- Note that as of version 3.13.1, this field may contain RFC 6530-compliant addresses.
+    e-mail-Recipients           [10] E-mail-Address-List OPTIONAL,
+        -- Not available in some cases; if a value is available, it shall be provided
+        -- Note that as of version 3.13.1, this field may contain RFC 6530-compliant addresses.
+    status                      [11] E-mail-Status,
+    total-Recipient-Count       [12] INTEGER (0..4294967295) OPTIONAL,
+    message-ID                  [13] OCTET STRING OPTIONAL,
+        -- Network byte order
+    nationalParameter           [14] OCTET STRING OPTIONAL,
+        -- Completely defined on a national basis, including byte ordering
+    ...,
+    national-EM-ASN1parameters  [15] National-EM-ASN1parameters OPTIONAL,
+        -- Completely defined on a national basis
+    aAAInformation              [16] AAAInformation OPTIONAL,
+    e-mail-Sender-Validity      [17] ENUMERATED
+        {
+            validated(0),
+                -- The operator has assured the e-mail-sender
+            nonvalidated(1),
+                -- The operator does not assure the e-mail-sender
+            ...
+        } OPTIONAL
+}
+
+E-mail-Status ::= ENUMERATED
+{
+    status-unknown(1),
+    operation-failed(2),
+    operation-succeeded(3)
+}
+
+E-mail-Event ::= ENUMERATED
+{
+    e-mail-send(1),
+    e-mail-receive(2),
+    e-mail-download(3),
+    ...,
+    e-mail-logon-attempt(4),
+    e-mail-logon(5),
+    e-mail-logon-failure(6),
+    e-mail-logoff(7),
+    e-mail-partial-download(8),
+    e-mail-upload(9)
+}
+
+E-mail-Protocol ::= ENUMERATED
+{
+    smtp(1),
+    pop3(2),
+    imap4(3),
+    webmail(4),
+        -- See Annex H for more information
+    undefined(255),
+        -- The protocol is not known or not representable by the current enumeration
+    ...
+}
+
+E-mail-Address-List ::= SEQUENCE (SIZE (0..1023)) OF UTF8String(SIZE (0..255))
+
+National-EM-ASN1parameters ::= SEQUENCE
+{
+    countryCode     [1] PrintableString (SIZE (2)),
+        -- Country Code according to ISO 3166-1 [12],
+        -- the country to which the parameters inserted after the extension marker apply
+    ...
+        -- In case a given country wants to use additional national parameters according to its law,
+        -- these national parameters should be defined using the ASN.1 syntax and added after the
+        -- extension marker (...)
+}
+
+AAAInformation ::= CHOICE
+    -- The AAAInformation field allows for POP3 and authenticated SMTP AAA information
+{
+    pOP3AAAInformation          [0] POP3AAAInformation,
+    aSMTPAAAInformation     [1] ASMTPAAAInformation,
+    ...,
+    iMAPAAAInformation          [2] IMAPAAAInformation
+}
+
+POP3AAAInformation ::= SEQUENCE
+    -- The POP3AAAInformation field contains the POP3 username & optionally the password
+{
+    username                    [0] UTF8String (SIZE (0..64)),
+    password                    [1] UTF8String (SIZE (0..64)) OPTIONAL,
+    aAAResult                   [2] AAAResult OPTIONAL,
+    ...
+}
+
+ASMTPAAAInformation ::= SEQUENCE
+    -- The ASMTPAAAInformation field contains the SMTP username and
+    -- optionally the authentication fields
+{
+    username                    [0] UTF8String (SIZE (0..64)),
+    authMethod                  [1] AAAauthMethod OPTIONAL,
+        -- The hashing method used, i.e. CRAM-MD5, DIGEST-MD5, etc
+    challenge                   [2] OCTET STRING OPTIONAL,
+        -- A BASE64 encoded challenge send by the SMTP server
+    response                    [3] OCTET STRING OPTIONAL,
+        -- A BASE64 encoded hashed response returned by the client
+    aAAResult                   [4] AAAResult OPTIONAL,
+    ...
+}
+
+IMAPAAAInformation ::= SEQUENCE
+    -- The iMAPAAAInformation field contains the IMAP username & optionally the password
+{
+    username                    [0] UTF8String (SIZE (0..64)),
+    password                    [1] UTF8String (SIZE (0..64)) OPTIONAL,
+    aAAResult                   [2] AAAResult OPTIONAL,
+    ...
+}
+
+AAAResult ::= ENUMERATED
+{
+    resultUnknown(1),
+    aAAFailed(2),
+    aAASucceeded(3),
+    ...
+}
+
+AAAauthMethod ::= ENUMERATED
+{
+    undefinedAuthMethod(1),
+    cramMD5(2),
+    digestMD5(3),
+    ...
+}
+
+-- =================================
+-- Messaging Communications Contents
+-- =================================
+
+MessagingCC ::= SEQUENCE
+    -- MessagingCC is the PDU sent for the captured content
+{
+    messaging-cc-obj-id     [0] RELATIVE-OID,
+    event-identifier            [1] INTEGER (0..4294967295),
+        -- Used to correlate to MessagingIRI within the same CIN
+    content-identifier          [2] INTEGER (0..4294967295) OPTIONAL,
+    sequence-number             [3] INTEGER (0..4294967295) OPTIONAL,
+    end-of-sequence             [4] BOOLEAN DEFAULT FALSE,
+    content-type                [5] OCTET STRING,
+        -- MIME content type, i.e.: image/png, text/plain;charset=utf8, audio/PCMA
+    content                     [6] OCTET STRING,
+    ...,
+    content-transfer-encoding   [7] OCTET STRING OPTIONAL
+        -- MIME Content-Transfer-Encoding mechanism.
+        -- Refer to IETF RFC 2045 [20]
+}
+
+MessagingMMCC ::= SEQUENCE
+    -- MessagingMMCC is the PDU sent for the captured IPMultimediaPDU.IPMMCC content
+{
+    messaging-mm-cc-obj-id      [0] RELATIVE-OID,
+    event-identifier            [1] INTEGER (0..4294967295),
+        -- Used to correlate to MessagingIRI within the same CIN
+    content-identifier          [2] INTEGER (0..4294967295) OPTIONAL,
+    content                     [3] IPMultimediaPDU.IPMMCC,
+    ...
+}
+
+
+-- ===========================================
+-- Intercept-related information for Messaging
+-- ===========================================
+
+MessagingIRI ::= SEQUENCE
+{
+    messaging-iri-obj-id        [0] RELATIVE-OID,
+    system-type                 [1] Messaging-System-Type,
+    system-identifier           [2] OCTET STRING OPTIONAL,
+        -- Identifier up to national agreement, uniquely identifies a certain messaging system
+    category                    [3] Messaging-Event-Category OPTIONAL,
+    status                      [4] Messaging-Status,
+    party-information           [5] SET OF Messaging-Party-Information OPTIONAL,
+    trigger                     [6] Messaging-Trigger,
+    properties                  [7] SEQUENCE OF Messaging-Property OPTIONAL,
+    event-identifier            [8] INTEGER (0..4294967295) OPTIONAL,
+        -- Used to correlate to MessagingCC or MessagingMMCC within the same CIN. Mandatory when CC is also sent
+    original-message            [9] OCTET STRING OPTIONAL,
+    ...,
+    box-identifier              [10] OCTET STRING OPTIONAL,
+    total-recipient-count       [11] INTEGER (0..4294967295) OPTIONAL
+}
+
+Messaging-System-Type ::= ENUMERATED
+{
+    unified-messaging(1),
+    ...
+}
+
+Messaging-Event-Category ::= CHOICE
+{
+    message                     [0] Messaging-Event,
+    message-box                 [1] Messaging-Box-Event,
+    message-notification        [2] Messaging-Notification-Event,
+    call                        [3] Messaging-Call-Event,
+    ...
+}
+
+Messaging-Event ::= ENUMERATED
+{
+    deposit(1),
+    retrieve(2),
+    delete(3),
+    save(4),
+    slamdown(5),
+    ...,
+    calendar(6),
+    contact(7)
+}
+
+Messaging-Box-Event ::= ENUMERATED
+{
+    login(1),
+    logout(2),
+    lock(3),
+    unlock(4),
+    activate(5),
+    deactivate(6),
+    delete(7),
+    pin-change(8),
+    greeting-record(9),
+    greeting-change(10),
+    greeting-delete(11),
+    greeting-enable(12),
+    greeting-disable(13),
+    notification-enable(14),
+    notification-disable(15),
+    disconnect(16),
+    connect(17),
+    ...,
+    unknown(0),
+    greeting-play(18),
+    language-change(19),
+    pin-security-enable(20),
+    pin-security-disable(21),
+    personal-operator-add(22),
+    personal-operator-change(23),
+    personal-operator-remove(24),
+    additional-destination-add(25),
+    additional-destination-change(26),
+    additional-destination-remove(27),
+    auto-play-enable(28),
+    auto-play-disable(29),
+    header-play-enable(30),
+    header-play-disable(31)
+}
+
+Messaging-Notification-Event ::= ENUMERATED
+{
+    sms(1),
+    sms-deposit(2),
+    sms-slamdown(3),
+    sms-pin-reminder(4),
+    email(5),
+    fax-to-email(6),
+    ...,
+    mms(7),
+    generic(8)
+}
+
+Messaging-Call-Event ::= ENUMERATED
+{
+    callout(1),
+    ...
+}
+
+Messaging-Status ::= ENUMERATED
+{
+    unknown(0),
+    not-applicable(1),
+    operation-failed(2),
+    operation-succeeded(3),
+    operation-cancelled(4),
+    operation-started(5),
+    ...,
+    operation-lost(6)
+}
+
+Messaging-Party-Information ::= SEQUENCE
+{
+    party-qualifier     [0] Messaging-Party-Qualifier,
+    party-identity      [1] Messaging-Party-Identity,
+    ...,
+    party-validity      [2] Messaging-Party-Validity OPTIONAL,
+    copy-qualifier      [3] Messaging-Copy-Qualifier OPTIONAL
+}
+
+Messaging-Party-Qualifier ::= ENUMERATED
+{
+    unknown-party(0),
+        -- In this case the party cannot be classified as either originating or terminating
+    originating-party(1),
+        -- In this case, the partyInformation parameter provides the identities related to
+        -- the originating party and all information provided by this party.
+    terminating-party(2),
+        -- In this case, the partyInformation parameter provides the identities related to
+        -- the terminating party and all information provided by this party.
+    ...,
+    associated-party(3)
+        -- In this case, the partyInformation parameter provides the identities related to
+        -- an associated party and all information provided by this party.
+}
+
+Messaging-Party-Identity ::= CHOICE
+{
+    msisdn                  [0] OCTET STRING (SIZE (1..9)),
+        -- MSISDN of the target, encoded in the same format as the AddressString
+        -- parameters defined in MAP format 3GPP TS 29.002 [36], clause 17.7.8.
+    e164-format             [1] OCTET STRING (SIZE (1..25)),
+        -- E.164 address of the node in international format. Coded in the same format as
+        -- the calling party number parameter of the ISUP (parameter part: EN 300 356 [23])
+    email-address           [2] E-mail-Address-List,
+        -- Note that as of version 3.13.1, this field may contain RFC 6530-compliant addresses.
+    ...,
+    ip-address              [3] LI-PS-PDU.IPAddress,
+        -- IPAddress is defined by IETF RFC 791 [31] and RFC 8200 [34]
+    alphanumeric            [4] UTF8String,
+    ip-address-and-port [5] IP-Address-And-Port,
+    imsi                    [6] OCTET STRING (SIZE (3..8)),
+        -- International Mobile Subscriber Identity of the target, encoded in the same format as the
+        -- TBCD-STRING parameter defined in MAP format 3GPP TS 29.002 [36], clause 17.7.8.
+        -- It is described in 3GPP TS 23.003 [37] clause 2.2.
+    imei                    [7] OCTET STRING (SIZE (8)),
+        -- International Mobile Equipment Identity of the target, encoded in the same format as the
+        -- TBCD-STRING parameter defined in MAP format 3GPP TS 29.002 [36], clause 17.7.8.
+        -- It is defined in 3GPP TS 23.003 [37] clause 6.
+    fax-url                 [8] OCTET STRING,
+        -- see format defined in RFC 2806 [29].
+    tel-url                 [9] OCTET STRING,
+        -- see format used in 3GPP TS 33.108 [5], 3GPP TS 24.229 [30] and defined in RFC 2806 [29].
+    modem-url               [10] OCTET STRING,
+        -- see format defined in RFC 2806 [29].
+    sip-uri                 [11] OCTET STRING,
+        -- see format used in in 3GPP TS 33.108 [5] and defined in RFC 3261 [32].
+    sips-uri                [12] OCTET STRING,
+        -- see format defined in RFC 3261 [32].
+    nai                     [13] OCTET STRING
+        -- Network Access Identity of the party, encoded in the same format as used EPS
+        -- domain in 3GPP TS 33.108 [5] and defined in RFC 7542 [33].
+}
+
+IP-Address-And-Port ::= SEQUENCE
+{
+    ip-address              [0] LI-PS-PDU.IPAddress,
+        -- IPAddress is defined by IETF RFC 791 [31] and RFC 8200 [34]
+    port-number             [1] INTEGER,
+        -- port-number is defined by IETF RFC 6335 [35]
+    ...
+}
+
+Messaging-Party-Validity ::= ENUMERATED
+{
+    unknown(0),
+    trusted(1),
+    untrusted(2),
+    ...
+}
+
+Messaging-Copy-Qualifier ::= ENUMERATED
+{
+    unknown(0),
+    none(1),
+    cc(2),
+    bcc(3),
+    ...
+}
+
+Messaging-Trigger ::= ENUMERATED
+{
+    unknown(0),
+    user(1),
+    user-agent(2),
+    system(3),
+    system-operator(4),
+    ...
+}
+
+Messaging-Property ::= CHOICE
+{
+    pincode             [0] OCTET STRING (SIZE (1..32)),
+    ...,
+    priority            [1] Messaging-Property-Priority,
+    greeting-type       [2] Messaging-Property-Greeting-Type,
+    notification-type   [3] Messaging-Property-Notification-Type,
+    language            [4] OCTET STRING,
+        -- Language according to RFC 4646 [24]
+    message-identifier  [5] OCTET STRING,
+    subject             [6] UTF8String,
+    user-agent          [7] UTF8String,
+    password            [8] OCTET STRING,
+    message-status      [9] Messaging-Property-Message-Status,
+    requested-reports   [10] Messaging-Property-Requested-Reports,
+    expires             [11] GeneralizedTime,
+    message-date        [12] GeneralizedTime
+}
+
+Messaging-Property-Priority ::= ENUMERATED
+{
+    low(1),
+    medium(2),
+    high(3),
+    private(4),
+    ...
+}
+
+Messaging-Property-Greeting-Type ::= ENUMERATED
+{
+    general(1),
+    name(2),
+    personal(3),
+    absence(4),
+    number(5),
+    ...
+}
+
+Messaging-Property-Notification-Type ::= ENUMERATED
+{
+    empty-call(1),
+    lost-call(2),
+    ...,
+    message-to-email(3),
+    read-report(4),
+    delivery-report(5),
+    allow-delivery-report(6),
+    deny-delivery-report(7),
+    message-wait-indication(8),
+    voice-to-text(9),
+    new-message-sms(10),
+    new-message-outcall(11),
+    new-message-reminder(12)
+}
+
+Messaging-Property-Message-Status ::= ENUMERATED
+{
+    indeterminate(0),
+    expired(1),
+    retrieved(2),
+    rejected(3),
+    deferred(4),
+    forwarded(5),
+    unrecognized(6),
+    unreachable(7),
+    read(8),
+    deleted-without-being-read(9),
+    delivery-condition-not-met(10),
+    ...
+}
+
+Messaging-Property-Requested-Reports ::= ENUMERATED
+{
+    none(0),
+    delivery(1),
+    read(2),
+    delivery-and-read(3),
+    ...
+}
+
+END -- end of EmailPDU

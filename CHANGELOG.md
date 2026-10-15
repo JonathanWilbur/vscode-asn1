@@ -7,6 +7,12 @@ and this project adheres to
 
 See the [README](./README.md) for information on versioning.
 
+## [Unreleased]
+
+- Stop flagging an `ENUMERATED` extension number that sits below a root number
+  when it is still greater than every earlier extension number (ITU-T X.680,
+  clause 20.4).
+
 ## [1.2.1] - 2026-09-12
 
 - Fix re-parsing of `Setting`s that are `typereference`s as `ValueSet`s.

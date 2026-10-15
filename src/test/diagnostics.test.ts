@@ -6,7 +6,7 @@ import {
     DIAG_CODE_ASSIGNMENT_DUP,
     // DIAG_CODE_NAMED_NUM_OR_BIT_DUP,
     // DIAG_CODE_NAMED_BIT_OR_ENUM_NEG,
-    // DIAG_CODE_ENUM_NUM_DUP,
+    DIAG_CODE_ENUM_NUM_DUP,
     DIAG_CODE_COMPS_OF_NOT_TYPE,
     DIAG_CODE_COMPS_OF_WRONG_TYPE,
     DIAG_CODE_SET_OR_SEQ_COMP_DUP,
@@ -264,6 +264,33 @@ END
             .map((diag) => document.getText(diag.range));
         assert.ok(!undefinedNames.includes("cursorTestFlag"), "cursorTestFlag should be treated as an implicitly imported named bit");
         assert.ok(undefinedNames.includes("totallyBogusBit"), "truly undefined identifiers should still be diagnosed");
+    });
+
+    test('allows an extension enumeration number below the root', async () => {
+        const ext = vscode.extensions.getExtension<{ indexingPromise: Promise<void> }>("wildboar.asn1")!;
+        const outcome = await ext.activate();
+        await outcome.indexingPromise;
+        const document = await openAndParseAsn1(`
+EnumExtensionOrder
+DEFINITIONS ::= BEGIN
+-- X.680 20.5 example C: c(1) is below b(3) and is still valid.
+BelowRoot ::= ENUMERATED { a, b(3), ..., c(1) }
+-- Same shape as Messaging-Box-Event: unknown(0) fills a gap under the root.
+Messaging-Box-Event ::= ENUMERATED {
+    login(1),
+    connect(17),
+    ...,
+    unknown(0),
+    greeting-play(18)
+}
+-- 20.4: each extension must exceed every earlier extension, not merely the previous one.
+OutOfOrder ::= ENUMERATED { a(1), ..., b(5), c(3), d(4) }
+END
+`);
+        const extensionOrder = vscode.languages.getDiagnostics(document.uri)
+            .filter((diag) => diag.code === DIAG_CODE_ENUM_NUM_DUP)
+            .map((diag) => document.getText(diag.range));
+        assert.deepEqual(extensionOrder, ["c(3)", "d(4)"]);
     });
 
 });

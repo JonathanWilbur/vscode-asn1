@@ -290,14 +290,17 @@ function returnNamedNumberError(
  * @description
  * 
  * This function checks for duplicate values and negatives in types that do not
- * allow it.
+ * allow it. For an extensible `ENUMERATED` type, it also checks X.680 clause
+ * 20.4: each extension number must be greater than every earlier extension
+ * number. Root numbers are not part of that ordering, so an extension may
+ * reuse a gap below the root (for example `unknown(0)` after `connect(17)`).
  * 
  * @param document The current text document
  * @param assn The current type assignment
  * @param namednums The list of named numbers
  * @param diags The output diagnostics as an array
  * @param typeType The ASN.1 type of this assignment
- * @param startOfAdditionals The index after which the extension numbers begin
+ * @param startOfAdditionals The index at which the extension numbers begin
  * @function
  */
 function provideNamedNumbersDiagnostics(
@@ -314,7 +317,9 @@ function provideNamedNumbersDiagnostics(
     );
     const encounteredIdentifiers: Map<string, Production | null> = new Map();
     const encounteredNumbers: Map<number, Production | null> = new Map();
-    let largestPrevious: number = 0;
+    // Largest number among extension items already seen. Root numbers are
+    // excluded: X.680 20.4 orders AdditionalEnumeration against itself.
+    let largestExtensionNumber: number | undefined;
     for (const [i, nn] of namednums.entries()) {
         const loc = nn.production?.location;
         if (
@@ -357,26 +362,34 @@ function provideNamedNumbersDiagnostics(
             }
         }
 
-        if (
+        const extensionNumber = (
             (typeType === TypeType.EnumeratedType)
             && (startOfAdditionals > -1)
             && (i >= startOfAdditionals)
             && (typeof nn.number === "number")
-            && (nn.number <= largestPrevious)
+        )
+            ? nn.number
+            : undefined;
+        if (
+            (typeof extensionNumber === "number")
+            && (typeof largestExtensionNumber === "number")
+            && (extensionNumber <= largestExtensionNumber)
             && nn.production
         ) {
             const range = getRangeFromLocation(document, nn.production.location);
             const diag = new vscode.Diagnostic(
                 range,
-                "number already assigned before this (violation of ITU-T Recommendation X.680, Section 20.4)",
+                "extension number is not greater than all earlier extension numbers (violation of ITU-T Recommendation X.680, Section 20.4)",
                 vscode.DiagnosticSeverity.Error,
             );
             diag.code = DIAG_CODE_ENUM_NUM_DUP;
             diags.push(diag);
         }
 
-        if (typeof nn.number === "number") {
-            largestPrevious = nn.number;
+        if (typeof extensionNumber === "number") {
+            largestExtensionNumber = (typeof largestExtensionNumber === "number")
+                ? Math.max(largestExtensionNumber, extensionNumber)
+                : extensionNumber;
         }
     }
 }
