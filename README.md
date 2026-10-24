@@ -1,10 +1,7 @@
 # ASN.1 VS Code Extension
 
-It's been seven long years, but it's time for a face lift. I have updated this
-extension to perform proper ASN.1 parsing using my
-[`@wildboar/asn1-parser`](https://jsr.io/@wildboar/asn1-parser) module, which
-will result in better quality and more features than the previous
-implementation.
+This extension uses my
+[`@wildboar/asn1-parser`](https://jsr.io/@wildboar/asn1-parser) module.
 
 ## Features
 
