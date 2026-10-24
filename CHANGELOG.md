@@ -7,12 +7,46 @@ and this project adheres to
 
 See the [README](./README.md) for information on versioning.
 
-## [Unreleased]
+## [1.2.2]
 
 - Stop flagging an `ENUMERATED` extension number that sits below a root number
   when it is still greater than every earlier extension number (ITU-T X.680,
   clause 20.4).
 - Format whitespace after the last arc of an imported module object identifier.
+- Several fixes from upstream changes in the ASN.1 parser:
+  - Groking an object set no longer crashes when `EXCEPT` or another
+    element position contains a parenthesized element set, such as
+    `EXCEPT (referral | in-DSAReferral)`. The parenthesized set is kept in the
+    abstract syntax tree.
+  - Make `ProductionType` an erasable union of constant strings.
+    This might not actually break your code, depending on what you're doing.
+  - Replace the remaining enums (`AssignmentType`, `FieldSpecType`,
+    `TaggingMode`, `TypeType`, `ValueType`, `ValueAssignmentType`,
+    `SelectionOption`, `LogLevel`, and `ASN1UniversalType`) with const objects
+    and unions, and enable `erasableSyntaxOnly`. Member values are unchanged, and
+    each type is the union of those values, so a matching string or number
+    literal is assignable where the old enum member type was required.
+    `LogLevel` and `ASN1UniversalType` no longer have numeric-enum reverse
+    mappings. `ASN1UniversalType.boolean` is still the value `1`; use
+    `typeof ASN1UniversalType.boolean` when that member is needed as a type.
+    Constructor parameters that previously declared properties are now ordinary
+    fields assigned in the constructor.
+  - Reject an absolute `OBJECT IDENTIFIER` whose first arc uses a name that is
+    not a recognized root arc name for that number (`itu-t` / `ccitt` for 0,
+    `iso` for 1, `joint-iso-itu-t` / `joint-iso-ccitt` for 2). A single arc
+    numbered 0, 1, or 2 was previously accepted, so `{ pkiAttributeType(2) }`
+    was not reported; that form is now an error suggesting the prefix notation
+    `{ pkiAttributeType 2 }`.
+  - Fix `RELATIVE-OID` parsing
+  - Report nameless CHOICE alternatives and SET or SEQUENCE components (ancient
+    ASN.1 syntax that X.680 no longer allows) as a syntax error instead of
+    crashing with `TypeError: Cannot read properties of undefined (reading 'type')`.
+  - More descriptive error when encountering a totally empty object set `{ }`.
+    (Not valid syntax, but `{...}` is.)
+  - Merge imports from the same module
+    - Even though this is invalid, the way to handle this is still obvious.
+  - Slightly better (but still incorrect) symbol resolution in `resolve()`
+  - Handle whitespace in between parameterized imported references
 
 ## [1.2.1] - 2026-09-12
 
