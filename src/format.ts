@@ -618,7 +618,7 @@ function formatAssignedIdentifier(
         } else { // "{" ObjIdComponentsList "}"
             const sep1 = separateBy(document, curlyOpen, clist, "");
             sep1 && edits.push(sep1);
-            const sep2 = separateBy(document, curlyClose, clist, "");
+            const sep2 = separateBy(document, clist, curlyClose, "");
             sep2 && edits.push(sep2);
         }
         const indentnum: number = 2;

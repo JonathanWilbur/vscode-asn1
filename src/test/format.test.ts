@@ -7,7 +7,7 @@ SelectedAttributeTypes {joint-iso-itu-t ds(  5  ) module  (1) selectedAttributeT
 
   id-at, id-avc, id, id-asx, id-cat,    id-coat, id-lmr, id-lsx, id-mr, id-not, id-pr
     FROM UsefulDefinitions
-      {joint-iso-itu-t ds(5) module(1) usefulDefinitions(0) 9} WITH SUCCESSORS
+      {joint-iso-itu-t ds(5) module(1) usefulDefinitions(0) 9   } WITH SUCCESSORS
 
   Attribute{}, ATTRIBUTE, AttributeType, AttributeValueAssertion, CONTEXT,
   ContextAssertion, DistinguishedName, distinguishedNameMatch,

@@ -12,6 +12,7 @@ See the [README](./README.md) for information on versioning.
 - Stop flagging an `ENUMERATED` extension number that sits below a root number
   when it is still greater than every earlier extension number (ITU-T X.680,
   clause 20.4).
+- Format whitespace after the last arc of an imported module object identifier.
 
 ## [1.2.1] - 2026-09-12
 
