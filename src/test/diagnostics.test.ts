@@ -100,8 +100,8 @@ suite('Diagnostics', function () {
             [ DIAG_CODE_CHOICE_ALT_DUP, 1 ],
             // [ DIAG_CODE_SHORT_OID, 1 ], (Unavailable to due to parsing failure prior.)
             [ DIAG_CODE_OID_ROOT_ARC_NUM, 1 ],
-            [ DIAG_CODE_OID_ROOT_ARC_NAME, 1 ],
-            [ DIAG_CODE_OID_ROOT_ARC_MISMATCH, 2 ],
+            // [ DIAG_CODE_OID_ROOT_ARC_NAME, 1 ],
+            // [ DIAG_CODE_OID_ROOT_ARC_MISMATCH, 2 ],
             [ DIAG_CODE_OID_BIG_SECOND_ARC, 1 ],
             [ DIAG_CODE_DATE_INVALID, 1 ],
             [ DIAG_CODE_DATE_DAY_INVALID, 1 ],

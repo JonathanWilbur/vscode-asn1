@@ -154,10 +154,12 @@ Choice1 ::= CHOICE {
 id-oid2 OBJECT IDENTIFIER ::= { 3 5 }
 
 -- DIAG_CODE_OID_ROOT_ARC_NAME
-id-oid3 OBJECT IDENTIFIER ::= { goofyboi(1) 5 }
+-- This is now handled by groking in @wildboar/asn1-parser.
+-- id-oid3 OBJECT IDENTIFIER ::= { goofyboi(1) 5 }
 
 -- DIAG_CODE_OID_ROOT_ARC_MISMATCH
-id-oid4 OBJECT IDENTIFIER ::= { joint-iso-itu-t(1) 5 }
+-- This is now handled by groking in @wildboar/asn1-parser.
+-- id-oid4 OBJECT IDENTIFIER ::= { joint-iso-itu-t(1) 5 }
 
 -- DIAG_CODE_OID_BIG_SECOND_ARC
 id-oid5 OBJECT IDENTIFIER ::= { iso 41 }
